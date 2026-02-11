@@ -1,0 +1,24 @@
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python global
+*.pyc
+__pycache__/
+
+# Env files
+.env
+
+# Flutter global
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# Virtual env
+**/env/
+**/venv/
