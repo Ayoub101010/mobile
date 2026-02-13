@@ -5,8 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import generics
+from django.db import models as db_models
 #from django.contrib.gis.db.models.functions import Transform
-from .models import Login
+from .models import Login, UserRegion, UserPrefecture
 from .serializers import LoginSerializer, PisteReadSerializer, PisteWriteSerializer
 from .models import Piste
 from .models import (
@@ -63,6 +64,76 @@ class AutoCommuneMixin:
 
         serializer.save()
 
+class RBACFilterMixin:
+    """
+    Mixin pour filtrer les données GET selon les communes accessibles de l'utilisateur.
+    
+    Utilisation : ajouter ce mixin à toute vue ListCreateAPIView.
+    Le mobile envoie ?login_id=X, le serveur calcule les communes accessibles.
+    Rétro-compatible : si ?commune_id=Y est envoyé, filtre par une seule commune.
+    """
+    # Sous-classes peuvent overrider ce champ si le nom diffère
+    commune_field_name = 'commune_id'
+
+    def filter_queryset_by_rbac(self, qs):
+        """Filtre le queryset selon le rôle de l'utilisateur"""
+
+        # ===== NOUVEAU : Filtre par login_id (RBAC) =====
+        login_id = self.request.query_params.get('login_id')
+        if login_id:
+            try:
+                user = Login.objects.get(id=login_id)
+
+                # Super_admin / Admin → tout voir
+                if user.role in ('Super_admin', 'Admin'):
+                    return qs
+
+                # BTGR → communes des régions assignées
+                if user.role == 'BTGR':
+                    region_ids = UserRegion.objects.filter(
+                        login_id=login_id
+                    ).values_list('region_id', flat=True)
+
+                    pref_ids = Prefecture.objects.filter(
+                        regions_id__in=region_ids
+                    ).values_list('id', flat=True)
+
+                    commune_ids = CommuneRurale.objects.filter(
+                        prefectures_id__in=pref_ids
+                    ).values_list('id', flat=True)
+
+                    return qs.filter(**{f'{self.commune_field_name}__in': commune_ids})
+
+                # SPGR → communes des préfectures assignées
+                if user.role == 'SPGR':
+                    pref_ids = UserPrefecture.objects.filter(
+                        login_id=login_id
+                    ).values_list('prefecture_id', flat=True)
+
+                    commune_ids = CommuneRurale.objects.filter(
+                        prefectures_id__in=pref_ids
+                    ).values_list('id', flat=True)
+
+                    return qs.filter(**{f'{self.commune_field_name}__in': commune_ids})
+
+                # Rôle inconnu → rien
+                return qs.none()
+
+            except Login.DoesNotExist:
+                print(f"❌ RBAC: login_id={login_id} non trouvé")
+                return qs.none()
+
+        # ===== FALLBACK : Ancien filtre par commune_id unique =====
+        commune_id = self.request.query_params.get(self.commune_field_name)
+        if not commune_id:
+            # Essayer aussi le nom générique 'commune_id'
+            commune_id = self.request.query_params.get('commune_id')
+        if commune_id:
+            return qs.filter(**{self.commune_field_name: commune_id})
+
+        return qs
+    
+
 class RegionsListCreateAPIView(generics.ListCreateAPIView):
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
@@ -88,18 +159,15 @@ class CommunesRuralesListCreateAPIView(generics.ListCreateAPIView):
         return queryset.order_by('nom')
 
 # Modifiez toutes vos vues pour qu'elles ressemblent à ceci :
-class ChausseesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+class ChausseesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = ChausseesSerializer
+    commune_field_name = 'communes_rurales_id'
 
     def get_queryset(self):
         qs = Chaussees.objects.all()
+        qs = self.filter_queryset_by_rbac(qs)
 
-        # filtre par commune
-        commune_id = self.request.query_params.get('communes_rurales_id')
-        if commune_id:
-            qs = qs.filter(communes_rurales_id=commune_id)
-
-        # filtre par code_piste (string)
+        # filtre supplémentaire par code_piste (garder)
         code_piste = self.request.query_params.get('code_piste')
         if code_piste:
             qs = qs.filter(code_piste_id=code_piste)
@@ -107,18 +175,15 @@ class ChausseesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
         return qs
 
 
-class PointsCoupuresListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+class PointsCoupuresListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = PointsCoupuresSerializer
+    commune_field_name = 'commune_id'
 
     def get_queryset(self):
         qs = PointsCoupures.objects.all()
+        qs = self.filter_queryset_by_rbac(qs)
 
-        # filtre par commune
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            qs = qs.filter(commune_id=commune_id)
-
-        # filtre par chaussée
+        # filtre supplémentaire par chaussée (garder)
         chaussee_id = self.request.query_params.get('chaussee_id')
         if chaussee_id:
             qs = qs.filter(chaussee_id=chaussee_id)
@@ -126,15 +191,13 @@ class PointsCoupuresListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIVi
         return qs
 
 
-class PointsCritiquesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+class PointsCritiquesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = PointsCritiquesSerializer
+    commune_field_name = 'commune_id'
 
     def get_queryset(self):
         qs = PointsCritiques.objects.all()
-
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            qs = qs.filter(commune_id=commune_id)
+        qs = self.filter_queryset_by_rbac(qs)
 
         chaussee_id = self.request.query_params.get('chaussee_id')
         if chaussee_id:
@@ -144,157 +207,114 @@ class PointsCritiquesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIV
 
 
 
-class ServicesSantesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+class ServicesSantesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = ServicesSantesSerializer
-    
-    def get_queryset(self):
-        queryset = ServicesSantes.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class AutresInfrastructuresListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(ServicesSantes.objects.all())
+
+class AutresInfrastructuresListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = AutresInfrastructuresSerializer
-    
-    def get_queryset(self):
-        queryset = AutresInfrastructures.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class BacsListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(AutresInfrastructures.objects.all())
+
+class BacsListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = BacsSerializer
-    
-    def get_queryset(self):
-        queryset = Bacs.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class BatimentsAdministratifsListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(Bacs.objects.all())
+
+class BatimentsAdministratifsListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = BatimentsAdministratifsSerializer
-    
-    def get_queryset(self):
-        queryset = BatimentsAdministratifs.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class BusesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(BatimentsAdministratifs.objects.all())
+
+class BusesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = BusesSerializer
-    
-    def get_queryset(self):
-        queryset = Buses.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class DalotsListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(Buses.objects.all())
+
+class DalotsListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = DalotsSerializer
-    
-    def get_queryset(self):
-        queryset = Dalots.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class EcolesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(Dalots.objects.all())
+
+class EcolesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = EcolesSerializer
-    
-    def get_queryset(self):
-        queryset = Ecoles.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class InfrastructuresHydrauliquesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(Ecoles.objects.all())
+
+class InfrastructuresHydrauliquesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = InfrastructuresHydrauliquesSerializer
-    
-    def get_queryset(self):
-        queryset = InfrastructuresHydrauliques.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class LocalitesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(InfrastructuresHydrauliques.objects.all())
+
+class LocalitesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = LocalitesSerializer
-    
-    def get_queryset(self):
-        queryset = Localites.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class MarchesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(Localites.objects.all())
+
+class MarchesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = MarchesSerializer
-    
-    def get_queryset(self):
-        queryset = Marches.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class PassagesSubmersiblesListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(Marches.objects.all())
+
+class PassagesSubmersiblesListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = PassagesSubmersiblesSerializer
-    
-    def get_queryset(self):
-        queryset = PassagesSubmersibles.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class PontsListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(PassagesSubmersibles.objects.all())
+
+class PontsListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = PontsSerializer
-    
-    def get_queryset(self):
-        queryset = Ponts.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class SiteEnqueteListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(Ponts.objects.all())
+
+class SiteEnqueteListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = SiteEnqueteSerializer
-    
-    def get_queryset(self):
-        queryset = SiteEnquete.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+    commune_field_name = 'commune_id'
 
-class EnquetePolygoneListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
-    serializer_class = EnquetePolygoneSerializer
-    
     def get_queryset(self):
-        queryset = EnquetePolygone.objects.all()
-        commune_id = self.request.query_params.get('commune_id')
-        if commune_id:
-            queryset = queryset.filter(commune_id=commune_id)
-        return queryset
+        return self.filter_queryset_by_rbac(SiteEnquete.objects.all())
+
+class EnquetePolygoneListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
+    serializer_class = EnquetePolygoneSerializer
+    commune_field_name = 'commune_id'
+
+    def get_queryset(self):
+        return self.filter_queryset_by_rbac(EnquetePolygone.objects.all())
 
 
 
 
 class LoginAPIView(APIView):
-     # GET pour récupérer tous les utilisateurs
+    # GET pour récupérer tous les utilisateurs
     def get(self, request):
         users = Login.objects.all()
         serializer = LoginSerializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    
+
     def post(self, request):
         mail = request.data.get('mail')
         mdp = request.data.get('mdp')
@@ -310,21 +330,71 @@ class LoginAPIView(APIView):
         if user.mdp != mdp:
             return Response({"error": "Mot de passe incorrect"}, status=status.HTTP_401_UNAUTHORIZED)
 
-        serializer = LoginSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # Données de base (existant)
+        data = LoginSerializer(user).data
+
+        # ===== NOUVEAU : Régions assignées (pour BTGR) =====
+        assigned_regions = []
+        for ur in UserRegion.objects.filter(login=user).select_related('region'):
+            assigned_regions.append({
+                'region_id': ur.region_id,
+                'region_nom': ur.region.nom if ur.region else None
+            })
+        data['assigned_regions'] = assigned_regions
+
+        # ===== NOUVEAU : Préfectures assignées (pour SPGR) =====
+        assigned_prefectures = []
+        for up in UserPrefecture.objects.filter(login=user).select_related('prefecture'):
+            assigned_prefectures.append({
+                'prefecture_id': up.prefecture_id,
+                'prefecture_nom': up.prefecture.nom if up.prefecture else None
+            })
+        data['assigned_prefectures'] = assigned_prefectures
+
+        # ===== NOUVEAU : Communes accessibles selon le rôle =====
+        data['accessible_commune_ids'] = self._get_accessible_commune_ids(
+            user, assigned_regions, assigned_prefectures
+        )
+
+        print(f" Login {user.nom} {user.prenom} | role={user.role} | "
+              f"regions={len(assigned_regions)} | prefectures={len(assigned_prefectures)} | "
+              f"communes={len(data['accessible_commune_ids'])}")
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    def _get_accessible_commune_ids(self, user, assigned_regions, assigned_prefectures):
+        """Calcule la liste des commune_ids accessibles selon le rôle RBAC"""
+
+        # Super_admin / Admin → TOUTES les communes
+        if user.role in ('Super_admin', 'Admin'):
+            return list(CommuneRurale.objects.values_list('id', flat=True))
+
+        # BTGR → communes des régions assignées
+        if user.role == 'BTGR' and assigned_regions:
+            region_ids = [r['region_id'] for r in assigned_regions]
+            pref_ids = Prefecture.objects.filter(
+                regions_id__in=region_ids
+            ).values_list('id', flat=True)
+            return list(CommuneRurale.objects.filter(
+                prefectures_id__in=pref_ids
+            ).values_list('id', flat=True))
+
+        # SPGR → communes des préfectures assignées
+        if user.role == 'SPGR' and assigned_prefectures:
+            pref_ids = [p['prefecture_id'] for p in assigned_prefectures]
+            return list(CommuneRurale.objects.filter(
+                prefectures_id__in=pref_ids
+            ).values_list('id', flat=True))
+
+        return []
 
 
-class PisteListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
+class PisteListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
+    commune_field_name = 'communes_rurales_id'
 
     def get_queryset(self):
         qs = Piste.objects.all()
-
-        commune_id = self.request.query_params.get('communes_rurales_id')
-        if commune_id:
-            qs = qs.filter(communes_rurales_id=commune_id)
-
-        
-        return qs
+        return self.filter_queryset_by_rbac(qs)
 
     def get_serializer_class(self):
         # GET => serializer lecture (expose geom_4326)
@@ -334,7 +404,7 @@ class PisteListCreateAPIView(AutoCommuneMixin, generics.ListCreateAPIView):
         return PisteWriteSerializer
 
     def perform_create(self, serializer):
-        serializer.save()
+        super().perform_create(serializer)
 
 class UserManagementAPIView(APIView):
     """API dédiée à la gestion des utilisateurs par le super_admin"""

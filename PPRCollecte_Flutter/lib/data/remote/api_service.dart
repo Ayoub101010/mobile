@@ -4,7 +4,8 @@ import 'dart:async'; // pour TimeoutException
 import 'dart:io'; // pour SocketException
 
 class ApiService {
-  static const String baseUrl = "http://192.168.1.144/mobile";
+  static const String baseUrl = 'http://10.0.2.2:8000';
+
   static String? authToken;
   static int? userId;
   static int? communeId;
@@ -38,13 +39,11 @@ class ApiService {
 
       // 1. Détecter la source des données utilisateur (objet "user" ou top-level)
       final bool hasUserKey = data.containsKey('user') && data['user'] is Map;
-      final Map<String, dynamic> userMap = hasUserKey 
-          ? Map<String, dynamic>.from(data['user']) 
-          : data;
+      final Map<String, dynamic> userMap = hasUserKey ? Map<String, dynamic>.from(data['user']) : data;
 
       // 2. Extraire le token (access pour JWT, token pour legacy)
       authToken = data['access'] ?? data['token'] ?? userMap['token'];
-      
+
       // 3. Extraire l'ID (fallback entre userMap et data)
       userId = userMap['id'] ?? data['id'];
 
@@ -56,14 +55,14 @@ class ApiService {
       communeId = (commune != null && commune is Map) ? commune['id'] : (userMap['communes_rurales'] ?? data['communes_rurales']);
       prefectureId = (prefecture != null && prefecture is Map) ? prefecture['id'] : (userMap['prefecture_id'] ?? data['prefecture_id']);
       regionId = (region != null && region is Map) ? region['id'] : (userMap['region_id'] ?? data['region_id']);
-      
+
       communeNom = (commune != null && commune is Map) ? commune['nom'] : (userMap['commune_nom'] ?? data['commune_nom']);
       prefectureNom = (prefecture != null && prefecture is Map) ? prefecture['nom'] : (userMap['prefecture_nom'] ?? data['prefecture_nom']);
       regionNom = (region != null && region is Map) ? region['nom'] : (userMap['region_nom'] ?? data['region_nom']);
 
       // 5. Préparer le résultat final "à plat" pour LoginPage et DatabaseHelper
       final Map<String, dynamic> result = Map<String, dynamic>.from(userMap);
-      
+
       // S'assurer que les champs clés sont présents même si au top-level du JSON
       result['nom'] = result['nom'] ?? data['nom'];
       result['prenom'] = result['prenom'] ?? data['prenom'];
@@ -114,9 +113,9 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ Données envoyées avec succès à $endpoint');
         try {
-           return jsonDecode(utf8.decode(response.bodyBytes));
-        } catch(e) {
-           return true; // Fallback si le body n'est pas du JSON mais que c'est 200 OK
+          return jsonDecode(utf8.decode(response.bodyBytes));
+        } catch (e) {
+          return true; // Fallback si le body n'est pas du JSON mais que c'est 200 OK
         }
       } else {
         print('❌ Erreur API ($endpoint): ${response.statusCode} - ${response.body}');
@@ -849,7 +848,9 @@ class ApiService {
       'sqlite_id': localData['id'],
       'geom': {
         'type': 'Polygon',
-        'coordinates': [coordinates]
+        'coordinates': [
+          coordinates
+        ]
       },
       'nom': localData['nom'],
       'created_at': formatDateForPostgres(localData['date_creation']),

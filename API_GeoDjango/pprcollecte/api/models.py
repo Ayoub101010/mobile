@@ -46,10 +46,58 @@ class Login(models.Model):
         }
 
 
-from django.contrib.gis.db import models
+# ===== TABLES DE LIAISON UTILISATEUR ↔ TERRITOIRES =====
+
+class UserRegion(models.Model):
+    """Relation many-to-many : un BTGR peut avoir plusieurs régions"""
+    login = models.ForeignKey(
+        Login,
+        on_delete=models.CASCADE,
+        db_column='login_id',
+        related_name='assigned_regions'
+    )
+    region = models.ForeignKey(
+        'Region',
+        on_delete=models.CASCADE,
+        db_column='region_id',
+        related_name='assigned_users'
+    )
+    created_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'user_regions'
+        managed = False
+        unique_together = ('login', 'region')
+
+    def __str__(self):
+        return f"{self.login} - Région {self.region_id}"
 
 
-from django.contrib.gis.db import models
+class UserPrefecture(models.Model):
+    """Relation many-to-many : un SPGR peut avoir plusieurs préfectures"""
+    login = models.ForeignKey(
+        Login,
+        on_delete=models.CASCADE,
+        db_column='login_id',
+        related_name='assigned_prefectures'
+    )
+    prefecture = models.ForeignKey(
+        'Prefecture',
+        on_delete=models.CASCADE,
+        db_column='prefecture_id',
+        related_name='assigned_users'
+    )
+    created_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'user_prefectures'
+        managed = False
+        unique_together = ('login', 'prefecture')
+
+    def __str__(self):
+        return f"{self.login} - Préfecture {self.prefecture_id}"
 
 class Region(models.Model):
     nom = models.CharField(max_length=80, null=True, blank=True)
