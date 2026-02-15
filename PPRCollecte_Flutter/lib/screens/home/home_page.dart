@@ -105,6 +105,7 @@ class _HomePageState extends State<HomePage> {
   String _communeNom = '----';
 
   DateTime? _suspendAutoCenterUntil;
+  bool _autoCenterDisabledByUser = false;
   List<Marker> collectedMarkers = [];
   List<Polyline> collectedPolylines = [];
   List<Polyline> _finishedPistes = []; // ← AJOUTEZ ICI
@@ -147,7 +148,7 @@ class _HomePageState extends State<HomePage> {
   DownloadedChausseesService _downloadedChausseesService = DownloadedChausseesService();
   List<Polyline> _downloadedChausseesPolylines = [];
   bool _showDownloadedChaussees = true;
-  bool get _autoCenterSuspended => _suspendAutoCenterUntil != null && DateTime.now().isBefore(_suspendAutoCenterUntil!);
+  bool get _autoCenterSuspended => _autoCenterDisabledByUser || (_suspendAutoCenterUntil != null && DateTime.now().isBefore(_suspendAutoCenterUntil!));
   String? _lastSyncTimeText;
   late bool _isOnlineDynamic;
   Timer? _onlineWatchTimer;
@@ -773,9 +774,23 @@ class _HomePageState extends State<HomePage> {
       final c = (user?['commune_nom'] ?? '').toString().trim();
 
       // 2) fallback ApiService si sqlite vide
-      final rr = r.isNotEmpty ? r : (ApiService.regionNom ?? '').toString().trim();
-      final pp = p.isNotEmpty ? p : (ApiService.prefectureNom ?? '').toString().trim();
-      final cc = c.isNotEmpty ? c : (ApiService.communeNom ?? '').toString().trim();
+      String rr = r.isNotEmpty ? r : (ApiService.regionNom ?? '').toString().trim();
+      String pp = p.isNotEmpty ? p : (ApiService.prefectureNom ?? '').toString().trim();
+      String cc = c.isNotEmpty ? c : (ApiService.communeNom ?? '').toString().trim();
+
+      // 3) ===== NOUVEAU : Fallback RBAC pour BTGR / SPGR =====
+      // BTGR → afficher les régions assignées
+      if (rr.isEmpty && ApiService.assignedRegions.isNotEmpty) {
+        rr = ApiService.assignedRegions.map((r) => (r['region_nom'] ?? '').toString()).where((n) => n.isNotEmpty).join(', ');
+      }
+      // SPGR → afficher les préfectures assignées
+      if (pp.isEmpty && ApiService.assignedPrefectures.isNotEmpty) {
+        pp = ApiService.assignedPrefectures.map((p) => (p['prefecture_nom'] ?? '').toString()).where((n) => n.isNotEmpty).join(', ');
+      }
+      // Commune → afficher le nombre de communes accessibles
+      if (cc.isEmpty && ApiService.accessibleCommuneIds.isNotEmpty) {
+        cc = '${ApiService.accessibleCommuneIds.length} communes';
+      }
 
       if (!mounted) return;
       setState(() {
@@ -1624,6 +1639,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final markers = await _pointsService.getDisplayedPointsMarkers(
         onTapDetails: (data) {
+          _suspendAutoCenterFor(const Duration(seconds: 10));
           _showPointDetailsSheet(
             context: context,
             type: (data['type'] ?? 'Point').toString(),
@@ -3125,6 +3141,12 @@ class _HomePageState extends State<HomePage> {
                     formMarkers: formMarkers,
                     isSatellite: _isSatellite,
                     onPolylineTap: _handlePolylineTap,
+                    onUserInteraction: () {
+                      _autoCenterDisabledByUser = true;
+                    },
+                    onGpsButtonPressed: () {
+                      _autoCenterDisabledByUser = false;
+                    },
                   ),
                   // === WIDGET DE LÉGENDE ===
                   LegendWidget(

@@ -523,6 +523,23 @@ class _DataListViewState extends State<DataListView> {
       'type': 'Type',
       'x_localite': 'Longitude (X)',
       'y_localite': 'Latitude (Y)',
+      // ===== CHAMPS TERRAIN =====
+      'plateforme': 'Plateforme',
+      'relief': 'Relief',
+      'vegetation': 'Végétation',
+      'debut_travaux': 'Début Travaux',
+      'fin_travaux': 'Fin Travaux',
+      'financement': 'Financement',
+      'projet': 'Projet',
+      // ===== ÉVALUATION =====
+      'niveau_service': 'Niveau de Service',
+      'fonctionnalite': 'Fonctionnalité',
+      'interet_socio_administratif': 'Intérêt Socio-Admin.',
+      'population_desservie': 'Population Desservie',
+      'potentiel_agricole': 'Potentiel Agricole',
+      'cout_investissement': 'Coût Investissement',
+      'protection_environnement': 'Protection Environnement',
+      'note_globale': 'Note Globale',
       // ajoute ici les autres si tu veux
     };
 

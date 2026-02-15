@@ -14,6 +14,11 @@ class ApiService {
   static String? communeNom;
   static String? prefectureNom;
   static String? regionNom;
+  // ===== NOUVEAU : RBAC =====
+  static String? userRole;
+  static List<Map<String, dynamic>> assignedRegions = [];
+  static List<Map<String, dynamic>> assignedPrefectures = [];
+  static List<int> accessibleCommuneIds = [];
   // Remplace par l'IP de ton PC ou le serveur API
 
   /// Fonction pour se connecter via API
@@ -74,6 +79,39 @@ class ApiService {
       result['commune_nom'] = communeNom;
       result['prefecture_nom'] = prefectureNom;
       result['region_nom'] = regionNom;
+
+      // ===== NOUVEAU : Stocker les données RBAC =====
+      userRole = result['role'];
+
+      // Régions assignées (pour BTGR)
+      if (data['assigned_regions'] != null) {
+        assignedRegions = List<Map<String, dynamic>>.from((data['assigned_regions'] as List).map((e) => Map<String, dynamic>.from(e)));
+      } else {
+        assignedRegions = [];
+      }
+      result['assigned_regions'] = assignedRegions;
+
+      // Préfectures assignées (pour SPGR)
+      if (data['assigned_prefectures'] != null) {
+        assignedPrefectures = List<Map<String, dynamic>>.from((data['assigned_prefectures'] as List).map((e) => Map<String, dynamic>.from(e)));
+      } else {
+        assignedPrefectures = [];
+      }
+      result['assigned_prefectures'] = assignedPrefectures;
+
+      // Communes accessibles (calculées par le serveur selon le rôle)
+      if (data['accessible_commune_ids'] != null) {
+        accessibleCommuneIds = List<int>.from(data['accessible_commune_ids']);
+      } else {
+        accessibleCommuneIds = [];
+      }
+      result['accessible_commune_ids'] = accessibleCommuneIds;
+
+      print('🔐 RBAC: role=$userRole | régions=${assignedRegions.length} | '
+          'préfectures=${assignedPrefectures.length} | '
+          'communes accessibles=${accessibleCommuneIds.length}');
+
+      // Validation finale du minimum vital
 
       // Validation finale du minimum vital
       if (result['nom'] != null && result['prenom'] != null) {
@@ -865,8 +903,8 @@ class ApiService {
 
   /// Méthode générique pour récupérer des données
   static Future<List<dynamic>> fetchData(String endpoint) async {
-    final url = Uri.parse('$baseUrl/api/$endpoint/?commune_id=$communeId');
-    print('🌐 Téléchargement $endpoint pour commune_id: $communeId');
+    final url = Uri.parse('$baseUrl/api/$endpoint/?login_id=$userId');
+    print('🌐 Téléchargement $endpoint pour login_id: $userId (RBAC)');
 
     try {
       final response = await http.get(
@@ -971,8 +1009,8 @@ class ApiService {
   }
 
   static Future<List<dynamic>> fetchChausseesTest() async {
-    final url = Uri.parse('$baseUrl/api/chaussees/?commune_id=$communeId');
-    print('🌐 Téléchargement chaussées pour commune_id: $communeId');
+    final url = Uri.parse('$baseUrl/api/chaussees/?login_id=$userId');
+    print('🌐 Téléchargement chaussées pour login_id: $userId (RBAC)');
 
     try {
       final response = await http.get(
@@ -1005,8 +1043,8 @@ class ApiService {
 
   // Dans ApiService, ajouter cette méthode
   static Future<List<dynamic>> fetchPistes() async {
-    final url = Uri.parse('$baseUrl/api/pistes/?communes_rurales_id=$communeId');
-    print('🌐 Téléchargement pistes pour communes_rurales_id: $communeId');
+    final url = Uri.parse('$baseUrl/api/pistes/?login_id=$userId');
+    print('🌐 Téléchargement pistes pour login_id: $userId (RBAC)');
 
     try {
       final response = await http.get(

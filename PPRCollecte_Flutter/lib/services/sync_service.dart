@@ -137,20 +137,20 @@ class SyncService {
 
     // ⭐⭐ ÉTAPE FINALE : TÉLÉCHARGEMENT AUTOMATIQUE DES MISES À JOUR ⭐⭐
     // C'est ici que l'on récupère les données enrichies par le serveur (ex: commune attribuée via GPS)
-    
+
     if (onProgress != null) {
       onProgress(1.0, "Téléchargement des données serveur...", processedItems, safeTotalItems);
     }
-    
+
     // On lance le téléchargement sans bloquer l'UI pour une longue durée si possible,
     // ou alors on l'attend pour être sûr que tout est à jour.
     // Ici on choisit d'attendre pour garantir la cohérence.
     try {
       await downloadAllData(onProgress: (prog, msg, curr, tot) {
-         if (onProgress != null) {
-           // On garde la barre à 100% mais on change le message pour informer
-           onProgress(1.0, "Mise à jour locale: $msg", processedItems, safeTotalItems);
-         }
+        if (onProgress != null) {
+          // On garde la barre à 100% mais on change le message pour informer
+          onProgress(1.0, "Mise à jour locale: $msg", processedItems, safeTotalItems);
+        }
       });
     } catch (e) {
       print("⚠️ Erreur lors du téléchargement automatique post-sync: $e");
@@ -221,7 +221,7 @@ class SyncService {
       print('❌ Erreur décodage points JSON chaussée: $e');
     }
     // GPS-BASED ATTRIBUTION: Let the backend handle commune_id if not explicitly set
-    final communeId = localData['communes_rurales_id'] ?? localData['commune_rurales']; 
+    final communeId = localData['communes_rurales_id'] ?? localData['commune_rurales'];
 
     // Convertir en format GeoJSON coordinates
     final coordinates = points.map((point) {
@@ -313,22 +313,22 @@ class SyncService {
           if (tableName == 'pistes') {
             final storageHelper = SimpleStorageHelper();
             if (response is Map<String, dynamic>) {
-               await storageHelper.markPisteAsSyncedAndUpdated(data['id'], response);
+              await storageHelper.markPisteAsSyncedAndUpdated(data['id'], response);
             } else {
-               await storageHelper.markPisteAsSynced(data['id']);
+              await storageHelper.markPisteAsSynced(data['id']);
             }
           } else if (tableName == 'chaussees') {
             final storageHelper = SimpleStorageHelper();
-             if (response is Map<String, dynamic>) {
-               await storageHelper.markChausseeAsSyncedAndUpdated(data['id'], response);
+            if (response is Map<String, dynamic>) {
+              await storageHelper.markChausseeAsSyncedAndUpdated(data['id'], response);
             } else {
-               await storageHelper.markChausseeAsSynced(data['id']);
+              await storageHelper.markChausseeAsSynced(data['id']);
             }
           } else {
-             if (response is Map<String, dynamic>) {
-               await dbHelper.updateSyncedEntity(tableName, data['id'], response);
+            if (response is Map<String, dynamic>) {
+              await dbHelper.updateSyncedEntity(tableName, data['id'], response);
             } else {
-               await dbHelper.markAsSynced(tableName, data['id']);
+              await dbHelper.markAsSynced(tableName, data['id']);
             }
           }
           result.successCount++;
@@ -433,6 +433,23 @@ class SyncService {
         'created_at': _formatDateTime(localData['created_at']) ?? _formatDateTime(DateTime.now()),
         'updated_at': _formatDateTime(localData['updated_at']),
         'login_id': _parseInt(localData['login_id']) ?? _parseInt(localData['login']),
+        // ===== CHAMPS TERRAIN =====
+        'plateforme': localData['plateforme'],
+        'relief': localData['relief'],
+        'vegetation': localData['vegetation'],
+        'debut_travaux': localData['debut_travaux'],
+        'fin_travaux': localData['fin_travaux'],
+        'financement': localData['financement'],
+        'projet': localData['projet'],
+        // ===== ÉVALUATION & PRIORISATION =====
+        'niveau_service': _parseDouble(localData['niveau_service']),
+        'fonctionnalite': _parseDouble(localData['fonctionnalite']),
+        'interet_socio_administratif': _parseDouble(localData['interet_socio_administratif']),
+        'population_desservie': _parseDouble(localData['population_desservie']),
+        'potentiel_agricole': _parseDouble(localData['potentiel_agricole']),
+        'cout_investissement': _parseDouble(localData['cout_investissement']),
+        'protection_environnement': _parseDouble(localData['protection_environnement']),
+        'note_globale': _parseDouble(localData['note_globale']),
       }
     };
   }
@@ -636,10 +653,10 @@ class SyncService {
       }
       try {
         await downloadAllData(onProgress: (prog, msg, curr, tot) {
-           // Feedback visuel léger sans perturber la barre principale
-           if (onProgress != null) {
-              onProgress(1.0, "Mise à jour: $msg", processedItems, safeTotalItems);
-           }
+          // Feedback visuel léger sans perturber la barre principale
+          if (onProgress != null) {
+            onProgress(1.0, "Mise à jour: $msg", processedItems, safeTotalItems);
+          }
         });
       } catch (e) {
         print("⚠️ Erreur download post-sync séquentiel: $e");
@@ -694,25 +711,25 @@ class SyncService {
 
         if (response != null && response != false) {
           if (tableName == 'pistes') {
-             final storageHelper = SimpleStorageHelper();
-             if (response is Map<String, dynamic>) {
-                await storageHelper.markPisteAsSyncedAndUpdated(data['id'], response);
-             } else {
-                await storageHelper.markPisteAsSynced(data['id']);
-             }
+            final storageHelper = SimpleStorageHelper();
+            if (response is Map<String, dynamic>) {
+              await storageHelper.markPisteAsSyncedAndUpdated(data['id'], response);
+            } else {
+              await storageHelper.markPisteAsSynced(data['id']);
+            }
           } else if (tableName == 'chaussees') {
-             final storageHelper = SimpleStorageHelper();
-             if (response is Map<String, dynamic>) {
-                await storageHelper.markChausseeAsSyncedAndUpdated(data['id'], response);
-             } else {
-                await storageHelper.markChausseeAsSynced(data['id']);
-             }
+            final storageHelper = SimpleStorageHelper();
+            if (response is Map<String, dynamic>) {
+              await storageHelper.markChausseeAsSyncedAndUpdated(data['id'], response);
+            } else {
+              await storageHelper.markChausseeAsSynced(data['id']);
+            }
           } else {
-             if (response is Map<String, dynamic>) {
-                await dbHelper.updateSyncedEntity(tableName, data['id'], response);
-             } else {
-                await dbHelper.markAsSynced(tableName, data['id']);
-             }
+            if (response is Map<String, dynamic>) {
+              await dbHelper.updateSyncedEntity(tableName, data['id'], response);
+            } else {
+              await dbHelper.markAsSynced(tableName, data['id']);
+            }
           }
           successCount++;
           result.successCount++;
@@ -791,10 +808,10 @@ class SyncService {
     int processedItems = 0;
 
     try {
-      print('📍 Téléchargement pour commune_id: ${ApiService.communeId}');
+      print('📍 Téléchargement pour login_id: ${ApiService.userId} (role: ${ApiService.userRole})');
 
-      if (ApiService.communeId == null) {
-        throw Exception('Commune ID non défini - impossible de télécharger les données');
+      if (ApiService.userId == null) {
+        throw Exception('User ID non défini - impossible de télécharger les données');
       }
 
       if (onProgress != null) {
@@ -855,18 +872,13 @@ class SyncService {
         print('🛣️ ${chaussees.length} chaussées à traiter');
 
         for (var chaussee in chaussees) {
+          // Le serveur a déjà filtré par RBAC — sauvegarder directement
+          final storageHelper = SimpleStorageHelper();
+          await storageHelper.saveOrUpdateChausseeTest(chaussee);
+          result.successCount++;
+          processedItems++;
           final properties = chaussee['properties'];
-          if (properties['communes_rurales_id'] == ApiService.communeId) {
-            final storageHelper = SimpleStorageHelper();
-            await storageHelper.saveOrUpdateChausseeTest(chaussee);
-            result.successCount++;
-            processedItems++;
-            print('✅ Chaussée sauvegardée: ${properties['code_piste']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Chaussée ignorée - commune_id différent: '
-                '${properties['communes_rurales_id']} vs ${ApiService.communeId}');
-          }
+          print('✅ Chaussée sauvegardée: ${properties['code_piste']}');
 
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des chaussées...", processedItems, totalItems);
@@ -889,18 +901,10 @@ class SyncService {
         final localites = await ApiService.fetchLocalites();
         print('📍 ${localites.length} localités à traiter');
         for (var localite in localites) {
-          final properties = localite['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateLocalite(localite);
-            result.successCount++;
-            processedItems++;
-            print('✅ Localité sauvegardée: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Localité ignorée - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateLocalite(localite);
+          result.successCount++;
+          processedItems++;
+          print('✅ Localité sauvegardée: ${localite['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des localités...", processedItems, totalItems);
           }
@@ -922,18 +926,10 @@ class SyncService {
         final ecoles = await ApiService.fetchEcoles();
         print('🏫 ${ecoles.length} écoles à traiter');
         for (var ecole in ecoles) {
-          final properties = ecole['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateEcole(ecole);
-            result.successCount++;
-            processedItems++;
-            print('✅ École sauvegardée: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ École ignorée - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateEcole(ecole);
+          result.successCount++;
+          processedItems++;
+          print('✅ École sauvegardée: ${ecole['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des écoles...", processedItems, totalItems);
           }
@@ -955,18 +951,10 @@ class SyncService {
         final marches = await ApiService.fetchMarches();
         print('🛒 ${marches.length} marchés à traiter');
         for (var marche in marches) {
-          final properties = marche['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateMarche(marche);
-            result.successCount++;
-            processedItems++;
-            print('✅ Marché sauvegardé: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Marché ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateMarche(marche);
+          result.successCount++;
+          processedItems++;
+          print('✅ Marché sauvegardé: ${marche['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des marchés...", processedItems, totalItems);
           }
@@ -988,18 +976,10 @@ class SyncService {
         final servicesSantes = await ApiService.fetchServicesSantes();
         print('🏥 ${servicesSantes.length} services de santé à traiter');
         for (var service in servicesSantes) {
-          final properties = service['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateServiceSante(service);
-            result.successCount++;
-            processedItems++;
-            print('✅ Service de santé sauvegardé: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Service de santé ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateServiceSante(service);
+          result.successCount++;
+          processedItems++;
+          print('✅ Service de santé sauvegardé: ${service['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des services de santé...", processedItems, totalItems);
           }
@@ -1021,18 +1001,10 @@ class SyncService {
         final batiments = await ApiService.fetchBatimentsAdministratifs();
         print('🏛️ ${batiments.length} bâtiments administratifs à traiter');
         for (var batiment in batiments) {
-          final properties = batiment['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateBatimentAdministratif(batiment);
-            result.successCount++;
-            processedItems++;
-            print('✅ Bâtiment administratif sauvegardé: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Bâtiment administratif ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateBatimentAdministratif(batiment);
+          result.successCount++;
+          processedItems++;
+          print('✅ Bâtiment administratif sauvegardé: ${batiment['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des bâtiments administratifs...", processedItems, totalItems);
           }
@@ -1054,18 +1026,10 @@ class SyncService {
         final infrastructures = await ApiService.fetchInfrastructuresHydrauliques();
         print('💧 ${infrastructures.length} infrastructures hydrauliques à traiter');
         for (var infrastructure in infrastructures) {
-          final properties = infrastructure['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateInfrastructureHydraulique(infrastructure);
-            result.successCount++;
-            processedItems++;
-            print('✅ Infrastructure hydraulique sauvegardée: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Infrastructure hydraulique ignorée - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateInfrastructureHydraulique(infrastructure);
+          result.successCount++;
+          processedItems++;
+          print('✅ Infrastructure hydraulique sauvegardée: ${infrastructure['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des infrastructures hydrauliques...", processedItems, totalItems);
           }
@@ -1087,18 +1051,10 @@ class SyncService {
         final autresInfrastructures = await ApiService.fetchAutresInfrastructures();
         print('🏗️ ${autresInfrastructures.length} autres infrastructures à traiter');
         for (var infrastructure in autresInfrastructures) {
-          final properties = infrastructure['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateAutreInfrastructure(infrastructure);
-            result.successCount++;
-            processedItems++;
-            print('✅ Autre infrastructure sauvegardée: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Autre infrastructure ignorée - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateAutreInfrastructure(infrastructure);
+          result.successCount++;
+          processedItems++;
+          print('✅ Autre infrastructure sauvegardée: ${infrastructure['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des autres infrastructures...", processedItems, totalItems);
           }
@@ -1120,18 +1076,10 @@ class SyncService {
         final ponts = await ApiService.fetchPonts();
         print('🌉 ${ponts.length} ponts à traiter');
         for (var pont in ponts) {
-          final properties = pont['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdatePont(pont);
-            result.successCount++;
-            processedItems++;
-            print('✅ Pont sauvegardé: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Pont ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdatePont(pont);
+          result.successCount++;
+          processedItems++;
+          print('✅ Pont sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des ponts...", processedItems, totalItems);
           }
@@ -1153,18 +1101,10 @@ class SyncService {
         final bacs = await ApiService.fetchBacs();
         print('⛴️ ${bacs.length} bacs à traiter');
         for (var bac in bacs) {
-          final properties = bac['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateBac(bac);
-            result.successCount++;
-            processedItems++;
-            print('✅ Bac sauvegardé: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Bac ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateBac(bac);
+          result.successCount++;
+          processedItems++;
+          print('✅ Bac sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des bacs...", processedItems, totalItems);
           }
@@ -1186,18 +1126,10 @@ class SyncService {
         final buses = await ApiService.fetchBuses();
         print('🕳️ ${buses.length} buses à traiter');
         for (var buse in buses) {
-          final properties = buse['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateBuse(buse);
-            result.successCount++;
-            processedItems++;
-            print('✅ Buse sauvegardée: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Buse ignorée - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateBuse(buse);
+          result.successCount++;
+          processedItems++;
+          print('✅ Buse sauvegardée');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des buses...", processedItems, totalItems);
           }
@@ -1219,18 +1151,10 @@ class SyncService {
         final dalots = await ApiService.fetchDalots();
         print('🔄 ${dalots.length} dalots à traiter');
         for (var dalot in dalots) {
-          final properties = dalot['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdateDalot(dalot);
-            result.successCount++;
-            processedItems++;
-            print('✅ Dalot sauvegardé: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Dalot ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdateDalot(dalot);
+          result.successCount++;
+          processedItems++;
+          print('✅ Dalot sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des dalots...", processedItems, totalItems);
           }
@@ -1252,18 +1176,10 @@ class SyncService {
         final passages = await ApiService.fetchPassagesSubmersibles();
         print('🌊 ${passages.length} passages submersibles à traiter');
         for (var passage in passages) {
-          final properties = passage['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdatePassageSubmersible(passage);
-            result.successCount++;
-            processedItems++;
-            print('✅ Passage submersible sauvegardé: ${properties['nom']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Passage submersible ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdatePassageSubmersible(passage);
+          result.successCount++;
+          processedItems++;
+          print('✅ Passage submersible sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des passages submersibles...", processedItems, totalItems);
           }
@@ -1285,18 +1201,10 @@ class SyncService {
         final pointsCritiques = await ApiService.fetchPointsCritiques();
         print('⚠️ ${pointsCritiques.length} points critiques à traiter');
         for (var point in pointsCritiques) {
-          final properties = point['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdatePointCritique(point);
-            result.successCount++;
-            processedItems++;
-            print('✅ Point critique sauvegardé');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Point critique ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdatePointCritique(point);
+          result.successCount++;
+          processedItems++;
+          print('✅ Point critique sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des points critiques...", processedItems, totalItems);
           }
@@ -1318,18 +1226,10 @@ class SyncService {
         final pointsCoupures = await ApiService.fetchPointsCoupures();
         print('🔌 ${pointsCoupures.length} points de coupure à traiter');
         for (var point in pointsCoupures) {
-          final properties = point['properties'];
-          if (properties['commune_id'] == ApiService.communeId) {
-            await dbHelper.saveOrUpdatePointCoupure(point);
-            result.successCount++;
-            processedItems++;
-            print('✅ Point de coupure sauvegardé');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Point de coupure ignoré - commune_id différent: '
-                '${properties['commune_id']} vs ${ApiService.communeId}');
-          }
-
+          await dbHelper.saveOrUpdatePointCoupure(point);
+          result.successCount++;
+          processedItems++;
+          print('✅ Point de coupure sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des points de coupure...", processedItems, totalItems);
           }
@@ -1351,19 +1251,11 @@ class SyncService {
         final pistes = await ApiService.fetchPistes();
         print('🛤️ ${pistes.length} pistes à traiter');
         for (var piste in pistes) {
-          final properties = piste['properties'];
-          if (properties['communes_rurales_id'] == ApiService.communeId) {
-            final storageHelper = SimpleStorageHelper();
-            await storageHelper.saveOrUpdatePiste(piste);
-            result.successCount++;
-            processedItems++;
-            print('✅ Piste sauvegardée: ${properties['code_piste']}');
-          } else {
-            result.skippedCount++;
-            print('⏭️ Piste ignorée - commune_id différent: '
-                '${properties['communes_rurales_id']} vs ${ApiService.communeId}');
-          }
-
+          final storageHelper = SimpleStorageHelper();
+          await storageHelper.saveOrUpdatePiste(piste);
+          result.successCount++;
+          processedItems++;
+          print('✅ Piste sauvegardée: ${piste['properties']?['code_piste']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des pistes...", processedItems, totalItems);
           }

@@ -770,11 +770,11 @@ ON displayed_pistes(login_id, code_piste);
           'existence_intersection', 'x_intersection', 'y_intersection',
           'intersection_piste_code', 'type_occupation', 'debut_occupation',
           'fin_occupation', 'largeur_emprise', 'frequence_trafic', 'type_trafic',
-          'travaux_realises', 'date_travaux', 'entreprise', 
+          'travaux_realises', 'date_travaux', 'entreprise',
           'plateforme', 'relief', 'vegetation', 'debut_travaux', 'fin_travaux', 'financement', 'projet',
           'points_json',
-          'niveau_service', 'fonctionnalite', 'interet_socio_administratif', 
-          'population_desservie', 'potentiel_agricole', 'cout_investissement', 
+          'niveau_service', 'fonctionnalite', 'interet_socio_administratif',
+          'population_desservie', 'potentiel_agricole', 'cout_investissement',
           'protection_environnement', 'note_globale',
           'created_at', 'updated_at', 'login_id', 'synced', 'date_sync' // ⭐⭐ AJOUTEZ login_id ICI
         ],
@@ -835,7 +835,9 @@ ON displayed_pistes(login_id, code_piste);
         'pistes',
         updates,
         where: 'id = ?',
-        whereArgs: [pisteId],
+        whereArgs: [
+          pisteId
+        ],
       );
       print('✅ Piste $pisteId marquée comme synchronisée et mise à jour (api_id: ${apiResponse['id']})');
     } catch (e) {
@@ -938,6 +940,23 @@ ON displayed_pistes(login_id, code_piste);
             'travaux_realises': properties['travaux_realises'],
             'date_travaux': properties['date_travaux'],
             'entreprise': properties['entreprise'],
+            // ===== CHAMPS TERRAIN =====
+            'plateforme': properties['plateforme'],
+            'relief': properties['relief'],
+            'vegetation': properties['vegetation'],
+            'debut_travaux': properties['debut_travaux'],
+            'fin_travaux': properties['fin_travaux'],
+            'financement': properties['financement'],
+            'projet': properties['projet'],
+            // ===== ÉVALUATION & PRIORISATION =====
+            'niveau_service': properties['niveau_service'],
+            'fonctionnalite': properties['fonctionnalite'],
+            'interet_socio_administratif': properties['interet_socio_administratif'],
+            'population_desservie': properties['population_desservie'],
+            'potentiel_agricole': properties['potentiel_agricole'],
+            'cout_investissement': properties['cout_investissement'],
+            'protection_environnement': properties['protection_environnement'],
+            'note_globale': properties['note_globale'],
             'points_json': pointsJson,
             'created_at': formatDate(properties['created_at']),
             'updated_at': formatDate(properties['updated_at']),
@@ -981,6 +1000,23 @@ ON displayed_pistes(login_id, code_piste);
             'travaux_realises': properties['travaux_realises'],
             'date_travaux': properties['date_travaux'],
             'entreprise': properties['entreprise'],
+            // ===== CHAMPS TERRAIN =====
+            'plateforme': properties['plateforme'],
+            'relief': properties['relief'],
+            'vegetation': properties['vegetation'],
+            'debut_travaux': properties['debut_travaux'],
+            'fin_travaux': properties['fin_travaux'],
+            'financement': properties['financement'],
+            'projet': properties['projet'],
+            // ===== ÉVALUATION & PRIORISATION =====
+            'niveau_service': properties['niveau_service'],
+            'fonctionnalite': properties['fonctionnalite'],
+            'interet_socio_administratif': properties['interet_socio_administratif'],
+            'population_desservie': properties['population_desservie'],
+            'potentiel_agricole': properties['potentiel_agricole'],
+            'cout_investissement': properties['cout_investissement'],
+            'protection_environnement': properties['protection_environnement'],
+            'note_globale': properties['note_globale'],
             'points_json': pointsJson,
             'updated_at': DateTime.now().toIso8601String(),
             'login_id': dataUserId,
@@ -1065,6 +1101,23 @@ ON displayed_pistes(login_id, code_piste);
         'travaux_realises': pisteData['travaux_realises'],
         'date_travaux': pisteData['date_travaux'],
         'entreprise': pisteData['entreprise'],
+        // ===== CHAMPS TERRAIN =====
+        'plateforme': pisteData['plateforme'],
+        'relief': pisteData['relief'],
+        'vegetation': pisteData['vegetation'],
+        'debut_travaux': pisteData['debut_travaux'],
+        'fin_travaux': pisteData['fin_travaux'],
+        'financement': pisteData['financement'],
+        'projet': pisteData['projet'],
+        // ===== ÉVALUATION & PRIORISATION =====
+        'niveau_service': pisteData['niveau_service'],
+        'fonctionnalite': pisteData['fonctionnalite'],
+        'interet_socio_administratif': pisteData['interet_socio_administratif'],
+        'population_desservie': pisteData['population_desservie'],
+        'potentiel_agricole': pisteData['potentiel_agricole'],
+        'cout_investissement': pisteData['cout_investissement'],
+        'protection_environnement': pisteData['protection_environnement'],
+        'note_globale': pisteData['note_globale'],
         'points_json': jsonEncode(pisteData['points']), // ← CONVERTIR en JSON
         'updated_at': pisteData['updated_at'],
         'login_id': pisteData['login_id'],
@@ -1187,7 +1240,9 @@ ON displayed_pistes(login_id, code_piste);
         'chaussees',
         updates,
         where: 'id = ?',
-        whereArgs: [chausseeId],
+        whereArgs: [
+          chausseeId
+        ],
       );
       print('✅ Chaussée $chausseeId marquée comme synchronisée et mise à jour');
     } catch (e) {

@@ -128,10 +128,27 @@ class _LoginPageState extends State<LoginPage> {
       final communeId = userData['communes_rurales'];
       final prefectureId = userData['prefecture_id'];
       final regionId = userData['region_id'];
-      final communeNom = userData['commune_nom'];
-      final prefectureNom = userData['prefecture_nom'];
-      final regionNom = userData['region_nom'];
+
       final int? apiId = ApiService.userId;
+// ===== Calculer les noms selon le rôle RBAC =====
+      String? communeNom = userData['commune_nom'];
+      String? prefectureNom = userData['prefecture_nom'];
+      String? regionNom = userData['region_nom'];
+
+      if ((regionNom == null || regionNom.isEmpty) && ApiService.assignedRegions.isNotEmpty) {
+        regionNom = ApiService.assignedRegions.map((r) => (r['region_nom'] ?? '').toString()).where((n) => n.isNotEmpty).join(', ');
+      }
+      if ((prefectureNom == null || prefectureNom.isEmpty) && ApiService.assignedPrefectures.isNotEmpty) {
+        prefectureNom = ApiService.assignedPrefectures.map((p) => (p['prefecture_nom'] ?? '').toString()).where((n) => n.isNotEmpty).join(', ');
+      }
+      if ((communeNom == null || communeNom.isEmpty) && ApiService.accessibleCommuneIds.isNotEmpty) {
+        communeNom = '${ApiService.accessibleCommuneIds.length} communes';
+      }
+      // ===== NOUVEAU : Log des données RBAC =====
+      print('🔐 Login RBAC: role=${userData['role']} | '
+          'regions=${ApiService.assignedRegions.length} | '
+          'prefectures=${ApiService.assignedPrefectures.length} | '
+          'communes accessibles=${ApiService.accessibleCommuneIds.length}');
 
       if (existingUser) {
         await DatabaseHelper().updateUser(

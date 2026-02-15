@@ -46,7 +46,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   final _heureFinController = TextEditingController();
   final _entrepriseController = TextEditingController();
   final _travauxRealisesController = TextEditingController();
-  
+
   // Évaluation et Priorisation
   final _niveauServiceController = TextEditingController();
   final _fonctionnaliteController = TextEditingController();
@@ -55,7 +55,14 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   final _potentielAgricoleController = TextEditingController();
   final _coutInvestissementController = TextEditingController();
   final _protectionEnvController = TextEditingController();
-
+// ===== CHAMPS TERRAIN =====
+  final _plateformeController = TextEditingController();
+  final _reliefController = TextEditingController();
+  final _vegetationController = TextEditingController();
+  final _debutTravauxController = TextEditingController();
+  final _finTravauxController = TextEditingController();
+  final _financementController = TextEditingController();
+  final _projetController = TextEditingController();
   double _noteGlobale = 0.0;
 
   String? _communeRurale;
@@ -465,13 +472,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
     double pe = double.tryParse(_protectionEnvController.text) ?? 0.0;
 
     setState(() {
-      _noteGlobale = (0.05 * ns) +
-          (0.05 * fo) +
-          (0.15 * isa) +
-          (0.20 * p) +
-          (0.30 * pa) +
-          (0.20 * ci) +
-          (0.05 * pe);
+      _noteGlobale = (0.05 * ns) + (0.05 * fo) + (0.15 * isa) + (0.20 * p) + (0.30 * pa) + (0.20 * ci) + (0.05 * pe);
     });
   }
 
@@ -547,7 +548,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       _entrepriseController.text = data['entreprise'] ?? '';
       _dateCreation = data['created_at'] != null ? DateTime.parse(data['created_at']) : null;
       _dateModification = DateTime.now(); // ← Date modif actuelle
-      
+
       _niveauServiceController.text = data['niveau_service']?.toString() ?? '';
       _fonctionnaliteController.text = data['fonctionnalite']?.toString() ?? '';
       _interetSocioAdminController.text = data['interet_socio_administratif']?.toString() ?? '';
@@ -556,6 +557,14 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       _coutInvestissementController.text = data['cout_investissement']?.toString() ?? '';
       _protectionEnvController.text = data['protection_environnement']?.toString() ?? '';
       _noteGlobale = data['note_globale']?.toDouble() ?? 0.0;
+      // ===== CHAMPS TERRAIN =====
+      _plateformeController.text = data['plateforme'] ?? '';
+      _reliefController.text = data['relief'] ?? '';
+      _vegetationController.text = data['vegetation'] ?? '';
+      _debutTravauxController.text = data['debut_travaux'] ?? '';
+      _finTravauxController.text = data['fin_travaux'] ?? '';
+      _financementController.text = data['financement'] ?? '';
+      _projetController.text = data['projet'] ?? '';
     });
   }
 
@@ -740,6 +749,14 @@ class _FormulairePageState extends State<FormulaireLignePage> {
         'cout_investissement': double.tryParse(_coutInvestissementController.text),
         'protection_environnement': double.tryParse(_protectionEnvController.text),
         'note_globale': _noteGlobale,
+        // ===== CHAMPS TERRAIN =====
+        'plateforme': _plateformeController.text.isNotEmpty ? _plateformeController.text : null,
+        'relief': _reliefController.text.isNotEmpty ? _reliefController.text : null,
+        'vegetation': _vegetationController.text.isNotEmpty ? _vegetationController.text : null,
+        'debut_travaux': _debutTravauxController.text.isNotEmpty ? _debutTravauxController.text : null,
+        'fin_travaux': _finTravauxController.text.isNotEmpty ? _finTravauxController.text : null,
+        'financement': _financementController.text.isNotEmpty ? _financementController.text : null,
+        'projet': _projetController.text.isNotEmpty ? _projetController.text : null,
 
         // ✅ TOUS les points de la piste (MultiLineString)
         'points': widget.linePoints
@@ -956,6 +973,15 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       _coutInvestissementController.clear();
       _protectionEnvController.clear();
       _noteGlobale = 0.0;
+      // ===== CHAMPS TERRAIN =====
+      _plateformeController.clear();
+      _reliefController.clear();
+      _vegetationController.clear();
+      _debutTravauxController.clear();
+      _finTravauxController.clear();
+      _financementController.clear();
+      _projetController.clear();
+
       _entrepriseController.clear();
 
       // Réinitialiser les sélections
@@ -1291,7 +1317,47 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                         ),
                       ],
                     ),
-
+// Section Caractéristiques Terrain
+                    _buildFormSection(
+                      title: '🌍 Caractéristiques Terrain',
+                      children: [
+                        _buildTextField(
+                          controller: _plateformeController,
+                          label: 'Plateforme',
+                          hint: 'Ex: Latérite, Terre, Sable...',
+                        ),
+                        _buildTextField(
+                          controller: _reliefController,
+                          label: 'Relief',
+                          hint: 'Ex: Plat, Vallonné, Montagneux...',
+                        ),
+                        _buildTextField(
+                          controller: _vegetationController,
+                          label: 'Végétation',
+                          hint: 'Ex: Savane, Forêt, Steppe...',
+                        ),
+                        _buildTextField(
+                          controller: _financementController,
+                          label: 'Financement',
+                          hint: 'Source de financement',
+                        ),
+                        _buildTextField(
+                          controller: _projetController,
+                          label: 'Projet',
+                          hint: 'Nom du projet',
+                        ),
+                        _buildTextField(
+                          controller: _debutTravauxController,
+                          label: 'Début des travaux',
+                          hint: 'Ex: 2024',
+                        ),
+                        _buildTextField(
+                          controller: _finTravauxController,
+                          label: 'Fin des travaux',
+                          hint: 'Ex: 2025',
+                        ),
+                      ],
+                    ),
                     // Section GPS
                     _buildFormSection(
                       title: '📍 Géolocalisation',

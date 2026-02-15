@@ -11,6 +11,8 @@ class MapWidget extends StatefulWidget {
   final List<Marker> formMarkers;
   final bool isSatellite;
   final Function(Object?)? onPolylineTap;
+  final VoidCallback? onUserInteraction;
+  final VoidCallback? onGpsButtonPressed;
 
   const MapWidget({
     super.key,
@@ -22,6 +24,8 @@ class MapWidget extends StatefulWidget {
     required this.formMarkers,
     this.isSatellite = false,
     this.onPolylineTap,
+    this.onUserInteraction,
+    this.onGpsButtonPressed,
   });
 
   @override
@@ -94,6 +98,7 @@ class _MapWidgetState extends State<MapWidget> {
 
   void _goToUserLocation() {
     if (_controllerReady) {
+      widget.onGpsButtonPressed?.call();
       _mapController.move(widget.userPosition, 17);
     }
   }
@@ -142,6 +147,11 @@ class _MapWidgetState extends State<MapWidget> {
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all,
             ),
+            onMapEvent: (event) {
+              if (event is MapEventMoveStart) {
+                widget.onUserInteraction?.call();
+              }
+            },
           ),
           children: [
             // Couche de tuiles (fond de carte)
