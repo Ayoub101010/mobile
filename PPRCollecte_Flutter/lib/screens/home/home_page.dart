@@ -3616,6 +3616,7 @@ class DownloadedPointsService {
         'dalots',
         'points_critiques',
         'points_coupures',
+        'site_enquete',
       ];
 
       final List<Marker> markers = [];
