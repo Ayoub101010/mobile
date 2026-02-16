@@ -513,7 +513,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_points_coupures_api_user
 ON points_coupures(api_id, saved_by_user_id);
 
 ''');
-    
+
     await _createEnqueteTables(db);
     // ============ TABLE TEST ============
     await db.execute('CREATE TABLE IF NOT EXISTS test (id INTEGER)');
@@ -593,6 +593,15 @@ CREATE TABLE IF NOT EXISTS app_session (
       date_modification TEXT,
       code_piste TEXT,
       code_gps TEXT,
+      amenage_ou_non_amenage INTEGER,
+      entreprise TEXT,
+      financement TEXT,
+      projet TEXT,
+      superficie_digitalisee REAL,
+      superficie_estimee_lors_des_enquetes_ha REAL,
+      travaux_debut TEXT,
+      travaux_fin INTEGER,
+      type_de_realisation TEXT,
       synced INTEGER DEFAULT 0,
       downloaded INTEGER DEFAULT 0,
       date_sync TEXT,
@@ -1120,8 +1129,8 @@ CREATE TABLE IF NOT EXISTS app_session (
          spatially during sync. This prevents forcing a point into the user's 
          home commune if they are working elsewhere.
       */
-      return null; 
-      
+      return null;
+
       /* OLD LOGIC (Keep commented for reference if needed)
       // Priorité à l'API
       if (ApiService.communeId != null) {
@@ -1930,7 +1939,9 @@ CREATE TABLE IF NOT EXISTS app_session (
         tableName,
         updates,
         where: 'id = ?',
-        whereArgs: [localId],
+        whereArgs: [
+          localId
+        ],
       );
       print('✅ $tableName ID $localId mis à jour avec infos serveur (api_id: ${apiResponse['id']}, commune: ${updates['commune_id']})');
     } catch (e) {
@@ -2454,6 +2465,74 @@ CREATE TABLE IF NOT EXISTS app_session (
       }
     } catch (e) {
       print('❌ Erreur sauvegarde points_coupures: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> saveOrUpdateSiteEnquete(Map<String, dynamic> geoJsonData) async {
+    final db = await database;
+    try {
+      final properties = geoJsonData['properties'];
+      final geometry = geoJsonData['geometry'];
+      final sqliteId = properties['sqlite_id'];
+      final dataUserId = properties['login_id'];
+      final viewerId = await DatabaseHelper().resolveLoginId();
+
+      final apiUserId = ApiService.userId;
+
+      if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
+        print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
+        return;
+      }
+
+      final existing = await db.query(
+        'site_enquete',
+        where: 'api_id = ? AND saved_by_user_id = ?',
+        whereArgs: [
+          sqliteId,
+          viewerId
+        ],
+        limit: 1,
+      );
+
+      if (existing.isEmpty) {
+        final communeId = await _getCommuneId();
+        await db.insert(
+          'site_enquete',
+          {
+            'api_id': sqliteId,
+            'x_site': geometry['coordinates'][0],
+            'y_site': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur'] ?? 'Sync',
+            'date_creation': properties['created_at'] ?? 'Non spécifié',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            // 9 champs ex-ppr_itial
+            'amenage_ou_non_amenage': properties['amenage_ou_non_amenage'] == true ? 1 : (properties['amenage_ou_non_amenage'] == false ? 0 : null),
+            'entreprise': properties['entreprise'],
+            'financement': properties['financement'],
+            'projet': properties['projet'],
+            'superficie_digitalisee': properties['superficie_digitalisee'],
+            'superficie_estimee_lors_des_enquetes_ha': properties['superficie_estimee_lors_des_enquetes_ha'],
+            'travaux_debut': properties['travaux_debut'],
+            'travaux_fin': properties['travaux_fin'],
+            'type_de_realisation': properties['type_de_realisation'],
+            'synced': 0,
+            'downloaded': 1,
+            'login_id': dataUserId ?? 'Non spécifié',
+            'saved_by_user_id': viewerId,
+            'commune_id': communeId,
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        print('✅ Site enquête sauvegardé: ${properties['nom']}');
+      }
+    } catch (e) {
+      print('❌ Erreur sauvegarde site_enquete: $e');
       rethrow;
     }
   }

@@ -114,7 +114,7 @@ class SyncService {
       final table = tables[i];
       final apiEndpoint = table;
 
-      // ⭐⭐ CORRECTION: Calcul sécurisé du progrès
+      //  CORRECTION: Calcul sécurisé du progrès
       double safeProgress = safeTotalItems > 0 ? processedItems / safeTotalItems : 0.0;
       safeProgress = safeProgress.isNaN || safeProgress.isInfinite ? 0.0 : safeProgress.clamp(0.0, 1.0);
 
@@ -124,7 +124,7 @@ class SyncService {
 
       await _syncTable(table, apiEndpoint, result, onProgress: (processed, total) {
         if (onProgress != null) {
-          // ⭐⭐ CORRECTION: Calcul sécurisé du progrès
+          //  CORRECTION: Calcul sécurisé du progrès
           double safeInnerProgress = safeTotalItems > 0 ? (processedItems + processed) / safeTotalItems : 0.0;
           safeInnerProgress = safeInnerProgress.isNaN || safeInnerProgress.isInfinite ? 0.0 : safeInnerProgress.clamp(0.0, 1.0);
 
@@ -135,33 +135,13 @@ class SyncService {
       processedItems += (await dbHelper.getUnsyncedEntities(table)).length;
     }
 
-    // ⭐⭐ ÉTAPE FINALE : TÉLÉCHARGEMENT AUTOMATIQUE DES MISES À JOUR ⭐⭐
-    // C'est ici que l'on récupère les données enrichies par le serveur (ex: commune attribuée via GPS)
-
-    if (onProgress != null) {
-      onProgress(1.0, "Téléchargement des données serveur...", processedItems, safeTotalItems);
-    }
-
-    // On lance le téléchargement sans bloquer l'UI pour une longue durée si possible,
-    // ou alors on l'attend pour être sûr que tout est à jour.
-    // Ici on choisit d'attendre pour garantir la cohérence.
-    try {
-      await downloadAllData(onProgress: (prog, msg, curr, tot) {
-        if (onProgress != null) {
-          // On garde la barre à 100% mais on change le message pour informer
-          onProgress(1.0, "Mise à jour locale: $msg", processedItems, safeTotalItems);
-        }
-      });
-    } catch (e) {
-      print("⚠️ Erreur lors du téléchargement automatique post-sync: $e");
-      // On ne fait pas échouer la sync globale pour ça, mais on loggue l'erreur
-      result.errors.add("Erreur téléchargement retour: $e");
-    }
+    // POST terminé - pas de téléchargement automatique
+    // Le bouton "Sauvegarder" gère le GET séparément
 
     if (onProgress != null) {
       onProgress(1.0, "Synchronisation terminée!", processedItems, safeTotalItems);
     }
-    // ⭐⭐ CODE SÉCURISÉ - FIN ⭐⭐
+    //  CODE SÉCURISÉ - FIN
 
     return result;
   }
@@ -647,21 +627,8 @@ class SyncService {
         }
       }
 
-      // === ÉTAPE 7: TÉLÉCHARGEMENT AUTOMATIQUE (NOUVEAU) ===
-      if (onProgress != null) {
-        onProgress(1.0, "🔄 Récupération des données enrichies...", processedItems, safeTotalItems);
-      }
-      try {
-        await downloadAllData(onProgress: (prog, msg, curr, tot) {
-          // Feedback visuel léger sans perturber la barre principale
-          if (onProgress != null) {
-            onProgress(1.0, "Mise à jour: $msg", processedItems, safeTotalItems);
-          }
-        });
-      } catch (e) {
-        print("⚠️ Erreur download post-sync séquentiel: $e");
-        result.errors.add("Erreur retour serveur: $e");
-      }
+      // POST terminé - pas de téléchargement automatique
+      // Le bouton "Sauvegarder" gère le GET séparément
 
       // === SYNCHRONISATION TERMINÉE ===
       if (onProgress != null) {
@@ -1241,7 +1208,30 @@ class SyncService {
         );
         print('❌ Erreur lors du téléchargement/sauvegarde des points de coupure: $e');
       }
+// ============ SITES ENQUETE ============
+      try {
+        if (onProgress != null) {
+          onProgress(processedItems / totalItems, "Téléchargement des sites d'enquête...", processedItems, totalItems);
+        }
+        print('📥 Téléchargement des sites d\'enquête...');
+        final sites = await ApiService.fetchSiteEnquetes();
+        print('📋 ${sites.length} sites d\'enquête à traiter');
+        for (var site in sites) {
+          await dbHelper.saveOrUpdateSiteEnquete(site);
+          result.successCount++;
+          processedItems++;
 
+          if (onProgress != null) {
+            onProgress(processedItems / totalItems, "Sauvegarde des sites d'enquête...", processedItems, totalItems);
+          }
+        }
+      } catch (e) {
+        result.failedCount++;
+        result.errors.add(
+          'Sites d\'enquête : les données n\'ont pas pu être mises à jour.',
+        );
+        print('❌ Erreur lors du téléchargement/sauvegarde des sites d\'enquête: $e');
+      }
       // ============ PISTES ============
       try {
         if (onProgress != null) {

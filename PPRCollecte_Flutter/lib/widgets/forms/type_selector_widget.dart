@@ -121,6 +121,8 @@ class TypeSelectorWidget extends StatelessWidget {
         return Icons.construction;
       case "Points Critiques":
         return Icons.warning;
+      case "Enquête":
+        return Icons.assignment;
       default:
         return Icons.help;
     }

@@ -951,6 +951,16 @@ class SiteEnquete(models.Model):
     created_at = models.CharField(max_length=24, null=True, blank=True)
     updated_at = models.CharField(max_length=24, null=True, blank=True)
     code_gps = models.CharField(max_length=254, null=True, blank=True)
+    # 9 champs ex-ppr_itial
+    amenage_ou_non_amenage = models.BooleanField(null=True, blank=True)
+    entreprise = models.TextField(null=True, blank=True)
+    financement = models.TextField(null=True, blank=True)
+    projet = models.TextField(null=True, blank=True)
+    superficie_digitalisee = models.FloatField(null=True, blank=True)
+    superficie_estimee_lors_des_enquetes_ha = models.FloatField(null=True, blank=True)
+    travaux_debut = models.TextField(null=True, blank=True)
+    travaux_fin = models.IntegerField(null=True, blank=True)
+    type_de_realisation = models.TextField(null=True, blank=True)
     code_piste = models.ForeignKey(
         'Piste',
         to_field='code_piste',

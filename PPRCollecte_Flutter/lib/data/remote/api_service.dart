@@ -850,6 +850,16 @@ class ApiService {
       'code_piste': localData['code_piste'],
       'login_id': userId,
       'commune_id': localData['commune_id'],
+      // 9 champs ex-ppr_itial
+      'amenage_ou_non_amenage': localData['amenage_ou_non_amenage'] == 1 ? true : (localData['amenage_ou_non_amenage'] == 0 ? false : null),
+      'entreprise': localData['entreprise'],
+      'financement': localData['financement'],
+      'projet': localData['projet'],
+      'superficie_digitalisee': localData['superficie_digitalisee'],
+      'superficie_estimee_lors_des_enquetes_ha': localData['superficie_estimee_lors_des_enquetes_ha'],
+      'travaux_debut': localData['travaux_debut'],
+      'travaux_fin': localData['travaux_fin'],
+      'type_de_realisation': localData['type_de_realisation'],
     };
   }
 

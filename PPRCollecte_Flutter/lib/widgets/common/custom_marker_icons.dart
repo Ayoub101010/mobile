@@ -52,6 +52,10 @@ class CustomMarkerIcons {
       icon: Icons.close,
       color: Color(0xFFC0392B), // Rouge foncé
     ),
+    'site_enquete': MarkerIconConfig(
+      icon: Icons.adjust,
+      color: Color(0xFF212121), // Noir (comme le web)
+    ),
   };
 
   /// Retourne un Widget pour le marqueur (utilisé dans flutter_map)

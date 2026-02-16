@@ -75,8 +75,8 @@ class _PointFormWidgetState extends State<PointFormWidget> {
       _formData['enqueteur'] = widget.pointData!['enqueteur'] ?? widget.agentName ?? 'N/A';
       _formData['date_creation'] = widget.pointData!['date_creation'];
       _formData['date_modification'] = widget.pointData!['date_modification'] ?? DateTime.now().toIso8601String();
-      _formData['latitude'] = widget.pointData!['x_$coordinatePrefix'];
-      _formData['longitude'] = widget.pointData!['y_$coordinatePrefix'];
+      _formData['latitude'] = widget.pointData!['y_$coordinatePrefix'];
+      _formData['longitude'] = widget.pointData!['x_$coordinatePrefix'];
       _formData['code_gps'] = widget.pointData!['code_gps'];
       _addSpecificFormDataFromPointData(widget.pointData!, widget.type);
     } else {
@@ -143,8 +143,8 @@ class _PointFormWidgetState extends State<PointFormWidget> {
       case 'Bac':
         _formData['type_bac'] = pointData['type_bac'];
         _formData['nom_cours_eau'] = pointData['nom_cours_eau'];
-        _formData['latitude_fin'] = pointData['x_fin_traversee_bac'];
-        _formData['longitude_fin'] = pointData['y_fin_traversee_bac'];
+        _formData['latitude_fin'] = pointData['y_fin_traversee_bac'];
+        _formData['longitude_fin'] = pointData['x_fin_traversee_bac'];
         break;
 
       case 'Dalot':
@@ -153,8 +153,8 @@ class _PointFormWidgetState extends State<PointFormWidget> {
 
       case 'Passage Submersible':
         _formData['type'] = pointData['type_materiau'];
-        _formData['latitude_fin'] = pointData['x_fin_passage_submersible'];
-        _formData['longitude_fin'] = pointData['y_fin_passage_submersible'];
+        _formData['latitude_fin'] = pointData['y_fin_passage_submersible'];
+        _formData['longitude_fin'] = pointData['x_fin_passage_submersible'];
         break;
 
       case 'Point Critique':
@@ -165,6 +165,17 @@ class _PointFormWidgetState extends State<PointFormWidget> {
         _formData['causes_coupures'] = pointData['causes_coupures'];
         break;
 
+      case 'Site de Plaine':
+        _formData['amenage_ou_non_amenage'] = pointData['amenage_ou_non_amenage'] == 1 ? 'Aménagé' : 'Non aménagé';
+        _formData['projet'] = pointData['projet'];
+        _formData['entreprise'] = pointData['entreprise'];
+        _formData['financement'] = pointData['financement'];
+        _formData['type_de_realisation'] = pointData['type_de_realisation'];
+        _formData['travaux_debut'] = pointData['travaux_debut'];
+        _formData['travaux_fin'] = pointData['travaux_fin']?.toString();
+        _formData['superficie_digitalisee'] = pointData['superficie_digitalisee']?.toString();
+        _formData['superficie_estimee_lors_des_enquetes_ha'] = pointData['superficie_estimee_lors_des_enquetes_ha']?.toString();
+        break;
       // Pour les infrastructures rurales (écoles, marchés, etc.)
       default:
         // Les champs de base sont déjà mappés
@@ -444,6 +455,9 @@ class _PointFormWidgetState extends State<PointFormWidget> {
       // Points Critiques
       'points_critiques': 'point_critique',
       'points_coupures': 'point_coupure',
+
+      // Enquête
+      'site_enquete': 'site',
     };
 
     // Retourne le préfixe spécifique ou le premier mot de la table
@@ -491,6 +505,25 @@ class _PointFormWidgetState extends State<PointFormWidget> {
         entityData['causes_coupures'] = _formData['causes_coupures'] ?? 'Non spécifié';
         break;
 
+      case 'Site de Plaine':
+        if (_formData['amenage_ou_non_amenage'] != null) {
+          entityData['amenage_ou_non_amenage'] = _formData['amenage_ou_non_amenage'] == 'Aménagé' ? 1 : 0;
+        }
+        entityData['projet'] = _formData['projet'];
+        entityData['entreprise'] = _formData['entreprise'];
+        entityData['financement'] = _formData['financement'];
+        entityData['type_de_realisation'] = _formData['type_de_realisation'];
+        entityData['travaux_debut'] = _formData['travaux_debut'];
+        if (_formData['travaux_fin'] != null && _formData['travaux_fin'].toString().isNotEmpty) {
+          entityData['travaux_fin'] = int.tryParse(_formData['travaux_fin'].toString());
+        }
+        if (_formData['superficie_digitalisee'] != null && _formData['superficie_digitalisee'].toString().isNotEmpty) {
+          entityData['superficie_digitalisee'] = double.tryParse(_formData['superficie_digitalisee'].toString());
+        }
+        if (_formData['superficie_estimee_lors_des_enquetes_ha'] != null && _formData['superficie_estimee_lors_des_enquetes_ha'].toString().isNotEmpty) {
+          entityData['superficie_estimee_lors_des_enquetes_ha'] = double.tryParse(_formData['superficie_estimee_lors_des_enquetes_ha'].toString());
+        }
+        break;
       // Pour TOUTES les autres entités (écoles, marchés, etc.)
       default:
         // Utilisent les champs de base déjà définis + nom_cours_eau si configuré
@@ -1523,7 +1556,7 @@ class _PointFormWidgetState extends State<PointFormWidget> {
   }
 
   bool _hasSpecificFields(Map<String, dynamic>? config) {
-    return config?.containsKey('situationOptions') == true || config?.containsKey('typePontOptions') == true || config?.containsKey('typeBacOptions') == true || config?.containsKey('causesOptions') == true;
+    return config?.containsKey('situationOptions') == true || config?.containsKey('typePontOptions') == true || config?.containsKey('typeBacOptions') == true || config?.containsKey('causesOptions') == true || config?.containsKey('amenageOptions') == true;
   }
 
   List<Widget> _buildSpecificFields(Map<String, dynamic>? config, Color categoryColor) {
@@ -1569,7 +1602,59 @@ class _PointFormWidgetState extends State<PointFormWidget> {
         required: true,
       ));
     }
-
+// ===== Champs spécifiques Site de Plaine =====
+    if (config?.containsKey('amenageOptions') == true) {
+      fields.add(_buildDropdownField(
+        label: 'Aménagé ou non *',
+        hint: 'Sélectionner',
+        options: List<String>.from(config!['amenageOptions']),
+        key: 'amenage_ou_non_amenage',
+        required: true,
+      ));
+      fields.add(_buildTextField(
+        label: 'Projet',
+        hint: 'Nom du projet',
+        key: 'projet',
+      ));
+      fields.add(_buildTextField(
+        label: 'Entreprise',
+        hint: 'Nom de l\'entreprise',
+        key: 'entreprise',
+      ));
+      fields.add(_buildTextField(
+        label: 'Financement',
+        hint: 'Source de financement',
+        key: 'financement',
+      ));
+      if (config?.containsKey('typeRealisationOptions') == true) {
+        fields.add(_buildDropdownField(
+          label: 'Type de réalisation',
+          hint: 'Sélectionner',
+          options: List<String>.from(config!['typeRealisationOptions']),
+          key: 'type_de_realisation',
+        ));
+      }
+      fields.add(_buildTextField(
+        label: 'Début des travaux',
+        hint: 'Date ou année de début',
+        key: 'travaux_debut',
+      ));
+      fields.add(_buildTextField(
+        label: 'Fin des travaux',
+        hint: 'Année de fin (ex: 2025)',
+        key: 'travaux_fin',
+      ));
+      fields.add(_buildTextField(
+        label: 'Superficie digitalisée (ha)',
+        hint: 'En hectares',
+        key: 'superficie_digitalisee',
+      ));
+      fields.add(_buildTextField(
+        label: 'Superficie estimée lors des enquêtes (ha)',
+        hint: 'En hectares',
+        key: 'superficie_estimee_lors_des_enquetes_ha',
+      ));
+    }
     return fields;
   }
 }

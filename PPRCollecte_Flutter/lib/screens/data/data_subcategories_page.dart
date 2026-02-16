@@ -158,6 +158,26 @@ class DataSubcategoriesPage extends StatelessWidget {
                       );
                     },
                   ),
+                  _buildSubcategoryCard(
+                    context,
+                    title: 'Enquête',
+                    description: 'Sites de plaine, zones de plaine...',
+                    icon: Icons.assignment,
+                    color: const Color(0xFF212121),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DataCategoriesDisplay(
+                            mainCategory: "Enquête",
+                            dataFilter: dataFilter,
+                            isOnline: isOnline,
+                            agentName: agentName,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

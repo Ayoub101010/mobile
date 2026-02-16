@@ -295,6 +295,49 @@ class InfrastructureConfig {
           ]
         }
       }
+    },
+    "Enquête": {
+      "icon": "assignment",
+      "color": 0xFF212121,
+      "entities": {
+        "Site de Plaine": {
+          "tableName": "site_enquete",
+          "fields": [
+            "code_piste",
+            "code_gps",
+            "x_site",
+            "y_site",
+            "nom",
+            "type",
+            "amenage_ou_non_amenage",
+            "entreprise",
+            "financement",
+            "projet",
+            "superficie_digitalisee",
+            "superficie_estimee_lors_des_enquetes_ha",
+            "travaux_debut",
+            "travaux_fin",
+            "type_de_realisation",
+            "date_creation",
+            "date_modification",
+            "enqueteur"
+          ],
+          "typeOptions": [
+            "site de plaine",
+            "autre"
+          ],
+          "amenageOptions": [
+            "Aménagé",
+            "Non aménagé"
+          ],
+          "typeRealisationOptions": [
+            "Nouveau",
+            "Réhabilitation",
+            "Entretien",
+            "Autre"
+          ]
+        }
+      }
     }
   };
 

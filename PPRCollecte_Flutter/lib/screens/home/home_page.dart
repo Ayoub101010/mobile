@@ -3423,6 +3423,7 @@ String getEntityTypeFromTable(String tableName) {
     'dalots': 'Dalot',
     'points_critiques': 'Point Critique',
     'points_coupures': 'Point de Coupure',
+    'site_enquete': 'Site de Plaine',
   };
   return entityTypes[tableName] ?? tableName;
 }
@@ -3762,6 +3763,10 @@ class DownloadedPointsService {
         'lat': 'y_point_coupure',
         'lng': 'x_point_coupure',
       },
+      'site_enquete': {
+        'lat': 'y_site',
+        'lng': 'x_site',
+      },
     };
 
     final mapping = coordinateMappings[tableName];
@@ -3794,6 +3799,7 @@ class DownloadedPointsService {
       'dalots': 'Dalot',
       'points_critiques': 'Point Critique',
       'points_coupures': 'Point de Coupure',
+      'site_enquete': 'Site de Plaine',
     };
     return entityTypes[tableName] ?? tableName;
   }

@@ -270,7 +270,10 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
         'x_point_coupure',
         'y_point_coupure'
       ],
-
+      [
+        'x_site',
+        'y_site'
+      ],
       // Pour les lignes spéciales - début
       [
         'x_debut_traversee_bac',
@@ -1038,6 +1041,8 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
         return const Color(0xFF9C27B0);
       case "Points Critiques":
         return const Color(0xFFF44336);
+      case "Enquête":
+        return const Color(0xFF212121);
       default:
         return const Color(0xFF1976D2);
     }
