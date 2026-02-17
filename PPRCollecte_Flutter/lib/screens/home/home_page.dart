@@ -1916,9 +1916,8 @@ class _HomePageState extends State<HomePage> {
 
   // === GESTION DES POINTS D'INTÉRÊT ===
   Future<void> addPointOfInterest() async {
-    if (_isSpecialCollection) {
-      // Utiliser la nouvelle méthode
-      await finishSpecialCollection(); // ← CHANGER ICI
+    if (_isSpecialCollection && homeController.specialCollection?.isPaused != true) {
+      await finishSpecialCollection();
       return;
     }
 

@@ -36,10 +36,13 @@ class MapControlsWidget extends StatelessWidget {
   @override
   @override
   @override
+  @override
   Widget build(BuildContext context) {
+    final bool isPolygonPaused = isPolygonCollection && isSpecialCollection && controller.specialCollection?.isPaused == true;
+
     return Stack(
       children: [
-        // Bouton Rafraîchir en haut à droite (à ajuster si nécessaire)
+        // Bouton Rafraîchir
         Positioned(
           top: 8,
           right: 55,
@@ -54,7 +57,60 @@ class MapControlsWidget extends StatelessWidget {
           ),
         ),
 
-        // Boutons Point, Piste, Chaussée alignés horizontalement en bas
+        // ===== Mini contrôles Zone de Plaine AU-DESSUS du bouton Point =====
+        if (isPolygonPaused)
+          Positioned(
+            bottom: 70,
+            left: 15,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.pentagon, size: 16, color: Color(0xFF1B5E20)),
+                  const SizedBox(width: 4),
+                  const Text('Zone', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1B5E20))),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: onToggleSpecial,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1B5E20),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.play_arrow, size: 18, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: onStopSpecial,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE53E3E),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.stop, size: 18, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // ===== Boutons principaux en bas =====
         Positioned(
           bottom: 10,
           left: 0,
@@ -63,41 +119,13 @@ class MapControlsWidget extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // BOUTON POINT/ARRÊT (MODIFIÉ)
+                // BOUTON POINT / PAUSE+ARRÊT
                 if (!controller.hasActiveCollection || controller.specialCollection != null)
                   SizedBox(
                     width: 110,
                     child: isSpecialCollection
                         ? (isPolygonCollection
-                            // Zone de Plaine : Pause + Arrêt (même style piste/chaussée)
-                            ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  FloatingActionButton(
-                                    heroTag: "pauseSpecialBtn",
-                                    backgroundColor: const Color(0xFF1B5E20),
-                                    foregroundColor: Colors.white,
-                                    onPressed: onToggleSpecial,
-                                    mini: true,
-                                    elevation: 4,
-                                    child: Icon(
-                                      controller.specialCollection?.isPaused == true ? Icons.play_arrow : Icons.pause,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  FloatingActionButton(
-                                    heroTag: "stopSpecialBtn",
-                                    backgroundColor: const Color(0xFFE53E3E),
-                                    foregroundColor: Colors.white,
-                                    onPressed: onStopSpecial,
-                                    mini: true,
-                                    elevation: 4,
-                                    child: const Icon(Icons.stop, size: 20),
-                                  ),
-                                ],
-                              )
-                            // Bac/Passage : Arrêt seul (comme avant)
+                            ? _buildPolygonControls()
                             : FloatingActionButton.extended(
                                 heroTag: "stopSpecialBtn",
                                 backgroundColor: Colors.red,
@@ -217,6 +245,50 @@ class MapControlsWidget extends StatelessWidget {
             backgroundColor: const Color(0xFFE53E3E),
             foregroundColor: Colors.white,
             onPressed: onFinishChaussee,
+            mini: true,
+            elevation: 4,
+            child: const Icon(Icons.stop, size: 20),
+          ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildPolygonControls() {
+    final bool isPaused = controller.specialCollection?.isPaused == true;
+
+    if (isPaused) {
+      // EN PAUSE → Le bouton Point revient à sa place normale
+      return FloatingActionButton.extended(
+        heroTag: "pointBtn",
+        backgroundColor: const Color(0xFFE53E3E),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.place),
+        label: const Text("Point"),
+        onPressed: onAddPoint,
+        elevation: 6,
+        highlightElevation: 12,
+      );
+    } else {
+      // ACTIF → Pause + Arrêt
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: "pauseSpecialBtn",
+            backgroundColor: const Color(0xFF1B5E20),
+            foregroundColor: Colors.white,
+            onPressed: onToggleSpecial,
+            mini: true,
+            elevation: 4,
+            child: const Icon(Icons.pause, size: 20),
+          ),
+          const SizedBox(width: 8),
+          FloatingActionButton(
+            heroTag: "stopSpecialBtn",
+            backgroundColor: const Color(0xFFE53E3E),
+            foregroundColor: Colors.white,
+            onPressed: onStopSpecial,
             mini: true,
             elevation: 4,
             child: const Icon(Icons.stop, size: 20),
