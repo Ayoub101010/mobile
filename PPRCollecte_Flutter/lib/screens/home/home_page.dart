@@ -57,6 +57,8 @@ import '../forms/point_form_screen.dart';
 import '../forms/special_line_form_page.dart';
 import '../forms/formulaire_ligne_page.dart';
 import '../forms/formulaire_chaussee_page.dart';
+import '../forms/polygon_form_page.dart';
+import 'package:flutter_map/flutter_map.dart' show Polygon; // si pas déjà importé
 
 class MapFocusTarget {
   final String kind; // 'point' | 'polyline'
@@ -126,6 +128,8 @@ class _HomePageState extends State<HomePage> {
   String? _currentNearestPisteCode;
   bool _isSpecialCollection = false;
   String? _specialCollectionType;
+  bool _isPolygonCollection = false;
+  List<Polygon> _displayedPolygons = [];
   MapController? _mapController;
   LatLng? _lastCameraPosition;
   late final HomeController homeController;
@@ -200,6 +204,7 @@ class _HomePageState extends State<HomePage> {
     _startOnlineWatcher();
     _loadAdminNamesOffline();
     _loadDownloadedSpecialLines();
+    _loadDisplayedPolygons();
 
     homeController.addListener(
       () {
@@ -730,6 +735,66 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _handlePolygonTap(Object? hitValue) {
+    if (hitValue == null || hitValue is! PolygonTapData) return;
+    final data = hitValue;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 14,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Zone de Plaine — ${data.nom}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              _detailRow('Statut', data.synced ? 'Synchronisé' : 'Non synchronisé'),
+              _detailRow('Code piste', data.codePiste),
+              _detailRow('Région', _regionNom),
+              _detailRow('Préfecture', _prefectureNom),
+              _detailRow('Commune', _communeNom),
+              _detailRow('Superficie', '${data.superficie.toStringAsFixed(4)} ha'),
+              _detailRow('Sommets', '${data.nbSommets} points'),
+              _detailRow('Enquêteur', data.enqueteur),
+              _detailRow('Date création', data.dateCreation.length > 10 ? data.dateCreation.substring(0, 10) : data.dateCreation),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Fermer'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   String _sanitizeEnqueteur(String? v) {
     if (v == null) return '----';
 
@@ -942,25 +1007,41 @@ class _HomePageState extends State<HomePage> {
       }
     }
 
-    // Ligne spéciale en cours
+    // Ligne/polygone spécial en cours
     if (homeController.specialCollection != null) {
       final specialPoints = homeController.specialCollection!.points;
       if (specialPoints.length > 1) {
-        final specialColor = _specialCollectionType == "Bac" ? Colors.purple : Colors.deepPurple;
-
-        filtered.add(
-          Polyline(
-            points: specialPoints,
-            color: specialColor,
-            strokeWidth: 5.0,
-            pattern: homeController.specialCollection!.isPaused
-                ? StrokePattern.dashed(segments: [
-                    10,
-                    5
-                  ])
-                : const StrokePattern.solid(),
-          ),
-        );
+        if (_isPolygonCollection) {
+          // Zone de Plaine : afficher comme POLYGONE semi-transparent
+          // (on ajoute le contour comme polyline + le polygone sera dans _displayedPolygons)
+          filtered.add(
+            Polyline(
+              points: [
+                ...specialPoints,
+                specialPoints.first
+              ], // fermer le contour
+              color: const Color(0xFF2E7D32),
+              strokeWidth: 3.0,
+              pattern: const StrokePattern.solid(),
+            ),
+          );
+        } else {
+          // Bac / Passage : afficher comme LIGNE
+          final specialColor = _specialCollectionType == "Bac" ? Colors.purple : Colors.deepPurple;
+          filtered.add(
+            Polyline(
+              points: specialPoints,
+              color: specialColor,
+              strokeWidth: 5.0,
+              pattern: homeController.specialCollection!.isPaused
+                  ? StrokePattern.dashed(segments: [
+                      10,
+                      5
+                    ])
+                  : const StrokePattern.solid(),
+            ),
+          );
+        }
       }
     }
 
@@ -993,7 +1074,8 @@ class _HomePageState extends State<HomePage> {
       _legendVisibility = visibility;
       _showDownloadedPoints = visibility['points'] ?? true;
       _showDownloadedPistes = visibility['pistes'] ?? true;
-// Bac + Passage submersible (special lines)
+
+      // Bac + Passage submersible (special lines)
       final showBac = visibility['bac'] ?? true;
       final showPassage = visibility['passage_submersible'] ?? true;
       _showDownloadedSpecialLines = showBac || showPassage;
@@ -1006,8 +1088,18 @@ class _HomePageState extends State<HomePage> {
         'bouwal',
         'autre'
       ].any((type) => visibility['chaussee_$type'] == true);
+
       _showDownloadedChaussees = hasVisibleChaussee;
     });
+
+    // ✅ Zone de Plaine (polygones) — logique demandée dans le guide
+    if (visibility['zone_plaine'] == false) {
+      setState(() {
+        _displayedPolygons = [];
+      });
+    } else {
+      _loadDisplayedPolygons();
+    }
   }
 
   Future<void> _checkOnlineStatus() async {
@@ -1400,51 +1492,90 @@ class _HomePageState extends State<HomePage> {
 
   // Remplacer finishSpecialLigneCollection par :
   Future<void> finishSpecialCollection() async {
+    // === CAS POLYGONE ===
+    if (_isPolygonCollection) {
+      final result = homeController.finishSpecialCollection();
+
+      if (result == null || result.points.length < 3) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Un polygone doit contenir au moins 3 points. (${result?.points.length ?? 0} collectés)",
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final current = homeController.userPosition;
+      final nearestPisteCode = await SimpleStorageHelper().findNearestPisteCode(
+        current,
+        activePisteCode: homeController.activePisteCode,
+      );
+
+      final formResult = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PolygonFormPage(
+            polygonPoints: result.points,
+            startTime: result.startTime,
+            endTime: result.endTime,
+            agentName: widget.agentName,
+            activePisteCode: homeController.activePisteCode,
+            nearestPisteCode: nearestPisteCode,
+          ),
+        ),
+      );
+
+      if (mounted) _refreshAfterNavigation();
+
+      setState(() {
+        _isSpecialCollection = false;
+        _isPolygonCollection = false;
+        _specialCollectionType = null;
+      });
+
+      if (formResult != null) {
+        await _loadDisplayedPolygons();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Zone de Plaine enregistrée avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      return;
+    }
+
+    // === CAS LIGNE (Bac / Passage Submersible) — code existant ===
     final result = homeController.finishSpecialCollection();
 
     if (result == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "Une ligne doit contenir au moins 2 points.",
-          ),
+          content: Text("Une ligne doit contenir au moins 2 points."),
         ),
       );
       return;
     }
 
-    // ⭐⭐ AJOUTEZ CES LIGNES DE DEBUG ⭐⭐
-    print(
-      '=== DEBUG FINISH SPECIAL ===',
-    );
-    print(
-      'Result codePiste: ${result.codePiste}',
-    );
-    print(
-      'HomeController activePisteCode: ${homeController.activePisteCode}',
-    );
-    print(
-      'Special type: $_specialCollectionType',
-    );
+    print('=== DEBUG FINISH SPECIAL ===');
+    print('Result codePiste: ${result.codePiste}');
+    print('HomeController activePisteCode: ${homeController.activePisteCode}');
+    print('Special type: $_specialCollectionType');
     final current = homeController.userPosition;
     final nearestPisteCode = await SimpleStorageHelper().findNearestPisteCode(
       current,
-      activePisteCode: homeController.activePisteCode, // ← MÊME APPEL
+      activePisteCode: homeController.activePisteCode,
     );
 
-    print(
-      '📍 Code piste pour spécial: $nearestPisteCode',
-    );
+    print('📍 Code piste pour spécial: $nearestPisteCode');
 
     final formResult = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (
-          _,
-        ) =>
-            SpecialLineFormPage(
+        builder: (_) => SpecialLineFormPage(
           linePoints: result.points,
           provisionalCode: result.codePiste ?? '',
           startTime: result.startTime,
@@ -1452,35 +1583,78 @@ class _HomePageState extends State<HomePage> {
           agentName: widget.agentName,
           specialType: _specialCollectionType!,
           totalDistance: result.totalDistance,
-          activePisteCode: homeController.activePisteCode, // ⭐⭐ AJOUTEZ CETTE LIGNE ⭐⭐
+          activePisteCode: homeController.activePisteCode,
         ),
       ),
     );
-    if (mounted) {
-      _refreshAfterNavigation();
-    }
-    setState(
-      () {
-        _isSpecialCollection = false;
-        _specialCollectionType = null;
-      },
-    );
+    if (mounted) _refreshAfterNavigation();
+
+    setState(() {
+      _isSpecialCollection = false;
+      _specialCollectionType = null;
+    });
 
     if (formResult != null) {
-      // La ligne spéciale est déjà sauvegardée en DB par le formulaire
-      // On recharge simplement depuis la DB pour éviter les doublons
       await _loadDisplayedSpecialLines();
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Données enregistrées avec succès',
-          ),
+          content: Text('Données enregistrées avec succès'),
           backgroundColor: Colors.green,
         ),
       );
+    }
+  }
+
+  Future<void> _loadDisplayedPolygons() async {
+    try {
+      final db = await DatabaseHelper().database;
+      final polygons = await db.query('enquete_polygone');
+
+      List<Polygon> mapPolygons = [];
+      for (var poly in polygons) {
+        final pointsJson = poly['points_json'] as String?;
+        if (pointsJson != null && pointsJson.isNotEmpty) {
+          try {
+            final List<dynamic> coords = jsonDecode(pointsJson);
+            final List<LatLng> points = coords.map<LatLng>((c) {
+              if (c is List && c.length >= 2) {
+                return LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble());
+              }
+              return LatLng(0, 0);
+            }).toList();
+
+            if (points.length >= 3) {
+              mapPolygons.add(Polygon(
+                points: points,
+                color: const Color(0xFF4CAF50).withOpacity(0.3),
+                borderColor: const Color(0xFF2E7D32),
+                borderStrokeWidth: 2.0,
+                isFilled: true,
+                hitValue: PolygonTapData(
+                  nom: poly['nom']?.toString() ?? '----',
+                  codePiste: poly['code_piste']?.toString() ?? '----',
+                  superficie: (poly['superficie_en_ha'] as num?)?.toDouble() ?? 0.0,
+                  nbSommets: points.length,
+                  enqueteur: poly['enqueteur']?.toString() ?? '----',
+                  dateCreation: poly['date_creation']?.toString() ?? '----',
+                  synced: poly['synced'] == 1,
+                ),
+              ));
+            }
+          } catch (e) {
+            print('❌ Erreur parsing polygone: $e');
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _displayedPolygons = mapPolygons;
+        });
+        print('✅ ${mapPolygons.length} polygones affichés');
+      }
+    } catch (e) {
+      print('❌ Erreur chargement polygones: $e');
     }
   }
 
@@ -1788,10 +1962,11 @@ class _HomePageState extends State<HomePage> {
           onSpecialTypeSelected: (
             type,
           ) {
-            // Utiliser la nouvelle méthode
-            startSpecialCollection(
-              type,
-            ); // ← CHANGER ICI
+            if (type == "Zone de Plaine") {
+              startPolygonCollection();
+            } else {
+              startSpecialCollection(type);
+            }
           },
         ),
       ),
@@ -1829,6 +2004,48 @@ class _HomePageState extends State<HomePage> {
   // home_page.dart - Modifiez la méthode startLigneCollection
 
   // home_page.dart - Méthode startLigneCollection modifiée
+// === COLLECTE POLYGONE (Zone de Plaine) ===
+  Future<void> startPolygonCollection() async {
+    if (!homeController.gpsEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Veuillez activer le GPS")),
+      );
+      return;
+    }
+
+    if (homeController.hasActiveCollection) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez terminer la collecte en cours'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Réutiliser le mécanisme de special collection
+      await homeController.startSpecialCollection("Zone de Plaine");
+
+      setState(() {
+        _isSpecialCollection = true;
+        _isPolygonCollection = true;
+        _specialCollectionType = "Zone de Plaine";
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🔷 Collecte de polygone démarrée — Marchez le périmètre de la zone'),
+          backgroundColor: Color(0xFF1B5E20),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
+    }
+  }
 
   Future<void> startLigneCollection() async {
     if (!homeController.gpsEnabled) {
@@ -1896,6 +2113,17 @@ class _HomePageState extends State<HomePage> {
           ),
           backgroundColor: Colors.red,
         ),
+      );
+    }
+  }
+
+  void toggleSpecialCollection() {
+    try {
+      homeController.toggleSpecialCollection();
+      setState(() {});
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -2608,6 +2836,8 @@ class _HomePageState extends State<HomePage> {
         _loadDisplayedPoints();
         _loadDisplayedPistes();
         _loadDisplayedChaussees();
+        _loadDisplayedSpecialLines();
+        _loadDisplayedPolygons();
       },
     );
   }
@@ -3049,35 +3279,61 @@ class _HomePageState extends State<HomePage> {
 
     // 2. Filtrer les polylines selon la légende
     final List<Polyline> filteredPolylines = _getFilteredPolylines();
-
+    List<Polygon> filteredPolygons = List.from(_displayedPolygons);
     // === LOGS POUR DEBUG ===
     print('📍 [MAP] filteredMarkers size = ${filteredMarkers.length}');
     print('🧮 [MAP] filteredPolylines size = ${filteredPolylines.length}');
 
     // === AJOUTER LES ÉLÉMENTS EN COURS (toujours visibles) ===
 
-    // Ajouter la ligne en cours si active (nouveau système)
     if (homeController.specialCollection != null) {
       final specialPoints = homeController.specialCollection!.points;
       if (specialPoints.length > 1) {
-        final specialColor = _specialCollectionType == "Bac" ? Colors.purple : Colors.deepPurple;
-
-        filteredPolylines.add(
-          Polyline(
-            points: specialPoints,
-            color: specialColor,
-            strokeWidth: 5.0,
-            pattern: homeController.specialCollection!.isPaused
-                ? StrokePattern.dashed(segments: [
-                    10,
-                    5
-                  ])
-                : const StrokePattern.solid(),
+        if (_isPolygonCollection) {
+          filteredPolylines.add(
+            Polyline(
+              points: [
+                ...specialPoints,
+                specialPoints.first
+              ],
+              color: const Color(0xFF2E7D32),
+              strokeWidth: 3.0,
+              pattern: const StrokePattern.solid(),
+            ),
+          );
+        } else {
+          final specialColor = _specialCollectionType == "Bac" ? Colors.purple : Colors.deepPurple;
+          filteredPolylines.add(
+            Polyline(
+              points: specialPoints,
+              color: specialColor,
+              strokeWidth: 5.0,
+              pattern: homeController.specialCollection!.isPaused
+                  ? StrokePattern.dashed(segments: [
+                      10,
+                      5
+                    ])
+                  : const StrokePattern.solid(),
+            ),
+          );
+        }
+      }
+    }
+// === AFFICHER LE POLYGONE EN COURS DE COLLECTE ===
+    if (_isPolygonCollection && homeController.specialCollection != null) {
+      final polyPoints = homeController.specialCollection!.points;
+      if (polyPoints.length >= 3) {
+        filteredPolygons.add(
+          Polygon(
+            points: polyPoints,
+            color: const Color(0xFF4CAF50).withOpacity(0.2),
+            borderColor: const Color(0xFF1B5E20),
+            borderStrokeWidth: 3.0,
+            isFilled: true,
           ),
         );
       }
     }
-
     // Ajouter la piste en cours si active
     if (homeController.ligneCollection != null) {
       final lignePoints = homeController.ligneCollection!.points;
@@ -3137,6 +3393,8 @@ class _HomePageState extends State<HomePage> {
                     gpsEnabled: gpsEnabled,
                     markers: filteredMarkers,
                     polylines: filteredPolylines,
+                    polygons: filteredPolygons,
+                    onPolygonTap: _handlePolygonTap,
                     onMapCreated: _onMapCreated,
                     formMarkers: formMarkers,
                     isSatellite: _isSatellite,
@@ -3154,6 +3412,7 @@ class _HomePageState extends State<HomePage> {
                     onVisibilityChanged: _updateVisibilityFromLegend,
                     allPolylines: filteredPolylines,
                     allMarkers: filteredMarkers,
+                    polygonCount: _displayedPolygons.length,
                   ),
                   if (isSyncing)
                     BackdropFilter(
@@ -3247,6 +3506,50 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),*/
+                  //  SIMULATION POLYGONE — À SUPPRIMER APRÈS TEST
+                  // 🧪 BOUTON SIMULATION ÉMULATEUR — À SUPPRIMER POUR LA PRODUCTION
+                  // 🔴🔴🔴 SIMULATION POLYGONE — À SUPPRIMER APRÈS TEST 🔴🔴🔴
+                  if (_isPolygonCollection)
+                    Positioned(
+                      bottom: 120,
+                      right: 16,
+                      child: FloatingActionButton(
+                        onPressed: () {
+                          final pos = homeController.userPosition;
+                          // 5 points formant un pentagone clair autour de la position
+                          final simulatedPoints = [
+                            LatLng(pos.latitude + 0.002, pos.longitude),
+                            LatLng(pos.latitude + 0.0006, pos.longitude + 0.0019),
+                            LatLng(pos.latitude - 0.0016, pos.longitude + 0.0012),
+                            LatLng(pos.latitude - 0.0016, pos.longitude - 0.0012),
+                            LatLng(pos.latitude + 0.0006, pos.longitude - 0.0019),
+                          ];
+                          for (var pt in simulatedPoints) {
+                            homeController.collectionManager.addManualPoint(
+                              CollectionType.special,
+                              pt,
+                            );
+                          }
+                          setState(() {});
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '🔷 5 points de polygone simulés (${homeController.specialCollection?.points.length ?? 0} total)',
+                              ),
+                              backgroundColor: const Color(0xFF1B5E20),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        backgroundColor: const Color(0xFF1B5E20),
+                        mini: true,
+                        heroTag: 'simulate_polygon_button',
+                        child: const Icon(Icons.pentagon, color: Colors.white),
+                      ),
+                    ),
+                  //  FIN SIMULATION — À SUPPRIMER APRÈS TEST
+                  //  FIN SIMULATION
+                  //  FIN SIMULATION — À SUPPRIMER APRÈS TEST
                   // === FIN DE L'AJOUT === //
                   // Contrôles de carte
                   MapControlsWidget(
@@ -3261,6 +3564,11 @@ class _HomePageState extends State<HomePage> {
                     onRefresh: _loadDisplayedPoints,
                     isSpecialCollection: _isSpecialCollection, // ← NOUVEAU
                     onStopSpecial: finishSpecialCollection,
+                    isPolygonCollection: _isPolygonCollection,
+                    onToggleSpecial: () {
+                      homeController.toggleSpecialCollection();
+                      setState(() {});
+                    },
                   ),
                   MapTypeToggle(
                     isSatellite: _isSatellite,
@@ -3424,6 +3732,7 @@ String getEntityTypeFromTable(String tableName) {
     'points_critiques': 'Point Critique',
     'points_coupures': 'Point de Coupure',
     'site_enquete': 'Site de Plaine',
+    'enquete_polygone': 'Zone de Plaine',
   };
   return entityTypes[tableName] ?? tableName;
 }
@@ -3617,6 +3926,7 @@ class DownloadedPointsService {
         'points_critiques',
         'points_coupures',
         'site_enquete',
+        'enquete_polygone',
       ];
 
       final List<Marker> markers = [];
@@ -3768,6 +4078,10 @@ class DownloadedPointsService {
         'lat': 'y_site',
         'lng': 'x_site',
       },
+      'enquete_polygone': {
+        'lat': 'y_site',
+        'lng': 'x_site'
+      }, // pas utilisé (polygone)
     };
 
     final mapping = coordinateMappings[tableName];
@@ -3801,6 +4115,7 @@ class DownloadedPointsService {
       'points_critiques': 'Point Critique',
       'points_coupures': 'Point de Coupure',
       'site_enquete': 'Site de Plaine',
+      'enquete_polygone': 'Zone de Plaine',
     };
     return entityTypes[tableName] ?? tableName;
   }
@@ -4387,5 +4702,25 @@ class PolylineTapData {
   PolylineTapData({
     required this.type,
     required this.data,
+  });
+}
+
+class PolygonTapData {
+  final String nom;
+  final String codePiste;
+  final double superficie;
+  final int nbSommets;
+  final String enqueteur;
+  final String dateCreation;
+  final bool synced;
+
+  PolygonTapData({
+    required this.nom,
+    required this.codePiste,
+    required this.superficie,
+    required this.nbSommets,
+    required this.enqueteur,
+    required this.dateCreation,
+    required this.synced,
   });
 }

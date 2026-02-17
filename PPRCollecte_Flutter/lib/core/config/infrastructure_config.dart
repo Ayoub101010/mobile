@@ -336,6 +336,21 @@ class InfrastructureConfig {
             "Entretien",
             "Autre"
           ]
+        },
+        "Zone de Plaine": {
+          "tableName": "enquete_polygone",
+          "isPolygon": true,
+          "fields": [
+            "code_piste",
+            "code_gps",
+            "nom",
+            "points_json",
+            "superficie_en_ha",
+            "date_creation",
+            "date_modification",
+            "enqueteur"
+          ],
+          "typeOptions": []
         }
       }
     }

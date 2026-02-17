@@ -67,9 +67,25 @@ class EnquetePolygoneSerializer(GeoFeatureModelSerializer):
         geo_field = "geom"
         fields = '__all__'
         extra_kwargs = {
-            'fid': {'required': False},
+            'id': {'required': False},
             'sqlite_id': {'required': False, 'allow_null': True},
         }
+
+    def to_internal_value(self, data):
+        """Convertir Polygon → MultiPolygon si nécessaire"""
+        geom_data = data.get('geom')
+        if geom_data and isinstance(geom_data, dict):
+            if geom_data.get('type') == 'Polygon':
+                # Convertir Polygon en MultiPolygon
+                from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
+                import json
+                polygon = GEOSGeometry(json.dumps(geom_data))
+                data['geom'] = MultiPolygon(polygon, srid=4326)
+            elif geom_data.get('type') == 'MultiPolygon':
+                from django.contrib.gis.geos import GEOSGeometry
+                import json
+                data['geom'] = GEOSGeometry(json.dumps(geom_data))
+        return super().to_internal_value(data)
     
 class PointsCoupuresSerializer(GeoFeatureModelSerializer):
     class Meta:

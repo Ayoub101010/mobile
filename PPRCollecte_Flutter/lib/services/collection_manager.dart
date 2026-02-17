@@ -22,7 +22,7 @@ class CollectionManager extends ChangeNotifier {
   int get countdown => _countdown;
 
   bool get hasActiveCollection => (_ligneCollection?.isActive ?? false) || (_chausseeCollection?.isActive ?? false) || (_specialCollection?.isActive ?? false);
-  bool get hasPausedCollection => (_ligneCollection?.isPaused ?? false) || (_chausseeCollection?.isPaused ?? false);
+  bool get hasPausedCollection => (_ligneCollection?.isPaused ?? false) || (_chausseeCollection?.isPaused ?? false) || (_specialCollection?.isPaused ?? false);
 
   String? get activeCollectionType {
     if (_ligneCollection?.isActive ?? false) return 'ligne';
@@ -224,6 +224,32 @@ class CollectionManager extends ChangeNotifier {
         status: CollectionStatus.active,
       );
       _startCollectionService(_chausseeCollection!, locationStream);
+      notifyListeners();
+    }
+  }
+
+  /// Met en pause une collecte spéciale (Zone de Plaine)
+  void pauseSpecialCollection() {
+    if (_specialCollection?.isActive ?? false) {
+      _specialCollection = _specialCollection!.copyWith(
+        status: CollectionStatus.paused,
+      );
+      _collectionService.stopCollection();
+      notifyListeners();
+    }
+  }
+
+  /// Reprend une collecte spéciale (Zone de Plaine)
+  void resumeSpecialCollection(Stream<LocationData> locationStream) {
+    if (_specialCollection?.isPaused ?? false) {
+      if (hasActiveCollection) {
+        throw Exception('Une autre collecte est en cours. Veuillez la mettre en pause d\'abord.');
+      }
+
+      _specialCollection = _specialCollection!.copyWith(
+        status: CollectionStatus.active,
+      );
+      _startCollectionService(_specialCollection!, locationStream);
       notifyListeners();
     }
   }

@@ -44,7 +44,8 @@ class HomeController extends ChangeNotifier {
   String? get activePisteCode => _activePisteCode;
   SpecialCollection? get specialCollection => _collectionManager.specialCollection;
   int get collectionCountdown => _collectionManager.countdown;
-
+// Expose le collection manager pour la simulation
+  CollectionManager get collectionManager => _collectionManager;
   Future<void> startSpecialCollection(String specialType) async {
     try {
       _collectionManager.startSpecialCollection(
@@ -76,6 +77,34 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
   }
 
+// 🧪 SIMULATION ÉMULATEUR — À SUPPRIMER POUR LA PRODUCTION
+  void simulatePolygonPoints() {
+    if (specialCollection == null || !specialCollection!.isActive) return;
+
+    final random = Random();
+    final centerLat = userPosition.latitude;
+    final centerLng = userPosition.longitude;
+
+    // Simuler un quadrilatère autour de la position actuelle
+    // ~50m de côté environ
+    final offset = 0.0005; // ~55 mètres
+    final points = [
+      LatLng(centerLat + offset, centerLng - offset), // Nord-Ouest
+      LatLng(centerLat + offset, centerLng + offset), // Nord-Est
+      LatLng(centerLat - offset, centerLng + offset * 0.8), // Sud-Est
+      LatLng(centerLat - offset * 0.6, centerLng - offset * 1.2), // Sud-Ouest
+      // Ajouter un 5ème point pour un pentagone plus réaliste
+      LatLng(centerLat + offset * 0.3, centerLng - offset * 1.3), // Ouest
+    ];
+
+    for (final point in points) {
+      _collectionManager.addManualPoint(CollectionType.special, point);
+    }
+
+    print('🧪 SIMULATION: ${points.length} points de polygone simulés');
+    notifyListeners();
+  }
+  // 🧪 FIN SIMULATION
 // Ajouter cette méthode
   // Ajouter cette méthode pour la simulation spéciale
   /*void addManualPointToSpecialCollection() {
@@ -333,6 +362,21 @@ class HomeController extends ChangeNotifier {
     } else if (chaussee.isPaused) {
       try {
         _collectionManager.resumeChausseeCollection(_locationService.onLocationChanged());
+      } catch (e) {
+        rethrow;
+      }
+    }
+  }
+
+  void toggleSpecialCollection() {
+    final special = _collectionManager.specialCollection;
+    if (special == null) return;
+
+    if (special.isActive) {
+      _collectionManager.pauseSpecialCollection();
+    } else if (special.isPaused) {
+      try {
+        _collectionManager.resumeSpecialCollection(_locationService.onLocationChanged());
       } catch (e) {
         rethrow;
       }

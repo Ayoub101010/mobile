@@ -14,6 +14,7 @@ import '../forms/formulaire_ligne_page.dart';
 import '../forms/formulaire_chaussee_page.dart';
 import '../home/home_page.dart';
 import '../auth/login_page.dart';
+import '../forms/polygon_form_page.dart';
 
 const bool _DBG_FOCUS_POINT = true;
 
@@ -808,6 +809,8 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
       await _editPiste(item);
     } else if (selectedCategory == "Chaussées") {
       await _editChaussee(item);
+    } else if (selectedType == "Zone de Plaine") {
+      await _editZoneDePlaine(item);
     } else {
       final config = InfrastructureConfig.getEntityConfig(selectedCategory!, selectedType!);
       final tableName = config?['tableName'] ?? '';
@@ -837,6 +840,67 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
       if (result != null) {
         _fetchData();
       }
+    }
+  }
+
+  Future<void> _editZoneDePlaine(Map<String, dynamic> item) async {
+    try {
+      // Décoder les points du polygone
+      List<LatLng> points = [];
+      final pointsJson = item['points_json'];
+      if (pointsJson != null && pointsJson is String) {
+        try {
+          final coordsList = jsonDecode(pointsJson) as List;
+          points = coordsList.map<LatLng>((c) {
+            if (c is List && c.length >= 2) {
+              return LatLng(c[1].toDouble(), c[0].toDouble());
+            }
+            return LatLng(0, 0);
+          }).toList();
+          // Retirer le dernier point s'il est identique au premier (polygone fermé)
+          if (points.length > 1 && points.first.latitude == points.last.latitude && points.first.longitude == points.last.longitude) {
+            points.removeLast();
+          }
+        } catch (e) {
+          print('❌ Erreur décodage points polygone: $e');
+        }
+      }
+
+      if (points.length < 3) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Polygone invalide (moins de 3 points)'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PolygonFormPage(
+            polygonPoints: points,
+            startTime: item['date_creation'] != null ? DateTime.tryParse(item['date_creation']) ?? DateTime.now() : DateTime.now(),
+            endTime: DateTime.now(),
+            agentName: item['enqueteur'] ?? 'Agent',
+            nearestPisteCode: item['code_piste'],
+            existingData: item,
+          ),
+        ),
+      );
+
+      if (result != null) {
+        _fetchData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Zone de Plaine modifiée avec succès')),
+        );
+      }
+    } catch (e) {
+      print('❌ Erreur édition zone de plaine: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
     }
   }
 

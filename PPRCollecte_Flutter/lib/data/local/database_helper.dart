@@ -621,12 +621,14 @@ CREATE TABLE IF NOT EXISTS app_session (
     CREATE TABLE IF NOT EXISTS enquete_polygone(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       api_id INTEGER,
-      nom TEXT NOT NULL,
-      points_json TEXT, 
+      nom TEXT,
+      points_json TEXT,
+      superficie_en_ha REAL,
       enqueteur TEXT NOT NULL,
       date_creation TEXT NOT NULL,
       date_modification TEXT,
       code_piste TEXT,
+      code_gps TEXT,
       synced INTEGER DEFAULT 0,
       downloaded INTEGER DEFAULT 0,
       date_sync TEXT,
@@ -2534,6 +2536,69 @@ CREATE TABLE IF NOT EXISTS app_session (
     } catch (e) {
       print('❌ Erreur sauvegarde site_enquete: $e');
       rethrow;
+    }
+  }
+
+  Future<void> saveOrUpdateEnquetePolygone(Map<String, dynamic> geoJsonData) async {
+    final db = await database;
+    final properties = geoJsonData['properties'] as Map<String, dynamic>? ?? {};
+    final geometry = geoJsonData['geometry'] as Map<String, dynamic>? ?? {};
+
+    final apiId = geoJsonData['id'];
+    final dataUserId = properties['login_id'];
+    final viewerId = ApiService.userId;
+    final communeId = properties['communes_rurales_id'];
+
+    // Extraire les coordonnées du polygone (MultiPolygon → premier polygone)
+    List<dynamic> coordinates = [];
+    if (geometry['type'] == 'MultiPolygon' && geometry['coordinates'] != null) {
+      // MultiPolygon: [[[ring1], [ring2], ...], ...]
+      final multiPoly = geometry['coordinates'] as List;
+      if (multiPoly.isNotEmpty && multiPoly[0] is List && (multiPoly[0] as List).isNotEmpty) {
+        coordinates = multiPoly[0][0]; // Premier anneau du premier polygone
+      }
+    } else if (geometry['type'] == 'Polygon' && geometry['coordinates'] != null) {
+      final poly = geometry['coordinates'] as List;
+      if (poly.isNotEmpty) {
+        coordinates = poly[0]; // Premier anneau
+      }
+    }
+
+    final pointsJson = coordinates.isNotEmpty ? jsonEncode(coordinates) : null;
+
+    // Vérifier si existe déjà
+    final existing = await db.query(
+      'enquete_polygone',
+      where: 'api_id = ? AND saved_by_user_id = ?',
+      whereArgs: [
+        apiId,
+        viewerId
+      ],
+    );
+
+    if (existing.isEmpty) {
+      await db.insert(
+        'enquete_polygone',
+        {
+          'api_id': apiId,
+          'nom': properties['nom'],
+          'points_json': pointsJson,
+          'superficie_en_ha': properties['superficie_en_ha'],
+          'enqueteur': properties['enqueteur'] ?? 'Sync',
+          'date_creation': properties['created_at'] ?? DateTime.now().toIso8601String(),
+          'date_modification': properties['updated_at'],
+          'code_piste': properties['code_piste'],
+          'code_gps': properties['code_gps'],
+          'synced': 0,
+          'downloaded': 1,
+          'login_id': dataUserId,
+          'saved_by_user_id': viewerId,
+          'commune_id': communeId,
+          'date_sync': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      print('✅ Enquête polygone sauvegardé: ${properties['nom']}');
     }
   }
 

@@ -56,6 +56,10 @@ class CustomMarkerIcons {
       icon: Icons.adjust,
       color: Color(0xFF212121), // Noir (comme le web)
     ),
+    'enquete_polygone': MarkerIconConfig(
+      icon: Icons.pentagon,
+      color: Color(0xFF1B5E20),
+    ),
   };
 
   /// Retourne un Widget pour le marqueur (utilisé dans flutter_map)

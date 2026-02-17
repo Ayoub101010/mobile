@@ -12,7 +12,9 @@ class MapControlsWidget extends StatelessWidget {
   final VoidCallback onFinishChaussee;
   final VoidCallback onRefresh;
   final bool isSpecialCollection;
+  final bool isPolygonCollection;
   final VoidCallback onStopSpecial;
+  final VoidCallback? onToggleSpecial;
 
   const MapControlsWidget({
     Key? key,
@@ -25,8 +27,10 @@ class MapControlsWidget extends StatelessWidget {
     required this.onFinishLigne,
     required this.onFinishChaussee,
     required this.onRefresh,
-    required this.isSpecialCollection, // ← NOUVEAU
-    required this.onStopSpecial, // ← NOUVEAU
+    required this.isSpecialCollection,
+    this.isPolygonCollection = false,
+    required this.onStopSpecial,
+    this.onToggleSpecial,
   }) : super(key: key);
 
   @override
@@ -64,16 +68,46 @@ class MapControlsWidget extends StatelessWidget {
                   SizedBox(
                     width: 110,
                     child: isSpecialCollection
-                        ? FloatingActionButton.extended(
-                            heroTag: "stopSpecialBtn",
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            icon: const Icon(Icons.stop),
-                            label: const Text("Arrêt"),
-                            onPressed: onStopSpecial,
-                            elevation: 6,
-                            highlightElevation: 12,
-                          )
+                        ? (isPolygonCollection
+                            // Zone de Plaine : Pause + Arrêt (même style piste/chaussée)
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FloatingActionButton(
+                                    heroTag: "pauseSpecialBtn",
+                                    backgroundColor: const Color(0xFF1B5E20),
+                                    foregroundColor: Colors.white,
+                                    onPressed: onToggleSpecial,
+                                    mini: true,
+                                    elevation: 4,
+                                    child: Icon(
+                                      controller.specialCollection?.isPaused == true ? Icons.play_arrow : Icons.pause,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  FloatingActionButton(
+                                    heroTag: "stopSpecialBtn",
+                                    backgroundColor: const Color(0xFFE53E3E),
+                                    foregroundColor: Colors.white,
+                                    onPressed: onStopSpecial,
+                                    mini: true,
+                                    elevation: 4,
+                                    child: const Icon(Icons.stop, size: 20),
+                                  ),
+                                ],
+                              )
+                            // Bac/Passage : Arrêt seul (comme avant)
+                            : FloatingActionButton.extended(
+                                heroTag: "stopSpecialBtn",
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                icon: const Icon(Icons.stop),
+                                label: const Text("Arrêt"),
+                                onPressed: onStopSpecial,
+                                elevation: 6,
+                                highlightElevation: 12,
+                              ))
                         : FloatingActionButton.extended(
                             heroTag: "pointBtn",
                             backgroundColor: const Color(0xFFE53E3E),

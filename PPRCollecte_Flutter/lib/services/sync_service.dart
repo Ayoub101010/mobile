@@ -1232,6 +1232,35 @@ class SyncService {
         );
         print('❌ Erreur lors du téléchargement/sauvegarde des sites d\'enquête: $e');
       }
+// ============ ENQUÊTE POLYGONES ============
+
+      try {
+        if (onProgress != null) {
+          onProgress(processedItems / totalItems, "Téléchargement des zones de plaine...", processedItems, totalItems);
+        }
+        print('📥 Téléchargement des zones de plaine...');
+        final polygones = await ApiService.fetchEnquetePolygones();
+        print('📐 ${polygones.length} zones de plaine à traiter');
+        for (var polygone in polygones) {
+          try {
+            await dbHelper.saveOrUpdateEnquetePolygone(polygone);
+            result.successCount++;
+            processedItems++;
+
+            if (onProgress != null) {
+              onProgress(processedItems / totalItems, "Sauvegarde des zones de plaine...", processedItems, totalItems);
+            }
+          } catch (e) {
+            print('❌ Erreur sauvegarde zone de plaine: $e');
+            result.failedCount++;
+          }
+        }
+      } catch (e) {
+        result.failedCount++;
+        result.errors.add('Erreur zones de plaine: $e');
+        print('❌ Erreur téléchargement zones de plaine: $e');
+      }
+
       // ============ PISTES ============
       try {
         if (onProgress != null) {

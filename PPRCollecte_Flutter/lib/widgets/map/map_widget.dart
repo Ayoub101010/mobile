@@ -7,6 +7,8 @@ class MapWidget extends StatefulWidget {
   final bool gpsEnabled;
   final List<Marker> markers;
   final List<Polyline> polylines;
+  final List<Polygon> polygons;
+  final Function(Object?)? onPolygonTap;
   final Function(MapController) onMapCreated;
   final List<Marker> formMarkers;
   final bool isSatellite;
@@ -20,6 +22,8 @@ class MapWidget extends StatefulWidget {
     required this.gpsEnabled,
     required this.markers,
     required this.polylines,
+    this.polygons = const [],
+    this.onPolygonTap,
     required this.onMapCreated,
     required this.formMarkers,
     this.isSatellite = false,
@@ -37,6 +41,7 @@ class _MapWidgetState extends State<MapWidget> {
   bool _controllerReady = false;
 // Notifier pour détecter les taps sur les polylines
   final _polylineHitNotifier = ValueNotifier<LayerHitResult<Object>?>(null);
+  final _polygonHitNotifier = ValueNotifier<LayerHitResult<Object>?>(null);
   @override
   void initState() {
     super.initState();
@@ -51,11 +56,13 @@ class _MapWidgetState extends State<MapWidget> {
     });
     // Écouter les taps sur les polylines
     _polylineHitNotifier.addListener(_onPolylineHit);
+    _polygonHitNotifier.addListener(_onPolygonHit);
   }
 
   @override
   void dispose() {
     _polylineHitNotifier.removeListener(_onPolylineHit);
+    _polygonHitNotifier.removeListener(_onPolygonHit);
     _mapController.dispose();
     super.dispose();
   }
@@ -79,6 +86,16 @@ class _MapWidgetState extends State<MapWidget> {
       }
     } else {
       print('⚠️ [MapWidget] hitResult est null');
+    }
+  }
+
+  void _onPolygonHit() {
+    final hitResult = _polygonHitNotifier.value;
+    if (hitResult != null && hitResult.hitValues.isNotEmpty) {
+      final hitValue = hitResult.hitValues.first;
+      if (widget.onPolygonTap != null) {
+        widget.onPolygonTap!(hitValue);
+      }
     }
   }
 
@@ -161,10 +178,17 @@ class _MapWidgetState extends State<MapWidget> {
               maxZoom: 19,
             ),
             // Couche des polylignes
+
             PolylineLayer(
               polylines: widget.polylines,
               hitNotifier: _polylineHitNotifier,
             ),
+            // Couche des polygones (Zone de Plaine)
+            if (widget.polygons.isNotEmpty)
+              PolygonLayer(
+                polygons: widget.polygons,
+                hitNotifier: _polygonHitNotifier,
+              ),
             // Couche des marqueurs
             MarkerLayer(
               markers: allMarkers,

@@ -53,7 +53,9 @@ class AutoCommuneMixin:
                 elif geom.geom_type == 'MultiLineString':
                     # Premier point de la première ligne
                     point_to_check = Point(geom[0][0], srid=geom.srid)
-                
+                elif geom.geom_type == 'MultiPolygon':
+                    # Premier point du premier anneau du premier polygone
+                    point_to_check = Point(geom[0][0][0], srid=geom.srid)
                 if point_to_check:
                     commune = GeoQueryHelper.find_commune_by_point(point_to_check)
                     if commune:
@@ -300,7 +302,7 @@ class SiteEnqueteListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.L
 
 class EnquetePolygoneListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCreateAPIView):
     serializer_class = EnquetePolygoneSerializer
-    commune_field_name = 'commune_id'
+    commune_field_name = 'communes_rurales_id'
 
     def get_queryset(self):
         return self.filter_queryset_by_rbac(EnquetePolygone.objects.all())

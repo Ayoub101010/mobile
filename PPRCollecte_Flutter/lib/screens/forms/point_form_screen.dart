@@ -90,7 +90,7 @@ class _PointFormScreenState extends State<PointFormScreen> {
 
   // Dans TypeSelectorWidget
   void _onTypeSelected(String type) {
-    if (type == "Bac" || type == "Passage Submersible") {
+    if (type == "Bac" || type == "Passage Submersible" || type == "Zone de Plaine") {
       // Retourner à la carte pour la collecte spéciale
       Navigator.of(context).pop();
       // Démarrer la collecte spéciale

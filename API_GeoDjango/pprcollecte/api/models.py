@@ -994,12 +994,15 @@ class SiteEnquete(models.Model):
 
 
 class EnquetePolygone(models.Model):
-    fid = models.BigAutoField(primary_key=True)
-    geom = models.PolygonField(srid=4326)
-    sqlite_id = models.IntegerField(null=True, blank=True, db_column='id')
+    # PK = id (colonne existante dans PostgreSQL, pas fid)
+    id = models.AutoField(primary_key=True)
+    geom = models.MultiPolygonField(srid=4326)  # MultiPolygon dans PostgreSQL
+    sqlite_id = models.IntegerField(null=True, blank=True, db_column='sqlite_id')
+    superficie_en_ha = models.FloatField(null=True, blank=True)
     nom = models.CharField(max_length=254, null=True, blank=True)
     created_at = models.CharField(max_length=24, null=True, blank=True)
     updated_at = models.CharField(max_length=24, null=True, blank=True)
+    code_gps = models.CharField(max_length=254, null=True, blank=True)
     code_piste = models.ForeignKey(
         'Piste',
         to_field='code_piste',
@@ -1015,12 +1018,12 @@ class EnquetePolygone(models.Model):
         blank=True,
         db_column='login_id'
     )
-    commune_id = models.ForeignKey(
+    communes_rurales_id = models.ForeignKey(
         'CommuneRurale',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        db_column='commune_id',
+        db_column='communes_rurales_id',
         related_name='enquete_polygones'
     )
 
@@ -1029,4 +1032,4 @@ class EnquetePolygone(models.Model):
         managed = False
 
     def __str__(self):
-        return f"Enquête Polygone {self.fid}"
+        return f"Enquête Polygone {self.id}"

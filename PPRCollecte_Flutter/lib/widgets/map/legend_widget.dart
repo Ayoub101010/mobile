@@ -25,6 +25,7 @@ class LegendWidget extends StatefulWidget {
   final Function(Map<String, bool>) onVisibilityChanged;
   final List<Polyline> allPolylines;
   final List<Marker> allMarkers;
+  final int polygonCount;
 
   const LegendWidget({
     super.key,
@@ -32,6 +33,7 @@ class LegendWidget extends StatefulWidget {
     required this.onVisibilityChanged,
     required this.allPolylines,
     required this.allMarkers,
+    this.polygonCount = 0,
   });
 
   @override
@@ -70,6 +72,8 @@ class _LegendWidgetState extends State<LegendWidget> {
       return widget.allPolylines.where((p) => p.color.value == Colors.purple.value).length;
     } else if (type == 'passage_submersible') {
       return widget.allPolylines.where((p) => p.color.value == Colors.cyan.value).length;
+    } else if (type == 'zone_plaine') {
+      return widget.polygonCount;
     }
     return 0;
   }
@@ -214,6 +218,23 @@ class _LegendWidgetState extends State<LegendWidget> {
         color: Colors.cyan,
         type: 'passage_submersible',
         isVisible: _visibility['passage_submersible'] ?? true,
+      ),
+      // === ZONES DE PLAINE (POLYGONES) ===
+      LegendData(
+        id: 'zone_plaine',
+        name: 'Zones de Plaine',
+        icon: Container(
+          width: 20,
+          height: 16,
+          decoration: BoxDecoration(
+            color: const Color(0xFF4CAF50).withOpacity(0.3),
+            border: Border.all(color: const Color(0xFF2E7D32), width: 1.5),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        color: const Color(0xFF4CAF50),
+        type: 'zone_plaine',
+        isVisible: _visibility['zone_plaine'] ?? true,
       ),
     ];
 

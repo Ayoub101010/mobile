@@ -868,27 +868,19 @@ class ApiService {
       if (dateString == null || dateString.isEmpty) return '';
       try {
         final date = DateTime.parse(dateString);
-        if (date.hour == 0 && date.minute == 0 && date.second == 0) {
-          final now = DateTime.now();
-          return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
-              '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
-        } else {
-          return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
-              '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
-        }
+        return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
+            '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
       } catch (e) {
         return dateString ?? '';
       }
     }
 
-    // On s'attend à ce que points_json contienne la liste des coordonnées [[lng,lat], ...]
     List<dynamic> coordinates = [];
     if (localData['points_json'] != null) {
       try {
         coordinates = jsonDecode(localData['points_json']);
-        // S'assurer que le polygone est fermé si nécessaire, ou que c'est une liste de points
       } catch (e) {
-        print('Error decoding points_json for polygon: $e');
+        print('❌ Error decoding points_json: $e');
       }
     }
 
@@ -898,14 +890,16 @@ class ApiService {
         'type': 'Polygon',
         'coordinates': [
           coordinates
-        ]
+        ] // Le serializer convertira en MultiPolygon
       },
       'nom': localData['nom'],
+      'superficie_en_ha': localData['superficie_en_ha'],
       'created_at': formatDateForPostgres(localData['date_creation']),
       'updated_at': formatDateForPostgres(localData['date_modification']),
       'code_piste': localData['code_piste'],
+      'code_gps': localData['code_gps'],
       'login_id': userId,
-      'commune_id': localData['commune_id'],
+      'communes_rurales_id': localData['commune_id'],
     };
   }
 
