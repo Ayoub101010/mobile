@@ -13,6 +13,20 @@ from rest_framework_gis.fields import GeometryField
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import LineString, MultiLineString
 
+class CodePisteResolveMixin:
+    """Mixin pour résoudre code_piste _0_0_0_ vers le code corrigé avant validation FK"""
+    
+    def to_internal_value(self, data):
+        code_piste = data.get('code_piste')
+        if code_piste and isinstance(code_piste, str) and '_0_0_0_' in code_piste:
+            date_suffix = code_piste.split('_0_0_0_')[-1]
+            from .models import Piste
+            matching = Piste.objects.filter(code_piste__endswith=date_suffix).first()
+            if matching:
+                data = data.copy() if hasattr(data, 'copy') else dict(data)
+                data['code_piste'] = matching.code_piste
+                print(f"🔄 Serializer: code_piste résolu {code_piste} → {matching.code_piste}")
+        return super().to_internal_value(data)
 class RegionSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = Region
@@ -44,7 +58,8 @@ class CommuneRuraleSerializer(GeoFeatureModelSerializer):
         region = obj.prefectures_id.regions_id.nom if obj.prefectures_id and obj.prefectures_id.regions_id else "N/A"
         return f"{obj.nom}, {prefecture}, {region}"
 
-class SiteEnqueteSerializer(GeoFeatureModelSerializer):
+
+class SiteEnqueteSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = SiteEnquete
         geo_field = "geom"
@@ -61,7 +76,7 @@ class SiteEnqueteSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class EnquetePolygoneSerializer(GeoFeatureModelSerializer):
+class EnquetePolygoneSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = EnquetePolygone
         geo_field = "geom"
@@ -87,7 +102,7 @@ class EnquetePolygoneSerializer(GeoFeatureModelSerializer):
                 data['geom'] = GEOSGeometry(json.dumps(geom_data))
         return super().to_internal_value(data)
     
-class PointsCoupuresSerializer(GeoFeatureModelSerializer):
+class PointsCoupuresSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = PointsCoupures
         geo_field = "geom"
@@ -109,7 +124,7 @@ class PointsCoupuresSerializer(GeoFeatureModelSerializer):
         return super().to_internal_value(data)
 
 
-class PointsCritiquesSerializer(GeoFeatureModelSerializer):
+class PointsCritiquesSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = PointsCritiques
         geo_field = "geom"
@@ -132,7 +147,7 @@ class PointsCritiquesSerializer(GeoFeatureModelSerializer):
 
 
 
-class ServicesSantesSerializer(GeoFeatureModelSerializer):
+class ServicesSantesSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = ServicesSantes
         geo_field = "geom"
@@ -150,7 +165,7 @@ class ServicesSantesSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class AutresInfrastructuresSerializer(GeoFeatureModelSerializer):
+class AutresInfrastructuresSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = AutresInfrastructures
         geo_field = "geom"
@@ -167,7 +182,7 @@ class AutresInfrastructuresSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class BacsSerializer(GeoFeatureModelSerializer):
+class BacsSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = Bacs
         geo_field = "geom"
@@ -193,7 +208,7 @@ class BacsSerializer(GeoFeatureModelSerializer):
             
         return super().to_internal_value(data)
 
-class BatimentsAdministratifsSerializer(GeoFeatureModelSerializer):
+class BatimentsAdministratifsSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = BatimentsAdministratifs
         geo_field = "geom"
@@ -210,7 +225,7 @@ class BatimentsAdministratifsSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class BusesSerializer(GeoFeatureModelSerializer):
+class BusesSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = Buses
         geo_field = "geom"
@@ -227,7 +242,7 @@ class BusesSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class DalotsSerializer(GeoFeatureModelSerializer):
+class DalotsSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = Dalots
         geo_field = "geom"
@@ -244,7 +259,7 @@ class DalotsSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class EcolesSerializer(GeoFeatureModelSerializer):
+class EcolesSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = Ecoles
         geo_field = "geom"
@@ -261,7 +276,7 @@ class EcolesSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class InfrastructuresHydrauliquesSerializer(GeoFeatureModelSerializer):
+class InfrastructuresHydrauliquesSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = InfrastructuresHydrauliques
         geo_field = "geom"
@@ -278,7 +293,7 @@ class InfrastructuresHydrauliquesSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class LocalitesSerializer(GeoFeatureModelSerializer):
+class LocalitesSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = Localites
         geo_field = "geom"
@@ -298,7 +313,7 @@ class LocalitesSerializer(GeoFeatureModelSerializer):
         
         return super().to_internal_value(data)
 
-class MarchesSerializer(GeoFeatureModelSerializer):
+class MarchesSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = Marches
         geo_field = "geom"
@@ -315,7 +330,7 @@ class MarchesSerializer(GeoFeatureModelSerializer):
             data['geom'] = Point(x, y, srid=4326)
         return super().to_internal_value(data)
 
-class PassagesSubmersiblesSerializer(GeoFeatureModelSerializer):
+class PassagesSubmersiblesSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = PassagesSubmersibles
         geo_field = "geom"
@@ -341,7 +356,7 @@ class PassagesSubmersiblesSerializer(GeoFeatureModelSerializer):
     
     
 
-class PontsSerializer(GeoFeatureModelSerializer):
+class PontsSerializer(CodePisteResolveMixin, GeoFeatureModelSerializer):
     class Meta:
         model = Ponts
         geo_field = "geom"

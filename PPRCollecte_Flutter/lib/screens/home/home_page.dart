@@ -130,6 +130,7 @@ class _HomePageState extends State<HomePage> {
   String? _specialCollectionType;
   bool _isPolygonCollection = false;
   List<Polygon> _displayedPolygons = [];
+  Map<String, int> _pointCountsByTable = {};
   MapController? _mapController;
   LatLng? _lastCameraPosition;
   late final HomeController homeController;
@@ -1075,31 +1076,30 @@ class _HomePageState extends State<HomePage> {
       _showDownloadedPoints = visibility['points'] ?? true;
       _showDownloadedPistes = visibility['pistes'] ?? true;
 
-      // Bac + Passage submersible (special lines)
+      // Bac + Passage submersible
       final showBac = visibility['bac'] ?? true;
       final showPassage = visibility['passage_submersible'] ?? true;
       _showDownloadedSpecialLines = showBac || showPassage;
 
-      // Pour les chaussées, si aucun type n'est visible, masquer tout
-      final hasVisibleChaussee = [
-        'bitume',
-        'terre',
-        'latérite',
-        'bouwal',
-        'autre'
-      ].any((type) => visibility['chaussee_$type'] == true);
-
+      // Chaussées : parent + sous-types
+      final chausseesParent = visibility['chaussees'] ?? true;
+      final hasVisibleChaussee = chausseesParent &&
+          [
+            'bitume',
+            'terre',
+            'latérite',
+            'bouwal',
+            'autre'
+          ].any((type) => visibility['chaussee_$type'] ?? true);
       _showDownloadedChaussees = hasVisibleChaussee;
-    });
 
-    // ✅ Zone de Plaine (polygones) — logique demandée dans le guide
-    if (visibility['zone_plaine'] == false) {
-      setState(() {
+      // Zone de plaine
+      if (visibility['zone_plaine'] == false) {
         _displayedPolygons = [];
-      });
-    } else {
-      _loadDisplayedPolygons();
-    }
+      } else {
+        _loadDisplayedPolygons();
+      }
+    });
   }
 
   Future<void> _checkOnlineStatus() async {
@@ -1851,9 +1851,21 @@ class _HomePageState extends State<HomePage> {
         return existingPositions.contains(posKey);
       }).toList();
 
+      // Compter les points par table pour la légende
+      final Map<String, int> counts = {};
+      for (var p in existingPoints) {
+        final table = (p['original_table'] ?? '').toString();
+        if (table.isNotEmpty) {
+          counts[table] = (counts[table] ?? 0) + 1;
+        }
+      }
+
       setState(() {
         _displayedPointsMarkers = validMarkers;
       });
+
+      // Compter depuis les tables réelles (inclut locaux + téléchargés)
+      await _loadPointCountsByTable();
 
       print(
         '📍 ${validMarkers.length} points affichés valides',
@@ -1862,6 +1874,46 @@ class _HomePageState extends State<HomePage> {
       print(
         '❌ Erreur chargement points: $e',
       );
+    }
+  }
+
+  Future<void> _loadPointCountsByTable() async {
+    try {
+      final db = await DatabaseHelper().database;
+      final Map<String, int> counts = {};
+      final tables = [
+        'localites',
+        'ecoles',
+        'marches',
+        'services_santes',
+        'batiments_administratifs',
+        'infrastructures_hydrauliques',
+        'autres_infrastructures',
+        'ponts',
+        'buses',
+        'dalots',
+        'points_critiques',
+        'points_coupures',
+        'site_enquete',
+      ];
+
+      for (var table in tables) {
+        try {
+          final result = await db.rawQuery('SELECT COUNT(*) as c FROM $table');
+          counts[table] = result.first['c'] as int? ?? 0;
+        } catch (_) {
+          counts[table] = 0;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _pointCountsByTable = counts;
+        });
+      }
+      print('📊 Compteurs points: $counts');
+    } catch (e) {
+      print('❌ Erreur comptage points: $e');
     }
   }
 
@@ -2837,6 +2889,7 @@ class _HomePageState extends State<HomePage> {
         _loadDisplayedChaussees();
         _loadDisplayedSpecialLines();
         _loadDisplayedPolygons();
+        _loadPointCountsByTable();
       },
     );
   }
@@ -3412,6 +3465,7 @@ class _HomePageState extends State<HomePage> {
                     allPolylines: filteredPolylines,
                     allMarkers: filteredMarkers,
                     polygonCount: _displayedPolygons.length,
+                    pointCountsByTable: _pointCountsByTable,
                   ),
                   if (isSyncing)
                     BackdropFilter(
