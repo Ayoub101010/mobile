@@ -43,7 +43,8 @@ class InfrastructureConfig {
             "primaire",
             "secondaire",
             "universitaire"
-          ]
+          ],
+          "multiSelectType": true
         },
         "Marché": {
           "tableName": "marches",

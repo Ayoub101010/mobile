@@ -398,7 +398,7 @@ class _PointFormWidgetState extends State<PointFormWidget> {
     final config = InfrastructureConfig.getEntityConfig(widget.category, widget.type);
     final typeOptions = InfrastructureConfig.getTypeOptions(widget.category, widget.type);
 
-    if (typeOptions.isNotEmpty && (_formData['type'] == null || _formData['type'].toString().isEmpty)) {
+    if (typeOptions.isNotEmpty && (_formData['type'] == null || _formData['type'].toString().trim().isEmpty)) {
       setState(() {
         _typeValidated = false;
         _typeError = 'Veuillez sélectionner un type';
@@ -770,13 +770,21 @@ class _PointFormWidgetState extends State<PointFormWidget> {
                       required: false, // Non requis
                     ),
                     if (typeOptions.isNotEmpty)
-                      _buildDropdownField(
-                        label: 'Type *',
-                        hint: 'Sélectionner un type',
-                        options: typeOptions,
-                        key: 'type',
-                        required: true,
-                      ),
+                      (config?['multiSelectType'] == true)
+                          ? _buildMultiSelectField(
+                              label: 'Type *',
+                              hint: 'Sélectionner un ou plusieurs types',
+                              options: typeOptions,
+                              key: 'type',
+                              required: true,
+                            )
+                          : _buildDropdownField(
+                              label: 'Type *',
+                              hint: 'Sélectionner un type',
+                              options: typeOptions,
+                              key: 'type',
+                              required: true,
+                            ),
 
                     if (config?['fields']?.contains('nom_cours_eau') == true)
                       _buildTextField(
@@ -1314,6 +1322,114 @@ class _PointFormWidgetState extends State<PointFormWidget> {
                   fontSize: 12,
                   color: Colors.red, // ← Même rouge que le nom
                 ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultiSelectField({
+    required String label,
+    required String hint,
+    required List<String> options,
+    required String key,
+    bool required = false,
+  }) {
+    // Parse les valeurs déjà sélectionnées (stockées en "primaire,secondaire")
+    final String currentValue = (_formData[key] ?? '').toString();
+    final Set<String> selectedValues = currentValue.isNotEmpty ? currentValue.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toSet() : <String>{};
+
+    final bool hasError = !_typeValidated && selectedValues.isEmpty && required;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: hasError ? Colors.red : const Color(0xFF374151),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: hasError ? Colors.red : const Color(0xFFE5E7EB),
+              ),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: options.map((option) {
+                final isSelected = selectedValues.contains(option);
+
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    setState(() {
+                      final newSelected = Set<String>.from(selectedValues);
+                      if (isSelected) {
+                        newSelected.remove(option);
+                      } else {
+                        newSelected.add(option);
+                      }
+                      // Stocker comme chaîne séparée par virgules
+                      _formData[key] = newSelected.join(',');
+                      _typeValidated = newSelected.isNotEmpty || !required;
+                      _typeError = null;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFFE3F2FD).withOpacity(0.3) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: isSelected ? const Color(0xFF1976D2) : (hasError ? Colors.red : const Color(0xFFD1D5DB)),
+                              width: 2,
+                            ),
+                            color: isSelected ? const Color(0xFF1976D2) : Colors.transparent,
+                          ),
+                          child: isSelected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            option,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isSelected ? const Color(0xFF1976D2) : const Color(0xFF374151),
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          if (hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Veuillez sélectionner au moins un type',
+                style: TextStyle(color: Colors.red, fontSize: 12),
               ),
             ),
         ],
