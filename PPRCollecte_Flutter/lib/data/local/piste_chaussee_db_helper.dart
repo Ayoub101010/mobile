@@ -400,6 +400,26 @@ ON displayed_pistes(login_id, code_piste);
     }
   }
 
+  Future<List<Map<String, dynamic>>> loadDisplayedChausseesMaps() async {
+    try {
+      final db = await database;
+      final dbHelper = DatabaseHelper();
+      final loginId = await dbHelper.resolveLoginId();
+      if (loginId == null) return [];
+      return await db.query(
+        'displayed_chaussees',
+        where: 'login_id = ?',
+        whereArgs: [
+          loginId
+        ],
+        orderBy: 'created_at DESC',
+      );
+    } catch (e) {
+      print('❌ Erreur loadDisplayedChausseesMaps: $e');
+      return [];
+    }
+  }
+
   // Charger toutes les pistes affichées
   Future<List<Polyline>> loadDisplayedPistes() async {
     try {

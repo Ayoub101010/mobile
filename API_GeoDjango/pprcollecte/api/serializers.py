@@ -45,20 +45,36 @@ class CommuneInfoMixin(serializers.Serializer):
             if hasattr(pref, 'regions_id') and pref.regions_id:
                 return pref.regions_id.nom
         return None
+# APRÈS 
 class CodePisteResolveMixin:
     """Mixin pour résoudre code_piste _0_0_0_ vers le code corrigé avant validation FK"""
     
     def to_internal_value(self, data):
+        # ⭐ FIX: Le data peut être un GeoJSON Feature (code_piste dans 'properties')
+        # ou un dict plat (code_piste au top-level)
         code_piste = data.get('code_piste')
+        is_geojson = False
+
+        if not code_piste and 'properties' in data:
+            code_piste = (data.get('properties') or {}).get('code_piste')
+            is_geojson = True
+
         if code_piste and isinstance(code_piste, str) and '_0_0_0_' in code_piste:
             date_suffix = code_piste.split('_0_0_0_')[-1]
             from .models import Piste
             matching = Piste.objects.filter(code_piste__endswith=date_suffix).first()
             if matching:
                 data = data.copy() if hasattr(data, 'copy') else dict(data)
-                data['code_piste'] = matching.code_piste
+                if is_geojson:
+                    # ⭐ Mettre à jour dans properties, pas au top-level
+                    props = dict(data['properties'])
+                    props['code_piste'] = matching.code_piste
+                    data['properties'] = props
+                else:
+                    data['code_piste'] = matching.code_piste
                 print(f"🔄 Serializer: code_piste résolu {code_piste} → {matching.code_piste}")
         return super().to_internal_value(data)
+    
 class RegionSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = Region
@@ -440,6 +456,12 @@ class PisteWriteSerializer(CommuneInfoMixin,GeoFeatureModelSerializer):
         return super().to_internal_value(data)
 
 class ChausseesSerializer(CodePisteResolveMixin, CommuneInfoMixin, GeoFeatureModelSerializer):
+    code_piste = serializers.SlugRelatedField(
+        slug_field='code_piste',
+        queryset=Piste.objects.all(),
+        required=False,
+        allow_null=True,
+    )
     class Meta:
         model = Chaussees
         geo_field = "geom"

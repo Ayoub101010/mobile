@@ -284,6 +284,9 @@ class _DataListViewState extends State<DataListView> {
       'commune_rurale_id',
       'communes_rurales',
       'communes_rurales_id',
+      'region_name',
+      'prefecture_name',
+      'commune_name',
     };
 
     bool isHidden(String key) {

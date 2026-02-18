@@ -1742,41 +1742,91 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadDisplayedChaussees() async {
     try {
       final storageHelper = SimpleStorageHelper();
-      final dbHelper = DatabaseHelper();
-      final loginId = await dbHelper.resolveLoginId();
+      final rows = await storageHelper.loadDisplayedChausseesMaps();
 
-      final displayedChausseesRaw = await storageHelper.loadDisplayedChaussees();
+      final displayedChaussees = <Polyline>[];
 
-      final displayedChaussees = displayedChausseesRaw.map((p) {
-        final pts = p.points;
-        final distanceKm = pts.length >= 2 ? polylineDistanceKm(pts) : 0.0;
+      for (final row in rows) {
+        final typeChaussee = (row['type_chaussee'] ?? '').toString();
+        final endroit = (row['endroit'] ?? '').toString();
+        final codePiste = (row['code_piste'] ?? '').toString();
 
-        return Polyline(
-          points: pts,
-          color: p.color,
-          strokeWidth: p.strokeWidth,
-          pattern: p.pattern ?? const StrokePattern.solid(),
-          hitValue: PolylineTapData(
-            type: 'chaussee_local',
-            data: {
-              'type_chaussee': '----',
-              'endroit': '----',
-              'code_piste': '----',
-              'nb_points': pts.length,
-              'distance_km': distanceKm,
-              'start_lat': pts.isNotEmpty ? pts.first.latitude : 0.0,
-              'start_lng': pts.isNotEmpty ? pts.first.longitude : 0.0,
-              'end_lat': pts.isNotEmpty ? pts.last.latitude : 0.0,
-              'end_lng': pts.isNotEmpty ? pts.last.longitude : 0.0,
-            },
+        final pointsData = jsonDecode(row['points_json'] as String) as List;
+        final pts = <LatLng>[];
+        for (final p in pointsData) {
+          final lat = p['lat'] as double?;
+          final lng = p['lng'] as double?;
+          if (lat != null && lng != null) pts.add(LatLng(lat, lng));
+        }
+        if (pts.length < 2) continue;
+
+        final distanceKm = polylineDistanceKm(pts);
+
+        // Lookup synced/region dans la vraie table chaussees
+        String chSynced = '0';
+        String chRegion = '';
+        String chPrefecture = '';
+        String chCommune = '';
+        String chEnqueteur = '';
+        try {
+          final chDb = await DatabaseHelper().database;
+          final chRows = await chDb.query(
+            'chaussees',
+            columns: [
+              'synced',
+              'region_name',
+              'prefecture_name',
+              'commune_name',
+              'user_login'
+            ],
+            where: 'code_piste = ? AND synced = 1',
+            whereArgs: [
+              codePiste
+            ],
+            limit: 1,
+          );
+          if (chRows.isNotEmpty) {
+            chSynced = '1';
+            chRegion = (chRows.first['region_name'] ?? '').toString();
+            chPrefecture = (chRows.first['prefecture_name'] ?? '').toString();
+            chCommune = (chRows.first['commune_name'] ?? '').toString();
+            chEnqueteur = (chRows.first['user_login'] ?? '').toString();
+          }
+        } catch (_) {}
+
+        displayedChaussees.add(
+          Polyline(
+            points: pts,
+            color: storageHelper.getChausseeColor(typeChaussee),
+            strokeWidth: (row['width'] as int).toDouble(),
+            pattern: storageHelper.getChausseePattern(typeChaussee) ?? const StrokePattern.solid(),
+            hitValue: PolylineTapData(
+              type: 'chaussee_local',
+              data: {
+                'type_chaussee': typeChaussee,
+                'endroit': endroit,
+                'code_piste': codePiste,
+                'nb_points': pts.length,
+                'distance_km': distanceKm,
+                'start_lat': pts.first.latitude,
+                'start_lng': pts.first.longitude,
+                'end_lat': pts.last.latitude,
+                'end_lng': pts.last.longitude,
+                'synced': chSynced,
+                'region_name': chRegion,
+                'prefecture_name': chPrefecture,
+                'commune_name': chCommune,
+                'enqueteur': chEnqueteur,
+              },
+            ),
           ),
         );
-      }).toList();
+      }
+
       setState(() {
         _finishedChaussees = displayedChaussees;
       });
-
-      print('✅ ${displayedChaussees.length} chaussées rechargées pour user: $loginId');
+      print('✅ ${displayedChaussees.length} chaussées rechargées');
     } catch (e) {
       print('❌ Erreur rechargement chaussées: $e');
     }
@@ -2415,7 +2465,7 @@ class _HomePageState extends State<HomePage> {
         String piPrefecture = '';
         String piCommune = '';
         try {
-          final pisteDb = await DatabaseHelper().database;
+          final pisteDb = await SimpleStorageHelper().database;
           final pisteRows = await pisteDb.query(
             'pistes',
             columns: [
@@ -3913,7 +3963,6 @@ class DisplayedPointsService {
           height: 40,
           child: GestureDetector(
             onTap: () async {
-              // Chercher le statut réel dans la table originale
               final db = await _dbHelper.database;
               final originalId = point['id'];
               final originalTable = (point['original_table'] ?? '').toString();
@@ -3921,6 +3970,7 @@ class DisplayedPointsService {
               String regionName = '';
               String prefectureName = '';
               String communeName = '';
+              String enqueteurFromDb = '';
 
               if (originalTable.isNotEmpty && originalId != null) {
                 try {
@@ -3930,7 +3980,8 @@ class DisplayedPointsService {
                       'synced',
                       'region_name',
                       'prefecture_name',
-                      'commune_name'
+                      'commune_name',
+                      'enqueteur'
                     ],
                     where: 'id = ?',
                     whereArgs: [
@@ -3943,6 +3994,7 @@ class DisplayedPointsService {
                     regionName = (rows.first['region_name'] ?? '').toString();
                     prefectureName = (rows.first['prefecture_name'] ?? '').toString();
                     communeName = (rows.first['commune_name'] ?? '').toString();
+                    enqueteurFromDb = (rows.first['enqueteur'] ?? '').toString();
                   }
                 } catch (_) {}
               }
@@ -3950,7 +4002,7 @@ class DisplayedPointsService {
               onTapDetails({
                 'type': getEntityTypeFromTable(table),
                 'name': (point['point_name'] ?? point['nom'] ?? 'Sans nom').toString(),
-                'enqueteur': (point['enqueteur'] ?? '').toString(),
+                'enqueteur': enqueteurFromDb.isNotEmpty ? enqueteurFromDb : (point['enqueteur'] ?? '').toString(),
                 'code_piste': (codePiste ?? '').toString(),
                 'lat': lat,
                 'lng': lng,
