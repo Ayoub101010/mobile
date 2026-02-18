@@ -133,6 +133,8 @@ class _LegendWidgetState extends State<LegendWidget> {
     return widget.allPolylines.where((p) {
       final colorValue = p.color.value;
       final isPisteColor = colorValue == Colors.brown.value || colorValue == const Color(0xFFB86E1D).value;
+      // Exclure la couleur chaussée terre (Chocolate 0xFFD2691E)
+      if (colorValue == const Color(0xFFD2691E).value) return false;
       return isPisteColor && p.strokeWidth <= 3.5;
     }).length;
   }
@@ -160,7 +162,7 @@ class _LegendWidgetState extends State<LegendWidget> {
 
   String _getChausseeTypeFromColor(Color color) {
     if (color == Colors.black) return 'bitume';
-    if (color == Colors.brown) return 'terre';
+    if (color.value == const Color(0xFFD2691E).value) return 'terre';
     if (color.value == Colors.red.shade700.value) return 'latérite';
     if (color.value == Colors.yellow.shade700.value) return 'bouwal';
     if (color == Colors.blueGrey) return 'autre';
@@ -172,7 +174,7 @@ class _LegendWidgetState extends State<LegendWidget> {
       case 'bitume':
         return Colors.black;
       case 'terre':
-        return Colors.brown;
+        return const Color(0xFFD2691E); // Chocolate — distinct du brown des pistes
       case 'latérite':
         return Colors.red.shade700;
       case 'bouwal':

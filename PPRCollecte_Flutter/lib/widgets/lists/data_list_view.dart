@@ -355,12 +355,17 @@ class _DataListViewState extends State<DataListView> {
     }
 
     // ✅ Injecter region/prefecture/commune (3 lignes) dans Administration
-    grouped.putIfAbsent('Administration', () => []);
-    grouped['Administration']!.insertAll(0, const [
-      MapEntry('__region__', ''),
-      MapEntry('__prefecture__', ''),
-      MapEntry('__commune__', ''),
-    ]);
+    // ✅ Injecter region/prefecture/commune SEULEMENT si downloaded ou synced
+    final isDownloaded = item['downloaded'] == 1;
+    final isSynced = item['synced'] == 1;
+    if (isDownloaded || isSynced) {
+      grouped.putIfAbsent('Administration', () => []);
+      grouped['Administration']!.insertAll(0, [
+        MapEntry('__region__', item['region_name'] ?? ''),
+        MapEntry('__prefecture__', item['prefecture_name'] ?? ''),
+        MapEntry('__commune__', item['commune_name'] ?? ''),
+      ]);
+    }
 
     Widget rowItem(String label, String value) {
       return Padding(
@@ -419,25 +424,13 @@ class _DataListViewState extends State<DataListView> {
                       : e.key == '__prefecture__'
                           ? 'Préfecture'
                           : 'Commune';
+                  final value = (e.value ?? '').toString().trim();
 
-                  return FutureBuilder<_AdminNames>(
-                    future: _adminFuture,
-                    builder: (context, snap) {
-                      final admin = snap.data ?? const _AdminNames(region: '----', prefecture: '----', commune: '----');
-
-                      final value = e.key == '__region__'
-                          ? admin.region
-                          : e.key == '__prefecture__'
-                              ? admin.prefecture
-                              : admin.commune;
-
-                      return Column(
-                        children: [
-                          rowItem(label, value),
-                          Divider(height: 1, color: Colors.grey[300]),
-                        ],
-                      );
-                    },
+                  return Column(
+                    children: [
+                      rowItem(label, value.isEmpty ? '----' : value),
+                      Divider(height: 1, color: Colors.grey[300]),
+                    ],
                   );
                 }
 

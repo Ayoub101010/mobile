@@ -580,7 +580,7 @@ class SyncService {
 
       // === ÉTAPE 4: SYNCHRONISATION DES CHAUSSÉES (DEUXIÈME) ===
       if (chausseeCount > 0) {
-        await _syncTableSequential('chaussees', 'chaussees_test', result, onProgress: (current, total) {
+        await _syncTableSequential('chaussees', 'chaussees', result, onProgress: (current, total) {
           double progress = safeTotalItems > 0 ? (processedItems + (current / total * chausseeCount)) / safeTotalItems : 0;
           progress = progress.clamp(0.0, 1.0);
           if (onProgress != null) {

@@ -88,8 +88,10 @@ class SimpleStorageHelper {
             potentiel_agricole REAL,
             cout_investissement REAL,
             protection_environnement REAL,
-            note_globale REAL
-            
+            note_globale REAL,
+            region_name TEXT,
+            prefecture_name TEXT,
+            commune_name TEXT
           )
         ''');
         await db.execute('''
@@ -125,7 +127,10 @@ ON pistes(api_id, saved_by_user_id);
     saved_by_user_id INTEGER,
     synced INTEGER DEFAULT 0,
     date_sync TEXT,
-    downloaded INTEGER DEFAULT 0
+    downloaded INTEGER DEFAULT 0,
+    region_name TEXT,
+            prefecture_name TEXT,
+            commune_name TEXT
 
           )
         ''');
@@ -262,7 +267,7 @@ ON displayed_pistes(login_id, code_piste);
       case 'bitume':
         return Colors.black;
       case 'terre':
-        return Colors.brown;
+        return const Color(0xFFD2691E); // Chocolate — distinct du brown des pistes
       case 'latérite': // ← minuscule
         return Colors.red.shade700;
       case 'bouwal':
@@ -279,9 +284,11 @@ ON displayed_pistes(login_id, code_piste);
         return null; // ligne continue
       case 'terre':
         return StrokePattern.dashed(segments: [
+          8,
+          4,
           20,
-          10
-        ]);
+          4
+        ]); // tiret-point — distinct du dotted des pistes
       case 'latérite':
         return StrokePattern.dashed(segments: [
           15,
@@ -827,8 +834,19 @@ ON displayed_pistes(login_id, code_piste);
         'api_id': apiResponse['id'], // ID serveur
       };
 
-      if (apiResponse.containsKey('communes_rurales_id') && apiResponse['communes_rurales_id'] != null) {
-        updates['commune_rurale_id'] = apiResponse['communes_rurales_id'].toString();
+      final props = apiResponse['properties'] as Map<String, dynamic>? ?? apiResponse;
+
+      if (props['communes_rurales_id'] != null) {
+        updates['commune_rurale_id'] = props['communes_rurales_id'].toString();
+      }
+      if (props['region_name'] != null) {
+        updates['region_name'] = props['region_name'];
+      }
+      if (props['prefecture_name'] != null) {
+        updates['prefecture_name'] = props['prefecture_name'];
+      }
+      if (props['commune_name'] != null) {
+        updates['commune_name'] = props['commune_name'];
       }
 
       await db.update(
@@ -966,6 +984,9 @@ ON displayed_pistes(login_id, code_piste);
             'synced': 0,
             'date_sync': DateTime.now().toIso8601String(),
             'downloaded': 1,
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
           },
           // (optionnel) si tu as mis UNIQUE(api_id, saved_by_user_id), tu peux activer replace :
           // conflictAlgorithm: ConflictAlgorithm.replace,
@@ -1024,6 +1045,9 @@ ON displayed_pistes(login_id, code_piste);
             'synced': 0,
             'date_sync': DateTime.now().toIso8601String(),
             'downloaded': 1,
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
           },
           where: 'api_id = ? AND saved_by_user_id = ?',
           whereArgs: [
@@ -1232,8 +1256,19 @@ ON displayed_pistes(login_id, code_piste);
         'api_id': apiResponse['id'],
       };
 
-      if (apiResponse.containsKey('communes_rurales_id') && apiResponse['communes_rurales_id'] != null) {
-        updates['communes_rurales_id'] = apiResponse['communes_rurales_id'];
+      final props = apiResponse['properties'] as Map<String, dynamic>? ?? apiResponse;
+
+      if (props['communes_rurales_id'] != null) {
+        updates['communes_rurales_id'] = props['communes_rurales_id'];
+      }
+      if (props['region_name'] != null) {
+        updates['region_name'] = props['region_name'];
+      }
+      if (props['prefecture_name'] != null) {
+        updates['prefecture_name'] = props['prefecture_name'];
+      }
+      if (props['commune_name'] != null) {
+        updates['commune_name'] = props['commune_name'];
       }
 
       await db.update(
@@ -1331,6 +1366,9 @@ ON displayed_pistes(login_id, code_piste);
             'date_sync': DateTime.now().toIso8601String(),
             'downloaded': 1,
             'communes_rurales_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
@@ -1360,6 +1398,9 @@ ON displayed_pistes(login_id, code_piste);
             'date_sync': DateTime.now().toIso8601String(),
             'downloaded': 1,
             'communes_rurales_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
           },
           where: 'api_id = ? AND saved_by_user_id = ?',
           whereArgs: [

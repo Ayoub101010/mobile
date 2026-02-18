@@ -389,9 +389,11 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 12),
               _detailRow('Statut', safe(statut)),
-              _detailRow('Région', safe(region)),
-              _detailRow('Préfecture', safe(prefecture)),
-              _detailRow('Commune', safe(commune)),
+              if (!statut.toLowerCase().contains('localement')) ...[
+                _detailRow('Région', safe(region)),
+                _detailRow('Préfecture', safe(prefecture)),
+                _detailRow('Commune', safe(commune)),
+              ],
               _detailRow('Type', safe(typeChaussee)),
               _detailRow(
                 'Enquêteur',
@@ -475,9 +477,11 @@ class _HomePageState extends State<HomePage> {
                 'Enquêteur',
                 enqueteurDisplayByStatut(enqueteurValue: enqueteur, statut: statut),
               ),
-              _detailRow('Région', safe(region)),
-              _detailRow('Préfecture', safe(prefecture)),
-              _detailRow('Commune', safe(commune)),
+              if (!statut.toLowerCase().contains('localement')) ...[
+                _detailRow('Région', safe(region)),
+                _detailRow('Préfecture', safe(prefecture)),
+                _detailRow('Commune', safe(commune)),
+              ],
               _detailRow('Début', 'X=${startLng.toStringAsFixed(6)} • Y=${startLat.toStringAsFixed(6)}'),
               _detailRow('Fin', 'X=${endLng.toStringAsFixed(6)} • Y=${endLat.toStringAsFixed(6)}'),
               _detailRow('Distance', '${distanceKm.toStringAsFixed(2)} km'),
@@ -558,9 +562,11 @@ class _HomePageState extends State<HomePage> {
                 'Enquêteur',
                 enqueteurDisplayByStatut(enqueteurValue: enqueteur, statut: statut),
               ),
-              _detailRow('Région', safe(region)),
-              _detailRow('Préfecture', safe(prefecture)),
-              _detailRow('Commune', safe(commune)),
+              if (!statut.toLowerCase().contains('localement')) ...[
+                _detailRow('Région', safe(region)),
+                _detailRow('Préfecture', safe(prefecture)),
+                _detailRow('Commune', safe(commune)),
+              ],
               _detailRow('Nb points', nbPoints.toString()),
               _detailRow('Début', 'X=${startLng.toStringAsFixed(6)} • Y=${startLat.toStringAsFixed(6)}'),
               _detailRow('Fin', 'X=${endLng.toStringAsFixed(6)} • Y=${endLat.toStringAsFixed(6)}'),
@@ -637,9 +643,11 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 12),
               _detailRow('Statut', safe(statut)),
-              _detailRow('Région', safe(region)),
-              _detailRow('Préfecture', safe(prefecture)),
-              _detailRow('Commune', safe(commune)),
+              if (!statut.toLowerCase().contains('localement')) ...[
+                _detailRow('Région', safe(region)),
+                _detailRow('Préfecture', safe(prefecture)),
+                _detailRow('Commune', safe(commune)),
+              ],
               _detailRow(
                 'Enquêteur',
                 enqueteurDisplayByStatut(enqueteurValue: enqueteur, statut: statut),
@@ -676,10 +684,22 @@ class _HomePageState extends State<HomePage> {
         _showPisteDetailsSheet(
           context: context,
           codePiste: (data['code_piste'] ?? '----').toString(),
-          statut: type == 'piste_local' ? 'Enregistrée localement' : 'Sauvegardée (downloaded)',
-          region: _regionNom,
-          prefecture: _prefectureNom,
-          commune: _communeNom,
+          statut: type == 'piste_local' ? ((data['synced'].toString() == '1') ? 'Synchronisée' : 'Enregistrée localement') : 'Sauvegardée (downloaded)',
+          region: type == 'piste_downloaded'
+              ? (data['region_name'] ?? '----').toString()
+              : (data['region_name'] ?? '').toString().isNotEmpty
+                  ? (data['region_name']).toString()
+                  : _regionNom,
+          prefecture: type == 'piste_downloaded'
+              ? (data['prefecture_name'] ?? '----').toString()
+              : (data['prefecture_name'] ?? '').toString().isNotEmpty
+                  ? (data['prefecture_name']).toString()
+                  : _prefectureNom,
+          commune: type == 'piste_downloaded'
+              ? (data['commune_name'] ?? '----').toString()
+              : (data['commune_name'] ?? '').toString().isNotEmpty
+                  ? (data['commune_name']).toString()
+                  : _communeNom,
           nbPoints: (data['nb_points'] as int?) ?? 0,
           distanceKm: (data['distance_km'] as num?)?.toDouble() ?? 0.0,
           startLat: (data['start_lat'] as num).toDouble(),
@@ -701,13 +721,25 @@ class _HomePageState extends State<HomePage> {
       case 'chaussee_downloaded':
         _showChausseeDetailsSheet(
           context: context,
-          statut: type == 'chaussee_local' ? 'Enregistrée localement' : 'Sauvegardée (downloaded)',
+          statut: type == 'chaussee_local' ? ((data['synced'].toString() == '1') ? 'Synchronisée' : 'Enregistrée localement') : 'Sauvegardée (downloaded)',
           typeChaussee: (data['type_chaussee'] ?? '----').toString(),
           endroit: (data['endroit'] ?? '----').toString(),
           codePiste: (data['code_piste'] ?? '----').toString(),
-          region: _regionNom,
-          prefecture: _prefectureNom,
-          commune: _communeNom,
+          region: type == 'chaussee_downloaded'
+              ? (data['region_name'] ?? '----').toString()
+              : (data['region_name'] ?? '').toString().isNotEmpty
+                  ? (data['region_name']).toString()
+                  : _regionNom,
+          prefecture: type == 'chaussee_downloaded'
+              ? (data['prefecture_name'] ?? '----').toString()
+              : (data['prefecture_name'] ?? '').toString().isNotEmpty
+                  ? (data['prefecture_name']).toString()
+                  : _prefectureNom,
+          commune: type == 'chaussee_downloaded'
+              ? (data['commune_name'] ?? '----').toString()
+              : (data['commune_name'] ?? '').toString().isNotEmpty
+                  ? (data['commune_name']).toString()
+                  : _communeNom,
           nbPoints: (data['nb_points'] as int?) ?? 0,
           distanceKm: (data['distance_km'] as num?)?.toDouble() ?? 0.0,
           startLat: (data['start_lat'] as num).toDouble(),
@@ -722,10 +754,22 @@ class _HomePageState extends State<HomePage> {
         _showSpecialLineDetailsSheet(
           context: context,
           specialType: (data['special_type'] ?? '----').toString(),
-          statut: type == 'special_local' ? 'Enregistrée localement' : 'Sauvegardée (downloaded)',
-          region: _regionNom,
-          prefecture: _prefectureNom,
-          commune: _communeNom,
+          statut: type == 'special_local' ? ((data['synced'].toString() == '1') ? 'Synchronisée' : 'Enregistrée localement') : 'Sauvegardée (downloaded)',
+          region: type == 'special_downloaded'
+              ? (data['region_name'] ?? '----').toString()
+              : (data['region_name'] ?? '').toString().isNotEmpty
+                  ? (data['region_name']).toString()
+                  : _regionNom,
+          prefecture: type == 'special_downloaded'
+              ? (data['prefecture_name'] ?? '----').toString()
+              : (data['prefecture_name'] ?? '').toString().isNotEmpty
+                  ? (data['prefecture_name']).toString()
+                  : _prefectureNom,
+          commune: type == 'special_downloaded'
+              ? (data['commune_name'] ?? '----').toString()
+              : (data['commune_name'] ?? '').toString().isNotEmpty
+                  ? (data['commune_name']).toString()
+                  : _communeNom,
           distanceKm: (data['distance_km'] as num?)?.toDouble() ?? 0.0,
           startLat: (data['start_lat'] as num).toDouble(),
           startLng: (data['start_lng'] as num).toDouble(),
@@ -772,14 +816,22 @@ class _HomePageState extends State<HomePage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              _detailRow('Statut', data.synced ? 'Synchronisé' : 'Non synchronisé'),
+              _detailRow('Statut', data.statut),
               _detailRow('Code piste', data.codePiste),
-              _detailRow('Région', _regionNom),
-              _detailRow('Préfecture', _prefectureNom),
-              _detailRow('Commune', _communeNom),
+              // Région/Préfecture/Commune: visible seulement si downloaded ou synced
+              if (data.downloaded || data.synced) ...[
+                _detailRow('Région', data.regionName.isEmpty ? '----' : data.regionName),
+                _detailRow('Préfecture', data.prefectureName.isEmpty ? '----' : data.prefectureName),
+                _detailRow('Commune', data.communeName.isEmpty ? '----' : data.communeName),
+              ],
               _detailRow('Superficie', '${data.superficie.toStringAsFixed(4)} ha'),
               _detailRow('Sommets', '${data.nbSommets} points'),
-              _detailRow('Enquêteur', data.enqueteur),
+              _detailRow(
+                  'Enquêteur',
+                  enqueteurDisplayByStatut(
+                    enqueteurValue: data.enqueteur,
+                    statut: data.statut,
+                  )),
               _detailRow('Date création', data.dateCreation.length > 10 ? data.dateCreation.substring(0, 10) : data.dateCreation),
               const SizedBox(height: 10),
               Align(
@@ -893,7 +945,7 @@ class _HomePageState extends State<HomePage> {
 // Méthode utilitaire pour déterminer le type de chaussée depuis sa couleur
   String _getChausseeTypeFromColor(Color color) {
     if (color == Colors.black) return 'bitume';
-    if (color == Colors.brown) return 'terre';
+    if (color.value == const Color(0xFFD2691E).value) return 'terre';
     if (color.value == Colors.red.shade700.value) return 'latérite';
     if (color.value == Colors.yellow.shade700.value) return 'bouwal';
     if (color == Colors.blueGrey) return 'autre';
@@ -1341,9 +1393,9 @@ class _HomePageState extends State<HomePage> {
             context: context,
             type: (data['type'] ?? 'Point').toString(),
             name: (data['name'] ?? 'Sans nom').toString(),
-            region: _regionNom,
-            prefecture: _prefectureNom,
-            commune: _communeNom,
+            region: (data['region_name'] ?? '').toString(),
+            prefecture: (data['prefecture_name'] ?? '').toString(),
+            commune: (data['commune_name'] ?? '').toString(),
             enqueteur: (data['enqueteur'] ?? '').toString(),
             codePiste: (data['code_piste'] ?? '').toString(),
             lat: (data['lat'] as num).toDouble(),
@@ -1635,9 +1687,13 @@ class _HomePageState extends State<HomePage> {
                   codePiste: poly['code_piste']?.toString() ?? '----',
                   superficie: (poly['superficie_en_ha'] as num?)?.toDouble() ?? 0.0,
                   nbSommets: points.length,
-                  enqueteur: poly['enqueteur']?.toString() ?? '----',
+                  enqueteur: poly['enqueteur']?.toString() ?? '',
                   dateCreation: poly['date_creation']?.toString() ?? '----',
                   synced: poly['synced'] == 1,
+                  downloaded: poly['downloaded'] == 1,
+                  regionName: poly['region_name']?.toString() ?? '',
+                  prefectureName: poly['prefecture_name']?.toString() ?? '',
+                  communeName: poly['commune_name']?.toString() ?? '',
                 ),
               ));
             }
@@ -1818,14 +1874,14 @@ class _HomePageState extends State<HomePage> {
             context: context,
             type: (data['type'] ?? 'Point').toString(),
             name: (data['name'] ?? 'Sans nom').toString(),
-            region: _regionNom,
-            prefecture: _prefectureNom,
-            commune: _communeNom,
+            region: (data['region_name'] ?? '').toString().isNotEmpty ? (data['region_name']).toString() : _regionNom,
+            prefecture: (data['prefecture_name'] ?? '').toString().isNotEmpty ? (data['prefecture_name']).toString() : _prefectureNom,
+            commune: (data['commune_name'] ?? '').toString().isNotEmpty ? (data['commune_name']).toString() : _communeNom,
             enqueteur: (data['enqueteur'] ?? '').toString(),
             codePiste: (data['code_piste'] ?? '').toString(),
             lat: (data['lat'] as num).toDouble(),
             lng: (data['lng'] as num).toDouble(),
-            statut: 'Enregistrée localement',
+            statut: (data['synced'].toString() == '1') ? 'Synchronisée' : 'Enregistrée localement',
           );
         },
       );
@@ -2353,14 +2409,41 @@ class _HomePageState extends State<HomePage> {
 
         final distanceKm = pts.length >= 2 ? polylineDistanceKm(pts) : 0.0;
 
+        // Chercher synced/region dans la vraie table pistes
+        String piSynced = '0';
+        String piRegion = '';
+        String piPrefecture = '';
+        String piCommune = '';
+        try {
+          final pisteDb = await DatabaseHelper().database;
+          final pisteRows = await pisteDb.query(
+            'pistes',
+            columns: [
+              'synced',
+              'region_name',
+              'prefecture_name',
+              'commune_name'
+            ],
+            where: 'code_piste = ? AND synced = 1',
+            whereArgs: [
+              codePiste
+            ],
+            limit: 1,
+          );
+          if (pisteRows.isNotEmpty) {
+            piSynced = '1';
+            piRegion = (pisteRows.first['region_name'] ?? '').toString();
+            piPrefecture = (pisteRows.first['prefecture_name'] ?? '').toString();
+            piCommune = (pisteRows.first['commune_name'] ?? '').toString();
+          }
+        } catch (_) {}
+
         displayedPistes.add(
           Polyline(
             points: pts,
             color: Color(row['color'] as int),
-            strokeWidth: (row['width'] as num).toDouble(), // ✅ width REAL/num
+            strokeWidth: (row['width'] as num).toDouble(),
             pattern: StrokePattern.dotted(spacingFactor: 2.0),
-
-            // ✅ tu gardes ton onTap exactement comme avant
             hitValue: PolylineTapData(
               type: 'piste_local',
               data: {
@@ -2379,6 +2462,10 @@ class _HomePageState extends State<HomePage> {
                 'financement': row['financement'],
                 'projet': row['projet'],
                 'entreprise': row['entreprise'],
+                'synced': piSynced,
+                'region_name': piRegion,
+                'prefecture_name': piPrefecture,
+                'commune_name': piCommune,
               },
             ),
           ),
@@ -2482,7 +2569,7 @@ class _HomePageState extends State<HomePage> {
       case 'bitume':
         return Colors.black;
       case 'terre':
-        return Colors.brown;
+        return const Color(0xFFD2691E); // Chocolate — distinct du brown des pistes
       case 'latérite': // ← minuscule
         return Colors.red.shade700;
       case 'bouwal':
@@ -3494,7 +3581,7 @@ class _HomePageState extends State<HomePage> {
                     ),
 
                   // === AJOUTEZ ICI === //
-                  /* Positioned(
+                  Positioned(
                     bottom: 200,
                     right: 16,
                     child: Visibility(
@@ -3525,9 +3612,9 @@ class _HomePageState extends State<HomePage> {
                         heroTag: 'dev_button',
                       ),
                     ),
-                  ),*/
+                  ),
                   // Ajouter dans la section des boutons de debug
-                  /*  Positioned(
+                  Positioned(
                     bottom: 120,
                     right: 16,
                     child: Visibility(
@@ -3558,11 +3645,11 @@ class _HomePageState extends State<HomePage> {
                         heroTag: 'simulate_special_button',
                       ),
                     ),
-                  ),*/
+                  ),
                   //  SIMULATION POLYGONE — À SUPPRIMER APRÈS TEST
                   // 🧪 BOUTON SIMULATION ÉMULATEUR — À SUPPRIMER POUR LA PRODUCTION
                   // 🔴🔴🔴 SIMULATION POLYGONE — À SUPPRIMER APRÈS TEST 🔴🔴🔴
-                  /* if (_isPolygonCollection)
+                  if (_isPolygonCollection)
                     Positioned(
                       bottom: 120,
                       right: 16,
@@ -3599,7 +3686,7 @@ class _HomePageState extends State<HomePage> {
                         heroTag: 'simulate_polygon_button',
                         child: const Icon(Icons.pentagon, color: Colors.white),
                       ),
-                    ),*/
+                    ),
                   //  FIN SIMULATION — À SUPPRIMER APRÈS TEST
                   //  FIN SIMULATION
                   //  FIN SIMULATION — À SUPPRIMER APRÈS TEST
@@ -3825,7 +3912,41 @@ class DisplayedPointsService {
           width: 40,
           height: 40,
           child: GestureDetector(
-            onTap: () {
+            onTap: () async {
+              // Chercher le statut réel dans la table originale
+              final db = await _dbHelper.database;
+              final originalId = point['id'];
+              final originalTable = (point['original_table'] ?? '').toString();
+              String synced = '0';
+              String regionName = '';
+              String prefectureName = '';
+              String communeName = '';
+
+              if (originalTable.isNotEmpty && originalId != null) {
+                try {
+                  final rows = await db.query(
+                    originalTable,
+                    columns: [
+                      'synced',
+                      'region_name',
+                      'prefecture_name',
+                      'commune_name'
+                    ],
+                    where: 'id = ?',
+                    whereArgs: [
+                      originalId
+                    ],
+                    limit: 1,
+                  );
+                  if (rows.isNotEmpty) {
+                    synced = (rows.first['synced'] ?? 0).toString();
+                    regionName = (rows.first['region_name'] ?? '').toString();
+                    prefectureName = (rows.first['prefecture_name'] ?? '').toString();
+                    communeName = (rows.first['commune_name'] ?? '').toString();
+                  }
+                } catch (_) {}
+              }
+
               onTapDetails({
                 'type': getEntityTypeFromTable(table),
                 'name': (point['point_name'] ?? point['nom'] ?? 'Sans nom').toString(),
@@ -3833,6 +3954,10 @@ class DisplayedPointsService {
                 'code_piste': (codePiste ?? '').toString(),
                 'lat': lat,
                 'lng': lng,
+                'synced': synced,
+                'region_name': regionName,
+                'prefecture_name': prefectureName,
+                'commune_name': communeName,
               });
             },
             child: CustomMarkerIcons.getMarkerWidget(table),
@@ -4051,6 +4176,9 @@ class DownloadedPointsService {
                         'code_piste': (codePiste ?? '').toString(),
                         'lat': lat,
                         'lng': lng,
+                        'region_name': (point['region_name'] ?? '').toString(),
+                        'prefecture_name': (point['prefecture_name'] ?? '').toString(),
+                        'commune_name': (point['commune_name'] ?? '').toString(),
                       });
                     },
                     child: CustomMarkerIcons.getMarkerWidget(tableName),
@@ -4431,6 +4559,9 @@ class DownloadedPistesService {
               'financement': (row['financement'] ?? '----').toString(),
               'projet': (row['projet'] ?? '----').toString(),
               'entreprise': (row['entreprise'] ?? '----').toString(),
+              'region_name': (row['region_name'] ?? '----').toString(),
+              'prefecture_name': (row['prefecture_name'] ?? '----').toString(),
+              'commune_name': (row['commune_name'] ?? '----').toString(),
             },
           ),
         );
@@ -4608,6 +4739,9 @@ class DownloadedChausseesService {
               'end_lat': pts.last.latitude,
               'end_lng': pts.last.longitude,
               'distance_km': distanceKm,
+              'region_name': (r['region_name'] ?? '----').toString(),
+              'prefecture_name': (r['prefecture_name'] ?? '----').toString(),
+              'commune_name': (r['commune_name'] ?? '----').toString(),
             },
           ),
         );
@@ -4721,6 +4855,9 @@ class DownloadedSpecialLinesService {
                 'code_piste': (r['code_piste'] ?? '----').toString(),
                 // tu peux ajouter distance si tu veux:
                 'distance_km': _haversineDistance(start, end),
+                'region_name': (r['region_name'] ?? '----').toString(),
+                'prefecture_name': (r['prefecture_name'] ?? '----').toString(),
+                'commune_name': (r['commune_name'] ?? '----').toString(),
               },
             ),
           ),
@@ -4766,6 +4903,10 @@ class PolygonTapData {
   final String enqueteur;
   final String dateCreation;
   final bool synced;
+  final bool downloaded;
+  final String regionName;
+  final String prefectureName;
+  final String communeName;
 
   PolygonTapData({
     required this.nom,
@@ -4775,5 +4916,15 @@ class PolygonTapData {
     required this.enqueteur,
     required this.dateCreation,
     required this.synced,
+    this.downloaded = false,
+    this.regionName = '',
+    this.prefectureName = '',
+    this.communeName = '',
   });
+
+  String get statut {
+    if (downloaded) return 'Sauvegardée (downloaded)';
+    if (synced) return 'Synchronisée';
+    return 'Enregistrée localement';
+  }
 }

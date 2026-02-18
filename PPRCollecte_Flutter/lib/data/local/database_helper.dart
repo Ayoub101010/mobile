@@ -128,9 +128,12 @@ class DatabaseHelper {
       synced INTEGER DEFAULT 0,
     downloaded INTEGER DEFAULT 0,
       date_sync TEXT,
-      login_id INTEGER,               -- ← COLONNE AJOUTÉE
+      login_id INTEGER,               
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table localites créée');
@@ -158,7 +161,10 @@ ON localites(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,               -- ← COLONNE AJOUTÉE
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table ecoles créée');
@@ -186,7 +192,10 @@ ON ecoles(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table marches créée');
@@ -214,7 +223,10 @@ ON marches(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table services_santes créée');
@@ -242,7 +254,10 @@ ON services_santes(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table batiments_administratifs créée');
@@ -270,7 +285,10 @@ ON batiments_administratifs(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table infrastructures_hydrauliques créée');
@@ -298,7 +316,10 @@ ON infrastructures_hydrauliques(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table autres_infrastructures créée');
@@ -328,7 +349,10 @@ ON autres_infrastructures(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table ponts créée');
@@ -360,7 +384,10 @@ ON ponts(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table bacs créée');
@@ -387,7 +414,10 @@ ON bacs(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table buses créée');
@@ -415,7 +445,10 @@ ON buses(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table dalots créée');
@@ -446,7 +479,10 @@ ON dalots(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table passages_submersibles créée');
@@ -475,7 +511,10 @@ ON passages_submersibles(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER  
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT  
     )
   ''');
     print('✅ Table points_critiques créée');
@@ -504,7 +543,10 @@ ON points_critiques(api_id, saved_by_user_id);
       date_sync TEXT,
       login_id INTEGER,            
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table points_coupures créée');
@@ -607,7 +649,10 @@ CREATE TABLE IF NOT EXISTS app_session (
       date_sync TEXT,
       login_id INTEGER,
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table site_enquete créée');
@@ -634,7 +679,10 @@ CREATE TABLE IF NOT EXISTS app_session (
       date_sync TEXT,
       login_id INTEGER,
       saved_by_user_id INTEGER,
-      commune_id INTEGER
+      commune_id INTEGER,
+      region_name TEXT,
+      prefecture_name TEXT,
+      commune_name TEXT
     )
   ''');
     print('✅ Table enquete_polygone créée');
@@ -1534,7 +1582,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -1597,7 +1648,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -1660,7 +1714,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -1723,7 +1780,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -1785,7 +1845,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -1847,7 +1910,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -1909,7 +1975,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -1932,8 +2001,24 @@ CREATE TABLE IF NOT EXISTS app_session (
       };
 
       // Attributs administratifs (si renvoyés par le serveur)
-      if (apiResponse.containsKey('commune_id') && apiResponse['commune_id'] != null) {
-        updates['commune_id'] = apiResponse['commune_id'];
+      // Commune ID (depuis la réponse POST du serveur)
+      // La réponse POST est en GeoJSON: {id, type, geometry, properties: {...}}
+      // Les champs sont dans 'properties', pas au top level
+      final props = apiResponse['properties'] as Map<String, dynamic>? ?? apiResponse;
+
+      if (props['communes_rurales_id'] != null) {
+        updates['commune_id'] = props['communes_rurales_id'];
+      } else if (props['commune_id'] != null) {
+        updates['commune_id'] = props['commune_id'];
+      }
+      if (props['region_name'] != null) {
+        updates['region_name'] = props['region_name'];
+      }
+      if (props['prefecture_name'] != null) {
+        updates['prefecture_name'] = props['prefecture_name'];
+      }
+      if (props['commune_name'] != null) {
+        updates['commune_name'] = props['commune_name'];
       }
       // Ajoutez d'autres champs si le serveur les renvoie (ex. region_id, prefecture_id)
 
@@ -2001,7 +2086,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -2096,7 +2184,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -2157,7 +2248,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -2218,7 +2312,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -2312,7 +2409,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -2398,7 +2498,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // marquer comme téléchargée
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -2458,7 +2561,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -2526,7 +2632,10 @@ CREATE TABLE IF NOT EXISTS app_session (
             'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
-            'commune_id': communeId,
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -2593,7 +2702,10 @@ CREATE TABLE IF NOT EXISTS app_session (
           'downloaded': 1,
           'login_id': dataUserId,
           'saved_by_user_id': viewerId,
-          'commune_id': communeId,
+          'commune_id': properties['communes_rurales_id'],
+          'region_name': properties['region_name'],
+          'prefecture_name': properties['prefecture_name'],
+          'commune_name': properties['commune_name'],
           'date_sync': DateTime.now().toIso8601String(),
         },
         conflictAlgorithm: ConflictAlgorithm.ignore,
