@@ -2472,7 +2472,15 @@ class _HomePageState extends State<HomePage> {
               'synced',
               'region_name',
               'prefecture_name',
-              'commune_name'
+              'commune_name',
+              'plateforme',
+              'relief',
+              'vegetation',
+              'debut_travaux',
+              'fin_travaux',
+              'financement',
+              'projet',
+              'entreprise',
             ],
             where: 'code_piste = ? AND synced = 1',
             whereArgs: [
@@ -2804,7 +2812,15 @@ class _HomePageState extends State<HomePage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                Navigator.pop(ctx);
+                // ⭐ Recharger les polylines locales pour refléter synced=1 + région/préfecture/commune
+                _loadDisplayedPistes();
+                _loadDisplayedChaussees();
+                _loadDisplayedPoints();
+                _loadDisplayedPolygons();
+                _loadDisplayedSpecialLines();
+              },
               child: const Text('OK'),
             ),
           ],

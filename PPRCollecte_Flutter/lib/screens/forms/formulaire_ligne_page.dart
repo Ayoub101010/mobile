@@ -578,8 +578,8 @@ class _FormulairePageState extends State<FormulaireLignePage> {
     }
 
     // 2. Si pas d'API, essayer base locale (mais sans async)
-    _communeAuto = 'Non spécifié'; // Valeur par défaut
-    _communeRurale = 'Non spécifié';
+    _communeAuto = ''; // au lieu de null
+    _communeRurale = '';
 
     // Chargement asynchrone sans attendre
     _loadCommuneFromDatabase();
@@ -1439,7 +1439,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Commune Rurale *',
+            'Commune Rurale',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -1460,7 +1460,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    _communeRurale ?? 'Non spécifié',
+                    (_communeRurale != null && _communeRurale != 'Non spécifié') ? _communeRurale! : 'Auto-détecté lors de la synchronisation',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF374151),
