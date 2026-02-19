@@ -1612,6 +1612,21 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
+    // ⭐ Vérifier que le premier et dernier point sont distincts
+    if (result.points.length >= 2 && result.points.first.latitude == result.points.last.latitude && result.points.first.longitude == result.points.last.longitude) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("La ligne doit avoir un point de début et de fin différents. Veuillez vous déplacer pendant la collecte."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      setState(() {
+        _isSpecialCollection = false;
+        _specialCollectionType = null;
+      });
+      return;
+    }
+
     print('=== DEBUG FINISH SPECIAL ===');
     print('Result codePiste: ${result.codePiste}');
     print('HomeController activePisteCode: ${homeController.activePisteCode}');
@@ -4095,7 +4110,11 @@ class SpecialLinesService {
           (line['lat_fin'] as num).toDouble(),
           (line['lng_fin'] as num).toDouble(),
         );
-
+// ⭐ Skip les lignes où début == fin (polyline invisible)
+        if (start.latitude == end.latitude && start.longitude == end.longitude) {
+          print('⚠️ Ligne spéciale ignorée (début == fin): $specialType');
+          continue;
+        }
         // ✅ distance en km (utilise tes méthodes haversine déjà ajoutées)
         // (tu vas la calculer côté HomePage, pas ici)
         // Ici on renvoie juste les coords.
