@@ -1784,7 +1784,7 @@ class _HomePageState extends State<HomePage> {
         String chCommune = '';
         String chEnqueteur = '';
         try {
-          final chDb = await DatabaseHelper().database;
+          final chDb = await SimpleStorageHelper().database;
           final chRows = await chDb.query(
             'chaussees',
             columns: [
@@ -1792,7 +1792,7 @@ class _HomePageState extends State<HomePage> {
               'region_name',
               'prefecture_name',
               'commune_name',
-              'user_login'
+              'user_login',
             ],
             where: 'code_piste = ? AND synced = 1',
             whereArgs: [
@@ -2507,7 +2507,7 @@ class _HomePageState extends State<HomePage> {
               'financement',
               'projet',
               'entreprise',
-              'user_login'
+              'user_login',
             ],
             where: 'code_piste = ? AND synced = 1',
             whereArgs: [
