@@ -577,25 +577,14 @@ ON displayed_pistes(login_id, code_piste);
 // Dans la classe SimpleStorageHelper (piste_chaussee_db_helper.dart)
   Future<int?> _getCommuneId() async {
     try {
-      // Priorité à l'API
-      if (ApiService.communeId != null) {
-        print('📍 commune_id depuis API: ${ApiService.communeId}');
-        return ApiService.communeId;
-      }
-
-      // Fallback: base locale
-      final currentUser = await DatabaseHelper().getCurrentUser();
-      if (currentUser != null && currentUser['communes_rurales'] != null) {
-        final communeId = currentUser['communes_rurales'] as int;
-        print('📍 commune_id depuis base locale: $communeId');
-        return communeId;
-      }
-
-      print('⚠️ commune_id non trouvé, utilisation valeur par défaut: 1');
-      return 1; // Valeur par défaut
+      /* GPS-BASED ATTRIBUTION: 
+         On retourne null pour laisser le backend déterminer la commune 
+         spatialement via ST_Contains lors de la synchronisation.
+      */
+      return null;
     } catch (e) {
       print('❌ Erreur _getCommuneId: $e');
-      return 1; // Valeur par défaut en cas d'erreur
+      return null;
     }
   }
 

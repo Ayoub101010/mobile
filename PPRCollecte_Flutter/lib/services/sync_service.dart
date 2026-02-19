@@ -233,7 +233,7 @@ class SyncService {
         'endroit': localData['endroit'],
         'code_piste': localData['code_piste'],
         'login_id': localData['login_id'],
-        'communes_rurales_id': communeId,
+        if (communeId != null) 'communes_rurales_id': communeId,
       }
     };
   }

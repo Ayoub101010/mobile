@@ -397,7 +397,7 @@ class PassagesSubmersiblesSerializer(CodePisteResolveMixin, CommuneInfoMixin, Ge
 
             from django.contrib.gis.geos import LineString
             # ⚠️ ordre (lon, lat) → (y, x)
-            data["geom"] = LineString((y_debut, x_debut), (y_fin, x_fin), srid=4326)
+            data["geom"] = LineString((x_debut, y_debut), (x_fin, y_fin), srid=4326)
 
         return super().to_internal_value(data)
 

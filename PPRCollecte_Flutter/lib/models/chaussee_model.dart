@@ -70,7 +70,7 @@ class ChausseeModel {
       createdAt: formData['created_at'] ?? DateTime.now().toIso8601String(),
       updatedAt: formData['updated_at'], // ← NOUVEAU
       userLogin: formData['user_login'] ?? '',
-      communesRuralesId: formData['communes_rurales_id'] ?? '',
+      communesRuralesId: formData['communes_rurales_id'] is int ? formData['communes_rurales_id'] : null,
     );
   }
 
@@ -114,7 +114,7 @@ class ChausseeModel {
       nombrePoints: map['nombre_points'] ?? 0,
       createdAt: map['created_at'] ?? DateTime.now().toIso8601String(),
       userLogin: map['user_login'] ?? '',
-      communesRuralesId: map['communes_rurales_id'] ?? '',
+      communesRuralesId: map['communes_rurales_id'] is int ? map['communes_rurales_id'] : null,
     );
   }
 
