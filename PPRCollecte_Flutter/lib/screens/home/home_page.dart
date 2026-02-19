@@ -2370,6 +2370,16 @@ class _HomePageState extends State<HomePage> {
                 'start_lng': pts.isNotEmpty ? pts.first.longitude : 0.0,
                 'end_lat': pts.isNotEmpty ? pts.last.latitude : 0.0,
                 'end_lng': pts.isNotEmpty ? pts.last.longitude : 0.0,
+                'synced': '0',
+                'enqueteur': formResult['user_login'] ?? widget.agentName ?? '',
+                'plateforme': formResult['plateforme'],
+                'relief': formResult['relief'],
+                'vegetation': formResult['vegetation'],
+                'debut_travaux': formResult['debut_travaux'],
+                'fin_travaux': formResult['fin_travaux'],
+                'financement': formResult['financement'],
+                'projet': formResult['projet'],
+                'entreprise': formResult['entreprise'],
               },
             ),
           ),
@@ -2479,6 +2489,7 @@ class _HomePageState extends State<HomePage> {
         String piRegion = '';
         String piPrefecture = '';
         String piCommune = '';
+        String piEnqueteur = '';
         try {
           final pisteDb = await SimpleStorageHelper().database;
           final pisteRows = await pisteDb.query(
@@ -2496,6 +2507,7 @@ class _HomePageState extends State<HomePage> {
               'financement',
               'projet',
               'entreprise',
+              'user_login'
             ],
             where: 'code_piste = ? AND synced = 1',
             whereArgs: [
@@ -2508,6 +2520,7 @@ class _HomePageState extends State<HomePage> {
             piRegion = (pisteRows.first['region_name'] ?? '').toString();
             piPrefecture = (pisteRows.first['prefecture_name'] ?? '').toString();
             piCommune = (pisteRows.first['commune_name'] ?? '').toString();
+            piEnqueteur = (pisteRows.first['user_login'] ?? '').toString();
           }
         } catch (_) {}
 
@@ -2539,6 +2552,7 @@ class _HomePageState extends State<HomePage> {
                 'region_name': piRegion,
                 'prefecture_name': piPrefecture,
                 'commune_name': piCommune,
+                'enqueteur': piEnqueteur,
               },
             ),
           ),
