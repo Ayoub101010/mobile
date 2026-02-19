@@ -569,36 +569,10 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   }
 
   void _determineCommuneAuto() {
-    // 1. Essayer d'abord depuis l'API
-    if (ApiService.communeNom != null) {
-      _communeAuto = ApiService.communeNom!;
-      _communeRurale = _communeAuto;
-      print('📍 Commune API: $_communeAuto');
-      return;
-    }
-
-    // 2. Si pas d'API, essayer base locale (mais sans async)
-    _communeAuto = ''; // au lieu de null
-    _communeRurale = '';
-
-    // Chargement asynchrone sans attendre
-    _loadCommuneFromDatabase();
-  }
-
-  void _loadCommuneFromDatabase() async {
-    try {
-      final currentUser = await DatabaseHelper().getCurrentUser();
-      if (currentUser != null && currentUser['commune_nom'] != null) {
-        final commune = currentUser['commune_nom'] as String;
-        setState(() {
-          _communeAuto = commune;
-          _communeRurale = commune;
-        });
-        print('📍 Commune base locale: $commune');
-      }
-    } catch (e) {
-      print('❌ Erreur chargement commune: $e');
-    }
+    // La commune sera affectée automatiquement par le backend lors de la synchronisation
+    _communeAuto = '';
+    _communeRurale = null;
+    print('📍 Commune: sera affectée lors de la synchronisation');
   }
 
   // Méthode pour récupérer l'utilisateur actuel
