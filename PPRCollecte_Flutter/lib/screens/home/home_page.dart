@@ -140,6 +140,9 @@ class _HomePageState extends State<HomePage> {
   final DownloadedPointsService _downloadedPointsService = DownloadedPointsService();
   List<Marker> _downloadedPointsMarkers = [];
   bool _showDownloadedPoints = true;
+  // Markers séparés par table pour le filtrage par sous-type
+  Map<String, List<Marker>> _displayedPointsByTable = {};
+  Map<String, List<Marker>> _downloadedPointsByTable = {};
   bool _isSatellite = false;
   final DownloadedSpecialLinesService _downloadedSpecialLinesService = DownloadedSpecialLinesService();
   List<Polyline> _downloadedSpecialLinesPolylines = [];
@@ -1107,22 +1110,66 @@ class _HomePageState extends State<HomePage> {
 
 // Méthode pour filtrer les markers selon la légende
   List<Marker> _getFilteredMarkers() {
-    // Si "Points" est décoché => cacher TOUS les markers (local + downloaded)
     if (_legendVisibility['points'] != true) {
       return <Marker>[];
     }
 
     final List<Marker> filtered = <Marker>[];
 
-    // Points créés/affichés (local: synced=0/downloaded=0, etc.)
-    filtered.addAll(_displayedPointsMarkers);
+    // === Points locaux — filtrer par sous-type ===
+    for (final entry in _displayedPointsByTable.entries) {
+      final subKey = 'point_${entry.key}';
+      if (_legendVisibility[subKey] != false) {
+        filtered.addAll(entry.value);
+      }
+    }
+    // Ajouter les markers qui ne sont dans aucune table (sécurité)
+    final byTablePositions = <String>{};
+    for (final markers in _displayedPointsByTable.values) {
+      for (final m in markers) {
+        byTablePositions.add('${m.point.latitude}_${m.point.longitude}');
+      }
+    }
+    for (final m in _displayedPointsMarkers) {
+      if (!byTablePositions.contains('${m.point.latitude}_${m.point.longitude}')) {
+        filtered.add(m);
+      }
+    }
 
-    // Points téléchargés
+    // === Points téléchargés — filtrer par sous-type ===
     if (_showDownloadedPoints) {
-      filtered.addAll(_downloadedPointsMarkers);
+      for (final entry in _downloadedPointsByTable.entries) {
+        final subKey = 'point_${entry.key}';
+        if (_legendVisibility[subKey] != false) {
+          filtered.addAll(entry.value);
+        }
+      }
+      // Ajouter les downloaded non classés
+      final dlPositions = <String>{};
+      for (final markers in _downloadedPointsByTable.values) {
+        for (final m in markers) {
+          dlPositions.add('${m.point.latitude}_${m.point.longitude}');
+        }
+      }
+      for (final m in _downloadedPointsMarkers) {
+        if (!dlPositions.contains('${m.point.latitude}_${m.point.longitude}')) {
+          filtered.add(m);
+        }
+      }
     }
 
     return filtered;
+  }
+
+  /// Détermine le nom de table à partir de la couleur du marker
+  String? _getTableFromMarkerColor(Marker marker) {
+    // Le child du Marker est un GestureDetector > Container avec couleur
+    // On compare avec les couleurs connues de CustomMarkerIcons
+    for (final entry in CustomMarkerIcons.iconConfig.entries) {
+      // On ne peut pas facilement extraire la couleur du widget,
+      // donc on utilise _downloadedPointsByTable si disponible
+    }
+    return null;
   }
 
 // Méthode pour mettre à jour la visibilité depuis la légende
@@ -1392,6 +1439,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadDownloadedPoints() async {
     try {
+      final Map<String, List<Marker>> dlByTable = {};
       final markers = await _downloadedPointsService.getDownloadedPointsMarkers(
         onTapDetails: (data) {
           _showPointDetailsSheet(
@@ -1408,10 +1456,15 @@ class _HomePageState extends State<HomePage> {
             statut: 'Sauvegardée (downloaded)',
           );
         },
+        onMarkerCreated: (String tableName, Marker marker) {
+          dlByTable.putIfAbsent(tableName, () => []);
+          dlByTable[tableName]!.add(marker);
+        },
       );
       setState(
         () {
           _downloadedPointsMarkers = markers;
+          _downloadedPointsByTable = dlByTable;
         },
       );
       print(
@@ -1424,8 +1477,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Dans _HomePageState (home_page.dart)
-  // ⭐⭐ AJOUTER CETTE MÉTHODE SEULEMENT ⭐⭐
   Future<void> _refreshAfterNavigation() async {
     print(
       '🔄 Rafraîchissement après navigation...',
@@ -1987,8 +2038,27 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
+      // Regrouper les markers par table pour le filtrage légende
+      final Map<String, List<Marker>> byTable = {};
+      for (var point in existingPoints) {
+        final table = (point['original_table'] ?? '').toString();
+        if (table.isEmpty) continue;
+        final lat = (point['latitude'] as num).toDouble();
+        final lng = (point['longitude'] as num).toDouble();
+        final posKey = '${lat}_${lng}';
+        // Trouver le marker correspondant à cette position
+        for (var m in validMarkers) {
+          if ('${m.point.latitude}_${m.point.longitude}' == posKey) {
+            byTable.putIfAbsent(table, () => []);
+            byTable[table]!.add(m);
+            break;
+          }
+        }
+      }
+
       setState(() {
         _displayedPointsMarkers = validMarkers;
+        _displayedPointsByTable = byTable;
       });
 
       // Compter depuis les tables réelles (inclut locaux + téléchargés)
@@ -4254,6 +4324,7 @@ class DownloadedPointsService {
 
   Future<List<Marker>> getDownloadedPointsMarkers({
     required void Function(Map<String, dynamic>) onTapDetails,
+    void Function(String tableName, Marker marker)? onMarkerCreated,
   }) async {
     try {
       final List<String> pointTables = [
@@ -4351,6 +4422,10 @@ class DownloadedPointsService {
                   ),
                 ),
               );
+              // Notifier le callback pour le filtrage par table
+              if (onMarkerCreated != null) {
+                onMarkerCreated(tableName, markers.last);
+              }
               print('🧮 [DL-POINTS] $tableName count=${points.length} (viewerId=$loginId)');
             }
           }
