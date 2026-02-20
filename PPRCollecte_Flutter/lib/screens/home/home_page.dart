@@ -168,6 +168,7 @@ class _HomePageState extends State<HomePage> {
     'chaussee_autre': true, // Pas de 'chaussee_sable'
     'bac': true,
     'passage_submersible': true,
+    'zone_plaine': true,
   };
   String enqueteurDisplayByStatut({
     required String? enqueteurValue,
@@ -3092,7 +3093,9 @@ class _HomePageState extends State<HomePage> {
         _loadDisplayedPistes();
         _loadDisplayedChaussees();
         _loadDisplayedSpecialLines();
-        _loadDisplayedPolygons();
+        if (_legendVisibility['zone_plaine'] != false) {
+          _loadDisplayedPolygons();
+        }
         _loadPointCountsByTable();
       },
     );
