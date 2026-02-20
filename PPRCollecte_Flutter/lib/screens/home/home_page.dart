@@ -1305,8 +1305,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _focusOnTarget(MapFocusTarget target) async {
-    // ⏸️ Empêche le recentrage sur l'utilisateur pendant le focus
-    _suspendAutoCenterFor(const Duration(seconds: 10));
+    //  Désactiver l'auto-center définitivement (comme si l'utilisateur avait touché la carte)
+    // L'utilisateur devra appuyer sur "Ma position" pour réactiver le suivi GPS
+    _autoCenterDisabledByUser = true;
 
     // Créer les éléments de focus
     Polyline? focusPolyline;
