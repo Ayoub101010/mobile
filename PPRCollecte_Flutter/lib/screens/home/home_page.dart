@@ -700,6 +700,7 @@ class _HomePageState extends State<HomePage> {
               : (data['commune_name'] ?? '').toString().isNotEmpty
                   ? (data['commune_name']).toString()
                   : _communeNom,
+          enqueteur: (data['enqueteur'] ?? '').toString(),
           nbPoints: (data['nb_points'] as int?) ?? 0,
           distanceKm: (data['distance_km'] as num?)?.toDouble() ?? 0.0,
           startLat: (data['start_lat'] as num).toDouble(),
@@ -740,6 +741,7 @@ class _HomePageState extends State<HomePage> {
               : (data['commune_name'] ?? '').toString().isNotEmpty
                   ? (data['commune_name']).toString()
                   : _communeNom,
+          enqueteur: (data['enqueteur'] ?? '').toString(),
           nbPoints: (data['nb_points'] as int?) ?? 0,
           distanceKm: (data['distance_km'] as num?)?.toDouble() ?? 0.0,
           startLat: (data['start_lat'] as num).toDouble(),
@@ -770,6 +772,7 @@ class _HomePageState extends State<HomePage> {
               : (data['commune_name'] ?? '').toString().isNotEmpty
                   ? (data['commune_name']).toString()
                   : _communeNom,
+          enqueteur: (data['enqueteur'] ?? '').toString(),
           distanceKm: (data['distance_km'] as num?)?.toDouble() ?? 0.0,
           startLat: (data['start_lat'] as num).toDouble(),
           startLng: (data['start_lng'] as num).toDouble(),
