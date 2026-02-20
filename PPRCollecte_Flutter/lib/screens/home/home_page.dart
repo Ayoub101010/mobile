@@ -2488,11 +2488,20 @@ class _HomePageState extends State<HomePage> {
         final distanceKm = pts.length >= 2 ? polylineDistanceKm(pts) : 0.0;
 
         // Chercher synced/region dans la vraie table pistes
+        // Chercher synced/region dans la vraie table pistes
         String piSynced = '0';
         String piRegion = '';
         String piPrefecture = '';
         String piCommune = '';
         String piEnqueteur = '';
+        String piPlateforme = '';
+        String piRelief = '';
+        String piVegetation = '';
+        String piDebutTravaux = '';
+        String piFinTravaux = '';
+        String piFinancement = '';
+        String piProjet = '';
+        String piEntreprise = '';
         try {
           final pisteDb = await SimpleStorageHelper().database;
           final pisteRows = await pisteDb.query(
@@ -2512,18 +2521,26 @@ class _HomePageState extends State<HomePage> {
               'entreprise',
               'user_login',
             ],
-            where: 'code_piste = ? AND synced = 1',
+            where: 'code_piste = ?',
             whereArgs: [
               codePiste
             ],
             limit: 1,
           );
           if (pisteRows.isNotEmpty) {
-            piSynced = '1';
+            piSynced = (pisteRows.first['synced']?.toString() == '1') ? '1' : '0';
             piRegion = (pisteRows.first['region_name'] ?? '').toString();
             piPrefecture = (pisteRows.first['prefecture_name'] ?? '').toString();
             piCommune = (pisteRows.first['commune_name'] ?? '').toString();
             piEnqueteur = (pisteRows.first['user_login'] ?? '').toString();
+            piPlateforme = (pisteRows.first['plateforme'] ?? '').toString();
+            piRelief = (pisteRows.first['relief'] ?? '').toString();
+            piVegetation = (pisteRows.first['vegetation'] ?? '').toString();
+            piDebutTravaux = (pisteRows.first['debut_travaux'] ?? '').toString();
+            piFinTravaux = (pisteRows.first['fin_travaux'] ?? '').toString();
+            piFinancement = (pisteRows.first['financement'] ?? '').toString();
+            piProjet = (pisteRows.first['projet'] ?? '').toString();
+            piEntreprise = (pisteRows.first['entreprise'] ?? '').toString();
           }
         } catch (_) {}
 
@@ -2543,14 +2560,14 @@ class _HomePageState extends State<HomePage> {
                 'start_lng': pts.first.longitude,
                 'end_lat': pts.last.latitude,
                 'end_lng': pts.last.longitude,
-                'plateforme': row['plateforme'],
-                'relief': row['relief'],
-                'vegetation': row['vegetation'],
-                'debut_travaux': row['debut_travaux'],
-                'fin_travaux': row['fin_travaux'],
-                'financement': row['financement'],
-                'projet': row['projet'],
-                'entreprise': row['entreprise'],
+                'plateforme': piPlateforme,
+                'relief': piRelief,
+                'vegetation': piVegetation,
+                'debut_travaux': piDebutTravaux,
+                'fin_travaux': piFinTravaux,
+                'financement': piFinancement,
+                'projet': piProjet,
+                'entreprise': piEntreprise,
                 'synced': piSynced,
                 'region_name': piRegion,
                 'prefecture_name': piPrefecture,
