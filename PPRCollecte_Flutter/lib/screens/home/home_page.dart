@@ -2791,28 +2791,50 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (formResult != null) {
+      final List<LatLng> pts = List<LatLng>.from(result['points'] as List<LatLng>);
+      final distanceKm = pts.length >= 2 ? polylineDistanceKm(pts) : 0.0;
+      final typeChaussee = (formResult['type_chaussee'] ?? 'inconnu').toString();
+      final endroit = (formResult['endroit'] ?? '').toString();
+      final codePiste = (formResult['code_piste'] ?? '').toString();
+
       setState(
         () {
-          final typeChaussee = formResult['type_chaussee'] ?? 'inconnu';
-          collectedPolylines.add(
-            Polyline(
-              points: result['points'],
-              color: getChausseeColor(
-                typeChaussee,
-              ),
+          _finishedChaussees.add(
+            Polyline<PolylineTapData>(
+              points: pts,
+              color: getChausseeColor(typeChaussee),
               strokeWidth: 4.0,
               pattern: getChausseePattern(typeChaussee) ?? const StrokePattern.solid(),
+              hitValue: PolylineTapData(
+                type: 'chaussee_local',
+                data: {
+                  'type_chaussee': typeChaussee,
+                  'endroit': endroit,
+                  'code_piste': codePiste,
+                  'nb_points': pts.length,
+                  'distance_km': distanceKm,
+                  'start_lat': pts.first.latitude,
+                  'start_lng': pts.first.longitude,
+                  'end_lat': pts.last.latitude,
+                  'end_lng': pts.last.longitude,
+                  'synced': '0',
+                  'region_name': '',
+                  'prefecture_name': '',
+                  'commune_name': '',
+                  'enqueteur': formResult['user_login'] ?? widget.agentName ?? '',
+                },
+              ),
             ),
           );
         },
       );
       final storageHelper = SimpleStorageHelper();
       await storageHelper.saveDisplayedChaussee(
-        result['points'],
-        formResult['type_chaussee'] ?? 'inconnu', // ✅ type chaussée
+        pts,
+        typeChaussee,
         4.0,
-        formResult['code_piste'] ?? 'Sans_code',
-        formResult['endroit'] ?? 'Sans_endroit',
+        codePiste,
+        endroit,
       );
 
       ScaffoldMessenger.of(
