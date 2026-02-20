@@ -1453,10 +1453,11 @@ class _HomePageState extends State<HomePage> {
           _showSpecialLineDetailsSheet(
             context: context,
             specialType: (data['special_type'] ?? '----').toString(),
-            statut: 'Enregistrée localement',
-            region: _regionNom,
-            prefecture: _prefectureNom,
-            commune: _communeNom,
+            statut: 'Sauvegardée (downloaded)',
+            region: (data['region_name'] ?? '').toString().isNotEmpty ? (data['region_name']).toString() : _regionNom,
+            prefecture: (data['prefecture_name'] ?? '').toString().isNotEmpty ? (data['prefecture_name']).toString() : _prefectureNom,
+            commune: (data['commune_name'] ?? '').toString().isNotEmpty ? (data['commune_name']).toString() : _communeNom,
+            enqueteur: (data['enqueteur'] ?? '').toString(),
             distanceKm: distanceKm,
             startLat: start.latitude,
             startLng: start.longitude,
@@ -4160,6 +4161,41 @@ class SpecialLinesService {
                 : 'special';
         final distanceKm = _haversineDistance(start, end);
 
+        // Chercher synced/region dans la vraie table (bacs ou passages_submersibles)
+        String slSynced = '0';
+        String slRegion = '';
+        String slPrefecture = '';
+        String slCommune = '';
+        String slEnqueteur = '';
+        try {
+          final originalTable = (line['original_table'] ?? '').toString();
+          if (originalTable.isNotEmpty) {
+            final slDb = await _dbHelper.database;
+            final slRows = await slDb.query(
+              originalTable,
+              columns: [
+                'synced',
+                'region_name',
+                'prefecture_name',
+                'commune_name',
+                'enqueteur'
+              ],
+              where: 'id = ?',
+              whereArgs: [
+                line['original_id']
+              ],
+              limit: 1,
+            );
+            if (slRows.isNotEmpty) {
+              slSynced = (slRows.first['synced']?.toString() == '1') ? '1' : '0';
+              slRegion = (slRows.first['region_name'] ?? '').toString();
+              slPrefecture = (slRows.first['prefecture_name'] ?? '').toString();
+              slCommune = (slRows.first['commune_name'] ?? '').toString();
+              slEnqueteur = (slRows.first['enqueteur'] ?? '').toString();
+            }
+          }
+        } catch (_) {}
+
         polylines.add(
           Polyline(
             points: [
@@ -4180,6 +4216,11 @@ class SpecialLinesService {
                 'end_lat': end.latitude,
                 'end_lng': end.longitude,
                 'distance_km': distanceKm,
+                'synced': slSynced,
+                'region_name': slRegion,
+                'prefecture_name': slPrefecture,
+                'commune_name': slCommune,
+                'enqueteur': slEnqueteur,
               },
             ),
           ),
