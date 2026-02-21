@@ -183,7 +183,7 @@ class _PolygonFormPageState extends State<PolygonFormPage> {
           'code_gps': _codeGpsController.text.isEmpty ? null : _codeGpsController.text,
           'synced': 0,
           'downloaded': 0,
-          'login_id': ApiService.userId,
+          'login_id': ApiService.userId ?? await DatabaseHelper().resolveLoginId(),
           'saved_by_user_id': ApiService.userId,
           'commune_id': null,
         });
