@@ -3070,8 +3070,10 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('📥 ${result.successCount} données sauvegardées'),
-                if (result.failedCount > 0) Text('❌ ${result.failedCount} types de données n’ont pas pu être mis à jour'),
+                if (result.successCount > 0) Text('📥 ${result.successCount} nouvelles données sauvegardées'),
+                if (result.skippedCount > 0) Text('✅ ${result.skippedCount} données déjà à jour'),
+                if (result.successCount == 0 && result.skippedCount > 0) const Text('ℹ️ Toutes les données étaient déjà à jour.'),
+                if (result.failedCount > 0) Text('❌ ${result.failedCount} types de données n\'ont pas pu être mis à jour'),
                 if (result.failedCount > 0) ...[
                   const SizedBox(height: 8),
                   const Text(
@@ -3168,14 +3170,12 @@ class _HomePageState extends State<HomePage> {
         result,
       ); // Réutilisez la même méthode d'affichage
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Sauvegarde terminée: ${result.successCount} données',
+            result.successCount > 0 ? 'Sauvegarde: ${result.successCount} nouvelles, ${result.skippedCount} déjà à jour' : 'Toutes les données sont déjà à jour (${result.skippedCount})',
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: result.successCount > 0 ? Colors.green : Colors.blue,
         ),
       );
     } catch (e) {

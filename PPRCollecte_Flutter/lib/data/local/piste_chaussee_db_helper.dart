@@ -887,7 +887,7 @@ ON displayed_pistes(login_id, code_piste);
   }
 
   // Ajouter cette méthode dans la classe SimpleStorageHelper
-  Future<void> saveOrUpdatePiste(Map<String, dynamic> pisteData) async {
+  Future<bool> saveOrUpdatePiste(Map<String, dynamic> pisteData) async {
     try {
       final db = await database;
       final properties = pisteData['properties'];
@@ -897,13 +897,11 @@ ON displayed_pistes(login_id, code_piste);
       final viewerId = await DatabaseHelper().resolveLoginId();
       final apiUserId = ApiService.userId;
 
-      // ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
-      // id serveur postgres (celui qui posait conflit)
       final serverId = pisteData['id'];
 
       // Extraire les coordonnées du MultiLineString GeoJSON
@@ -917,13 +915,11 @@ ON displayed_pistes(login_id, code_piste);
             .toList(),
       );
 
-      // Convertir les dates du format PostgreSQL
       String formatDate(String? dateString) {
         if (dateString == null) return '';
         return dateString.replaceFirst('T', ' ');
       }
 
-      // ✅ Vérifier si la piste existe déjà (par api_id + viewer)
       final existing = await db.query(
         'pistes',
         where: 'api_id = ? AND saved_by_user_id = ?',
@@ -935,17 +931,12 @@ ON displayed_pistes(login_id, code_piste);
       );
 
       if (existing.isEmpty) {
-        // ✅ INSERT : id local (unique), api_id = id serveur
-        final localId = DateTime.now().millisecondsSinceEpoch;
-
-        await db.insert(
+        final localId = await db.insert(
           'pistes',
           {
-            'id': localId, // ✅ ID local (dateNow)
-            'api_id': serverId, // ✅ ID serveur (Postgres)
+            'api_id': serverId,
             'code_piste': properties['code_piste'],
             'commune_rurale_id': properties['communes_rurales_id']?.toString(),
-            'user_login': properties['user_login'] ?? '',
             'heure_debut': properties['heure_debut'],
             'heure_fin': properties['heure_fin'],
             'nom_origine_piste': properties['nom_origine_piste'],
@@ -954,20 +945,19 @@ ON displayed_pistes(login_id, code_piste);
             'nom_destination_piste': properties['nom_destination_piste'],
             'x_destination': properties['x_destination'],
             'y_destination': properties['y_destination'],
-            'existence_intersection': properties['existence_intersection'] ?? 0,
+            'existence_intersection': properties['existence_intersection'] ?? 'Non',
             'x_intersection': properties['x_intersection'],
             'y_intersection': properties['y_intersection'],
             'intersection_piste_code': properties['intersection_piste_code'],
             'type_occupation': properties['type_occupation'],
-            'debut_occupation': formatDate(properties['debut_occupation']),
-            'fin_occupation': formatDate(properties['fin_occupation']),
+            'debut_occupation': properties['debut_occupation'],
+            'fin_occupation': properties['fin_occupation'],
             'largeur_emprise': properties['largeur_emprise'],
             'frequence_trafic': properties['frequence_trafic'],
             'type_trafic': properties['type_trafic'],
             'travaux_realises': properties['travaux_realises'],
             'date_travaux': properties['date_travaux'],
             'entreprise': properties['entreprise'],
-            // ===== CHAMPS TERRAIN =====
             'plateforme': properties['plateforme'],
             'relief': properties['relief'],
             'vegetation': properties['vegetation'],
@@ -975,7 +965,6 @@ ON displayed_pistes(login_id, code_piste);
             'fin_travaux': properties['fin_travaux'],
             'financement': properties['financement'],
             'projet': properties['projet'],
-            // ===== ÉVALUATION & PRIORISATION =====
             'niveau_service': properties['niveau_service'],
             'fonctionnalite': properties['fonctionnalite'],
             'interet_socio_administratif': properties['interet_socio_administratif'],
@@ -987,7 +976,7 @@ ON displayed_pistes(login_id, code_piste);
             'points_json': pointsJson,
             'created_at': formatDate(properties['created_at']),
             'updated_at': formatDate(properties['updated_at']),
-            'login_id': dataUserId, // ✅ id serveur du créateur (peut être null)
+            'login_id': dataUserId,
             'saved_by_user_id': viewerId,
             'sync_status': 'downloaded',
             'synced': 0,
@@ -997,13 +986,12 @@ ON displayed_pistes(login_id, code_piste);
             'prefecture_name': properties['prefecture_name'],
             'commune_name': properties['commune_name'],
           },
-          // (optionnel) si tu as mis UNIQUE(api_id, saved_by_user_id), tu peux activer replace :
-          // conflictAlgorithm: ConflictAlgorithm.replace,
         );
 
         print('✅ Piste ${properties['code_piste']} sauvegardée (api_id: $serverId, local id: $localId)');
+        return true;
       } else {
-        // ✅ UPDATE : toujours sur api_id + viewer
+        // UPDATE : toujours sur api_id + viewer
         await db.update(
           'pistes',
           {
@@ -1017,20 +1005,19 @@ ON displayed_pistes(login_id, code_piste);
             'nom_destination_piste': properties['nom_destination_piste'],
             'x_destination': properties['x_destination'],
             'y_destination': properties['y_destination'],
-            'existence_intersection': properties['existence_intersection'] ?? 0,
+            'existence_intersection': properties['existence_intersection'] ?? 'Non',
             'x_intersection': properties['x_intersection'],
             'y_intersection': properties['y_intersection'],
             'intersection_piste_code': properties['intersection_piste_code'],
             'type_occupation': properties['type_occupation'],
-            'debut_occupation': formatDate(properties['debut_occupation']),
-            'fin_occupation': formatDate(properties['fin_occupation']),
+            'debut_occupation': properties['debut_occupation'],
+            'fin_occupation': properties['fin_occupation'],
             'largeur_emprise': properties['largeur_emprise'],
             'frequence_trafic': properties['frequence_trafic'],
             'type_trafic': properties['type_trafic'],
             'travaux_realises': properties['travaux_realises'],
             'date_travaux': properties['date_travaux'],
             'entreprise': properties['entreprise'],
-            // ===== CHAMPS TERRAIN =====
             'plateforme': properties['plateforme'],
             'relief': properties['relief'],
             'vegetation': properties['vegetation'],
@@ -1038,7 +1025,6 @@ ON displayed_pistes(login_id, code_piste);
             'fin_travaux': properties['fin_travaux'],
             'financement': properties['financement'],
             'projet': properties['projet'],
-            // ===== ÉVALUATION & PRIORISATION =====
             'niveau_service': properties['niveau_service'],
             'fonctionnalite': properties['fonctionnalite'],
             'interet_socio_administratif': properties['interet_socio_administratif'],
@@ -1048,12 +1034,7 @@ ON displayed_pistes(login_id, code_piste);
             'protection_environnement': properties['protection_environnement'],
             'note_globale': properties['note_globale'],
             'points_json': pointsJson,
-            'updated_at': DateTime.now().toIso8601String(),
-            'login_id': dataUserId,
-            'sync_status': 'downloaded',
-            'synced': 0,
-            'date_sync': DateTime.now().toIso8601String(),
-            'downloaded': 1,
+            'updated_at': formatDate(properties['updated_at']),
             'region_name': properties['region_name'],
             'prefecture_name': properties['prefecture_name'],
             'commune_name': properties['commune_name'],
@@ -1066,10 +1047,12 @@ ON displayed_pistes(login_id, code_piste);
         );
 
         print('🔄 Piste ${properties['code_piste']} mise à jour (api_id: $serverId)');
+        return false;
       }
     } catch (e) {
       print('❌ Erreur sauvegarde piste: $e');
       print('📋 Données problématiques: ${jsonEncode(pisteData)}');
+      return false;
     }
   }
 
@@ -1308,7 +1291,7 @@ ON displayed_pistes(login_id, code_piste);
     }
   }
 
-  Future<void> saveOrUpdateChausseeTest(Map<String, dynamic> chausseeData) async {
+  Future<bool> saveOrUpdateChausseeTest(Map<String, dynamic> chausseeData) async {
     try {
       final db = await database;
       final properties = chausseeData['properties'];
@@ -1317,10 +1300,9 @@ ON displayed_pistes(login_id, code_piste);
       final viewerId = await DatabaseHelper().resolveLoginId();
       final apiUserId = ApiService.userId;
 
-      // ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       // Extraire les coordonnées du MultiLineString GeoJSON
@@ -1334,9 +1316,8 @@ ON displayed_pistes(login_id, code_piste);
             .toList(),
       );
 
-      final int apiChausseeId = (chausseeData['id'] as num).toInt(); // id PostgreSQL
+      final int apiChausseeId = (chausseeData['id'] as num).toInt();
 
-      // ✅ Vérifier si la chaussée existe déjà (par api_id + viewer)
       final existing = await db.query(
         'chaussees',
         where: 'api_id = ? AND saved_by_user_id = ?',
@@ -1348,11 +1329,10 @@ ON displayed_pistes(login_id, code_piste);
       );
 
       if (existing.isEmpty) {
-        // ✅ Insertion nouvelle chaussée (id sqlite auto) + api_id = id serveur
         await db.insert(
           'chaussees',
           {
-            'api_id': apiChausseeId, //  ID PostgreSQL stocké ici
+            'api_id': apiChausseeId,
             'code_piste': properties['code_piste'],
             'code_gps': properties['code_gps'],
             'user_login': properties['login']?.toString() ?? 'Autre utilisateur',
@@ -1369,7 +1349,7 @@ ON displayed_pistes(login_id, code_piste);
             'created_at': properties['created_at'],
             'updated_at': properties['updated_at'],
             'sync_status': 'downloaded',
-            'login_id': dataUserId, // laisse null si null
+            'login_id': dataUserId,
             'saved_by_user_id': viewerId,
             'synced': 0,
             'date_sync': DateTime.now().toIso8601String(),
@@ -1383,8 +1363,8 @@ ON displayed_pistes(login_id, code_piste);
         );
 
         print('✅ Chaussée ${properties['code_piste']} téléchargée (api_id: $apiChausseeId)');
+        return true;
       } else {
-        // ✅ Mise à jour (par api_id + viewer)
         await db.update(
           'chaussees',
           {
@@ -1401,7 +1381,7 @@ ON displayed_pistes(login_id, code_piste);
             'points_json': pointsJson,
             'updated_at': properties['updated_at'],
             'sync_status': 'downloaded',
-            'login_id': dataUserId, // optionnel mais cohérent
+            'login_id': dataUserId,
             'saved_by_user_id': viewerId,
             'synced': 0,
             'date_sync': DateTime.now().toIso8601String(),
@@ -1419,9 +1399,11 @@ ON displayed_pistes(login_id, code_piste);
         );
 
         print('🔄 Chaussée ${properties['code_piste']} mise à jour (api_id: $apiChausseeId)');
+        return false;
       }
     } catch (e) {
       print('❌ Erreur sauvegarde chaussée téléchargée: $e');
+      return false;
     }
   }
 

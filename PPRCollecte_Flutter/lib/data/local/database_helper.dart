@@ -1534,23 +1534,21 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   /// Sauvegarde ou met à jour une localité depuis PostgreSQL
-  Future<void> saveOrUpdateLocalite(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateLocalite(Map<String, dynamic> geoJsonData) async {
     final db = await database;
 
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false; // ← AJOUTÉ
       }
 
       final existing = await db.query(
@@ -1568,9 +1566,9 @@ CREATE TABLE IF NOT EXISTS app_session (
         await db.insert(
           'localites',
           {
-            'api_id': sqliteId, // ID original de SQLite
-            'x_localite': geometry['coordinates'][0], // longitude
-            'y_localite': geometry['coordinates'][1], // latitude
+            'api_id': sqliteId,
+            'x_localite': geometry['coordinates'][0],
+            'y_localite': geometry['coordinates'][1],
             'nom': properties['nom'] ?? 'Sans nom',
             'type': properties['type'] ?? 'Non spécifié',
             'enqueteur': properties['enqueteur'] ?? 'Sync',
@@ -1578,8 +1576,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -1590,10 +1588,10 @@ CREATE TABLE IF NOT EXISTS app_session (
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-        print('💾 [SAVE] viewerId=$viewerId, apiUserId=${ApiService.userId}, email=${await DatabaseHelper().getSessionUserEmail()}');
-
         print('✅ Localité sauvegardée: ${properties['nom']}');
+        return true; // ← AJOUTÉ
       }
+      return false; // ← AJOUTÉ (déjà existante)
     } catch (e) {
       print('❌ Erreur sauvegarde localité: $e');
       rethrow;
@@ -1601,22 +1599,20 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   /// Sauvegarde ou met à jour une école depuis PostgreSQL
-  Future<void> saveOrUpdateEcole(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateEcole(Map<String, dynamic> geoJsonData) async {
     final db = await database;
 
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false; // ← AJOUTÉ
       }
 
       final existing = await db.query(
@@ -1644,8 +1640,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -1656,9 +1652,10 @@ CREATE TABLE IF NOT EXISTS app_session (
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-        print('💾 [SAVE] viewerId=$viewerId, apiUserId=${ApiService.userId}, email=${await DatabaseHelper().getSessionUserEmail()}');
         print('✅ école sauvegardée: ${properties['nom']}');
+        return true; // ← AJOUTÉ
       }
+      return false; // ← AJOUTÉ
     } catch (e) {
       print('❌ Erreur sauvegarde école: $e');
       rethrow;
@@ -1666,23 +1663,21 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   /// Sauvegarde ou met à jour une marché depuis PostgreSQL
-  Future<void> saveOrUpdateMarche(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateMarche(Map<String, dynamic> geoJsonData) async {
     final db = await database;
 
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false; // ← AJOUTÉ
       }
 
       final existing = await db.query(
@@ -1710,8 +1705,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -1722,9 +1717,10 @@ CREATE TABLE IF NOT EXISTS app_session (
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-        print('💾 [SAVE] viewerId=$viewerId, apiUserId=${ApiService.userId}, email=${await DatabaseHelper().getSessionUserEmail()}');
         print('✅ Marché sauvegardée: ${properties['nom']}');
+        return true; // ← AJOUTÉ
       }
+      return false; // ← AJOUTÉ
     } catch (e) {
       print('❌ Erreur sauvegarde Marché: $e');
       rethrow;
@@ -1732,23 +1728,21 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   // ============ SERVICES SANTES ============
-  Future<void> saveOrUpdateServiceSante(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateServiceSante(Map<String, dynamic> geoJsonData) async {
     final db = await database;
 
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -1776,8 +1770,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -1788,9 +1782,10 @@ CREATE TABLE IF NOT EXISTS app_session (
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-        print('💾 [SAVE] viewerId=$viewerId, apiUserId=${ApiService.userId}, email=${await DatabaseHelper().getSessionUserEmail()}');
         print('✅ services_santes sauvegardée: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde services_santes: $e');
       rethrow;
@@ -1798,22 +1793,20 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ BATIMENTS ADMINISTRATIFS ============
-  Future<void> saveOrUpdateBatimentAdministratif(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateBatimentAdministratif(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -1841,8 +1834,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -1853,9 +1846,10 @@ CREATE TABLE IF NOT EXISTS app_session (
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-        print('💾 [SAVE] viewerId=$viewerId, apiUserId=${ApiService.userId}, email=${await DatabaseHelper().getSessionUserEmail()}');
         print('✅ batiments_administratifs sauvegardée: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde batiments_administratifs: $e');
       rethrow;
@@ -1863,22 +1857,20 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ INFRASTRUCTURES HYDRAULIQUES ============
-  Future<void> saveOrUpdateInfrastructureHydraulique(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateInfrastructureHydraulique(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -1906,8 +1898,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -1918,9 +1910,10 @@ CREATE TABLE IF NOT EXISTS app_session (
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-        print('💾 [SAVE] viewerId=$viewerId, apiUserId=${ApiService.userId}, email=${await DatabaseHelper().getSessionUserEmail()}');
         print('✅ infrastructures_hydrauliques sauvegardée: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde infrastructures_hydrauliques: $e');
       rethrow;
@@ -1928,22 +1921,20 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ AUTRES INFRASTRUCTURES ============
-  Future<void> saveOrUpdateAutreInfrastructure(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateAutreInfrastructure(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -1971,8 +1962,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -1984,7 +1975,9 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ autres_infrastructures sauvegardée: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde autres_infrastructures: $e');
       rethrow;
@@ -2037,22 +2030,20 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ PONTS ============
-  Future<void> saveOrUpdatePont(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdatePont(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -2082,8 +2073,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -2095,7 +2086,9 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ ponts sauvegardée: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde ponts: $e');
       rethrow;
@@ -2103,17 +2096,15 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ BACS ============
-  Future<void> saveOrUpdateBac(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateBac(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
-      // ⭐⭐ DEBUG: Vérifier la structure
       print('🔍 DEBUG BAC STRUCTURE:');
       print('   Geometry type: ${geometry['type']}');
       print('   Coordinates: ${geometry['coordinates']}');
@@ -2121,7 +2112,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (dataUserId == ApiService.userId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -2137,13 +2128,11 @@ CREATE TABLE IF NOT EXISTS app_session (
       if (existing.isEmpty) {
         final communeId = await _getCommuneId();
 
-        // ⭐⭐ CORRECTION: Gérer les différents formats de coordonnées
         double xDebut = 0.0, yDebut = 0.0, xFin = 0.0, yFin = 0.0;
 
         if (geometry['type'] == 'LineString') {
           final coordinates = geometry['coordinates'];
           if (coordinates.length >= 2) {
-            // Format: [[lon1, lat1], [lon2, lat2]]
             xDebut = coordinates[0][0].toDouble();
             yDebut = coordinates[0][1].toDouble();
             xFin = coordinates[1][0].toDouble();
@@ -2152,7 +2141,6 @@ CREATE TABLE IF NOT EXISTS app_session (
         } else if (geometry['type'] == 'MultiLineString') {
           final coordinates = geometry['coordinates'];
           if (coordinates.isNotEmpty && coordinates[0].length >= 2) {
-            // Format: [[[lon1, lat1], [lon2, lat2]]]
             xDebut = coordinates[0][0][0].toDouble();
             yDebut = coordinates[0][0][1].toDouble();
             xFin = coordinates[0][1][0].toDouble();
@@ -2193,7 +2181,9 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ Bac sauvegardé: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde bacs: $e');
       print('📋 Données problématiques: ${jsonEncode(geoJsonData)}');
@@ -2202,22 +2192,20 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ BUSES ============
-  Future<void> saveOrUpdateBuse(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateBuse(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -2244,8 +2232,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -2257,7 +2245,9 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ buses sauvegardée: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde buses: $e');
       rethrow;
@@ -2265,22 +2255,20 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ DALOTS ============
-  Future<void> saveOrUpdateDalot(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdateDalot(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -2308,8 +2296,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -2321,7 +2309,9 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ dalots sauvegardée: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde dalots: $e');
       rethrow;
@@ -2329,17 +2319,15 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ PASSAGES SUBMERSIBLES ============
-  Future<void> saveOrUpdatePassageSubmersible(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdatePassageSubmersible(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
-      // ⭐⭐ DEBUG: Vérifier la structure
       print('🔍 DEBUG PASSAGE SUBMERSIBLE STRUCTURE:');
       print('   Geometry type: ${geometry['type']}');
       print('   Coordinates: ${geometry['coordinates']}');
@@ -2347,7 +2335,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (dataUserId == ApiService.userId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -2363,13 +2351,11 @@ CREATE TABLE IF NOT EXISTS app_session (
       if (existing.isEmpty) {
         final communeId = await _getCommuneId();
 
-        // ⭐⭐ CORRECTION: Gérer les différents formats de coordonnées
         double xDebut = 0.0, yDebut = 0.0, xFin = 0.0, yFin = 0.0;
 
         if (geometry['type'] == 'LineString') {
           final coordinates = geometry['coordinates'];
           if (coordinates.length >= 2) {
-            // Format: [[lon1, lat1], [lon2, lat2]]
             xDebut = coordinates[0][0].toDouble();
             yDebut = coordinates[0][1].toDouble();
             xFin = coordinates[1][0].toDouble();
@@ -2378,7 +2364,6 @@ CREATE TABLE IF NOT EXISTS app_session (
         } else if (geometry['type'] == 'MultiLineString') {
           final coordinates = geometry['coordinates'];
           if (coordinates.isNotEmpty && coordinates[0].length >= 2) {
-            // Format: [[[lon1, lat1], [lon2, lat2]]]
             xDebut = coordinates[0][0][0].toDouble();
             yDebut = coordinates[0][0][1].toDouble();
             xFin = coordinates[0][1][0].toDouble();
@@ -2418,7 +2403,9 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ Passage submersible sauvegardé: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde passages_submersibles: $e');
       print('📋 Données problématiques: ${jsonEncode(geoJsonData)}');
@@ -2427,25 +2414,22 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ POINTS CRITIQUES ============
-  Future<void> saveOrUpdatePointCritique(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdatePointCritique(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
-      // 🔹 Récupérer les coordonnées : d'abord depuis geometry, sinon depuis les properties
       double? x;
       double? y;
 
@@ -2454,14 +2438,13 @@ CREATE TABLE IF NOT EXISTS app_session (
         x = (coords[0] as num).toDouble();
         y = (coords[1] as num).toDouble();
       } else {
-        // anciens enregistrements sans geom, on tente de récupérer depuis les champs attributaires
         x = (properties['x_point_cr'] as num?)?.toDouble();
         y = (properties['y_point_cr'] as num?)?.toDouble();
       }
 
       if (x == null || y == null) {
         print('🚫 Point critique ignoré (pas de géométrie exploitable) sqlite_id=$sqliteId');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -2483,19 +2466,14 @@ CREATE TABLE IF NOT EXISTS app_session (
             'api_id': sqliteId,
             'x_point_critique': x,
             'y_point_critique': y,
-
-            // 🔹 le backend renvoie maintenant "type_point"
             'type_point_critique': properties['type_point'] ?? 'Non spécifié',
-
-            // Les champs suivants n'existent pas forcément dans la réponse → valeurs par défaut
             'enqueteur': properties['enqueteur'] ?? 'Sync',
             'date_creation': properties['created_at'] ?? 'Non spécifié',
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-
-            'synced': 0, // donnée téléchargée, pas synchronisée par ce device
-            'downloaded': 1, // marquer comme téléchargée
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -2507,7 +2485,9 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ points_critiques sauvegardée: sqlite_id=$sqliteId');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde points_critiques: $e');
       rethrow;
@@ -2515,22 +2495,20 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ POINTS COUPURES ============
-  Future<void> saveOrUpdatePointCoupure(Map<String, dynamic> geoJsonData) async {
+  Future<bool> saveOrUpdatePointCoupure(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
-      // Extraire les données du GeoJSON
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
       final apiUserId = ApiService.userId;
 
-// ✅ ignorer SEULEMENT si les deux ids existent et sont égaux
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -2557,8 +2535,8 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            'synced': 0, // ← Donnée téléchargée, pas synchronisée
-            'downloaded': 1, // ← MARQUER COMME TÉLÉCHARGÉE
+            'synced': 0,
+            'downloaded': 1,
             'login_id': dataUserId ?? 'Non spécifié',
             'saved_by_user_id': viewerId,
             'commune_id': properties['communes_rurales_id'],
@@ -2570,19 +2548,22 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ points_coupures sauvegardée: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde points_coupures: $e');
       rethrow;
     }
   }
 
-  Future<void> saveOrUpdateSiteEnquete(Map<String, dynamic> geoJsonData) async {
+  // ============  SITE ENQUETE ============
+  Future<bool> saveOrUpdateSiteEnquete(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
       final geometry = geoJsonData['geometry'];
-      final sqliteId = properties['sqlite_id'];
+      final sqliteId = geoJsonData['id'] ?? properties['sqlite_id'];
       final dataUserId = properties['login_id'];
       final viewerId = await DatabaseHelper().resolveLoginId();
 
@@ -2590,7 +2571,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return;
+        return false;
       }
 
       final existing = await db.query(
@@ -2618,7 +2599,6 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_modification': properties['updated_at'] ?? 'Non spécifié',
             'code_piste': properties['code_piste'] ?? 'Non spécifié',
             'code_gps': properties['code_gps'] ?? 'Non spécifié',
-            // 9 champs ex-ppr_itial
             'amenage_ou_non_amenage': properties['amenage_ou_non_amenage'] == true ? 1 : (properties['amenage_ou_non_amenage'] == false ? 0 : null),
             'entreprise': properties['entreprise'],
             'financement': properties['financement'],
@@ -2641,35 +2621,37 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ Site enquête sauvegardé: ${properties['nom']}');
+        return true;
       }
+      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde site_enquete: $e');
       rethrow;
     }
   }
 
-  Future<void> saveOrUpdateEnquetePolygone(Map<String, dynamic> geoJsonData) async {
+// ============  ENQUETE POLYGONE ============
+  Future<bool> saveOrUpdateEnquetePolygone(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     final properties = geoJsonData['properties'] as Map<String, dynamic>? ?? {};
     final geometry = geoJsonData['geometry'] as Map<String, dynamic>? ?? {};
 
-    final apiId = geoJsonData['id'];
+    final apiId = geoJsonData['id']; // ← déjà correct
     final dataUserId = properties['login_id'];
-    final viewerId = ApiService.userId;
+    final viewerId = await DatabaseHelper().resolveLoginId(); // ← FIX : comme les autres méthodes
     final communeId = properties['communes_rurales_id'];
 
     // Extraire les coordonnées du polygone (MultiPolygon → premier polygone)
     List<dynamic> coordinates = [];
     if (geometry['type'] == 'MultiPolygon' && geometry['coordinates'] != null) {
-      // MultiPolygon: [[[ring1], [ring2], ...], ...]
       final multiPoly = geometry['coordinates'] as List;
       if (multiPoly.isNotEmpty && multiPoly[0] is List && (multiPoly[0] as List).isNotEmpty) {
-        coordinates = multiPoly[0][0]; // Premier anneau du premier polygone
+        coordinates = multiPoly[0][0];
       }
     } else if (geometry['type'] == 'Polygon' && geometry['coordinates'] != null) {
       final poly = geometry['coordinates'] as List;
       if (poly.isNotEmpty) {
-        coordinates = poly[0]; // Premier anneau
+        coordinates = poly[0];
       }
     }
 
@@ -2694,24 +2676,25 @@ CREATE TABLE IF NOT EXISTS app_session (
           'points_json': pointsJson,
           'superficie_en_ha': properties['superficie_en_ha'],
           'enqueteur': properties['enqueteur'] ?? 'Sync',
-          'date_creation': properties['created_at'] ?? DateTime.now().toIso8601String(),
-          'date_modification': properties['updated_at'],
-          'code_piste': properties['code_piste'],
-          'code_gps': properties['code_gps'],
+          'date_creation': properties['created_at'] ?? 'Non spécifié',
+          'date_modification': properties['updated_at'] ?? 'Non spécifié',
+          'code_piste': properties['code_piste'] ?? 'Non spécifié',
+          'code_gps': properties['code_gps'] ?? 'Non spécifié',
           'synced': 0,
           'downloaded': 1,
           'login_id': dataUserId,
           'saved_by_user_id': viewerId,
-          'commune_id': properties['communes_rurales_id'],
+          'commune_id': communeId,
           'region_name': properties['region_name'],
           'prefecture_name': properties['prefecture_name'],
           'commune_name': properties['commune_name'],
           'date_sync': DateTime.now().toIso8601String(),
         },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
+        conflictAlgorithm: ConflictAlgorithm.replace,
       );
-      print('✅ Enquête polygone sauvegardé: ${properties['nom']}');
+      return true;
     }
+    return false;
   }
 
 // Dans database_helper.dart

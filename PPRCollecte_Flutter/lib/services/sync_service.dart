@@ -839,13 +839,14 @@ class SyncService {
         print('🛣️ ${chaussees.length} chaussées à traiter');
 
         for (var chaussee in chaussees) {
-          // Le serveur a déjà filtré par RBAC — sauvegarder directement
           final storageHelper = SimpleStorageHelper();
-          await storageHelper.saveOrUpdateChausseeTest(chaussee);
-          result.successCount++;
+          final wasNew = await storageHelper.saveOrUpdateChausseeTest(chaussee);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          final properties = chaussee['properties'];
-          print('✅ Chaussée sauvegardée: ${properties['code_piste']}');
 
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des chaussées...", processedItems, totalItems);
@@ -868,10 +869,13 @@ class SyncService {
         final localites = await ApiService.fetchLocalites();
         print('📍 ${localites.length} localités à traiter');
         for (var localite in localites) {
-          await dbHelper.saveOrUpdateLocalite(localite);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateLocalite(localite);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Localité sauvegardée: ${localite['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des localités...", processedItems, totalItems);
           }
@@ -893,10 +897,13 @@ class SyncService {
         final ecoles = await ApiService.fetchEcoles();
         print('🏫 ${ecoles.length} écoles à traiter');
         for (var ecole in ecoles) {
-          await dbHelper.saveOrUpdateEcole(ecole);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateEcole(ecole);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ École sauvegardée: ${ecole['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des écoles...", processedItems, totalItems);
           }
@@ -918,10 +925,13 @@ class SyncService {
         final marches = await ApiService.fetchMarches();
         print('🛒 ${marches.length} marchés à traiter');
         for (var marche in marches) {
-          await dbHelper.saveOrUpdateMarche(marche);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateMarche(marche);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Marché sauvegardé: ${marche['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des marchés...", processedItems, totalItems);
           }
@@ -943,10 +953,13 @@ class SyncService {
         final servicesSantes = await ApiService.fetchServicesSantes();
         print('🏥 ${servicesSantes.length} services de santé à traiter');
         for (var service in servicesSantes) {
-          await dbHelper.saveOrUpdateServiceSante(service);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateServiceSante(service);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Service de santé sauvegardé: ${service['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des services de santé...", processedItems, totalItems);
           }
@@ -968,10 +981,13 @@ class SyncService {
         final batiments = await ApiService.fetchBatimentsAdministratifs();
         print('🏛️ ${batiments.length} bâtiments administratifs à traiter');
         for (var batiment in batiments) {
-          await dbHelper.saveOrUpdateBatimentAdministratif(batiment);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateBatimentAdministratif(batiment);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Bâtiment administratif sauvegardé: ${batiment['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des bâtiments administratifs...", processedItems, totalItems);
           }
@@ -993,10 +1009,13 @@ class SyncService {
         final infrastructures = await ApiService.fetchInfrastructuresHydrauliques();
         print('💧 ${infrastructures.length} infrastructures hydrauliques à traiter');
         for (var infrastructure in infrastructures) {
-          await dbHelper.saveOrUpdateInfrastructureHydraulique(infrastructure);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateInfrastructureHydraulique(infrastructure);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Infrastructure hydraulique sauvegardée: ${infrastructure['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des infrastructures hydrauliques...", processedItems, totalItems);
           }
@@ -1018,10 +1037,13 @@ class SyncService {
         final autresInfrastructures = await ApiService.fetchAutresInfrastructures();
         print('🏗️ ${autresInfrastructures.length} autres infrastructures à traiter');
         for (var infrastructure in autresInfrastructures) {
-          await dbHelper.saveOrUpdateAutreInfrastructure(infrastructure);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateAutreInfrastructure(infrastructure);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Autre infrastructure sauvegardée: ${infrastructure['properties']?['nom']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des autres infrastructures...", processedItems, totalItems);
           }
@@ -1043,10 +1065,13 @@ class SyncService {
         final ponts = await ApiService.fetchPonts();
         print('🌉 ${ponts.length} ponts à traiter');
         for (var pont in ponts) {
-          await dbHelper.saveOrUpdatePont(pont);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdatePont(pont);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Pont sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des ponts...", processedItems, totalItems);
           }
@@ -1068,10 +1093,13 @@ class SyncService {
         final bacs = await ApiService.fetchBacs();
         print('⛴️ ${bacs.length} bacs à traiter');
         for (var bac in bacs) {
-          await dbHelper.saveOrUpdateBac(bac);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateBac(bac);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Bac sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des bacs...", processedItems, totalItems);
           }
@@ -1093,10 +1121,13 @@ class SyncService {
         final buses = await ApiService.fetchBuses();
         print('🕳️ ${buses.length} buses à traiter');
         for (var buse in buses) {
-          await dbHelper.saveOrUpdateBuse(buse);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateBuse(buse);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Buse sauvegardée');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des buses...", processedItems, totalItems);
           }
@@ -1118,10 +1149,13 @@ class SyncService {
         final dalots = await ApiService.fetchDalots();
         print('🔄 ${dalots.length} dalots à traiter');
         for (var dalot in dalots) {
-          await dbHelper.saveOrUpdateDalot(dalot);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateDalot(dalot);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Dalot sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des dalots...", processedItems, totalItems);
           }
@@ -1143,10 +1177,13 @@ class SyncService {
         final passages = await ApiService.fetchPassagesSubmersibles();
         print('🌊 ${passages.length} passages submersibles à traiter');
         for (var passage in passages) {
-          await dbHelper.saveOrUpdatePassageSubmersible(passage);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdatePassageSubmersible(passage);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Passage submersible sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des passages submersibles...", processedItems, totalItems);
           }
@@ -1167,11 +1204,14 @@ class SyncService {
         print('📥 Téléchargement des points critiques...');
         final pointsCritiques = await ApiService.fetchPointsCritiques();
         print('⚠️ ${pointsCritiques.length} points critiques à traiter');
-        for (var point in pointsCritiques) {
-          await dbHelper.saveOrUpdatePointCritique(point);
-          result.successCount++;
+        for (var pointCritique in pointsCritiques) {
+          final wasNew = await dbHelper.saveOrUpdatePointCritique(pointCritique);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Point critique sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des points critiques...", processedItems, totalItems);
           }
@@ -1192,11 +1232,14 @@ class SyncService {
         print('📥 Téléchargement des points de coupure...');
         final pointsCoupures = await ApiService.fetchPointsCoupures();
         print('🔌 ${pointsCoupures.length} points de coupure à traiter');
-        for (var point in pointsCoupures) {
-          await dbHelper.saveOrUpdatePointCoupure(point);
-          result.successCount++;
+        for (var pointCoupure in pointsCoupures) {
+          final wasNew = await dbHelper.saveOrUpdatePointCoupure(pointCoupure);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Point de coupure sauvegardé');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des points de coupure...", processedItems, totalItems);
           }
@@ -1217,10 +1260,13 @@ class SyncService {
         final sites = await ApiService.fetchSiteEnquetes();
         print('📋 ${sites.length} sites d\'enquête à traiter');
         for (var site in sites) {
-          await dbHelper.saveOrUpdateSiteEnquete(site);
-          result.successCount++;
+          final wasNew = await dbHelper.saveOrUpdateSiteEnquete(site);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des sites d'enquête...", processedItems, totalItems);
           }
@@ -1243,10 +1289,13 @@ class SyncService {
         print('📐 ${polygones.length} zones de plaine à traiter');
         for (var polygone in polygones) {
           try {
-            await dbHelper.saveOrUpdateEnquetePolygone(polygone);
-            result.successCount++;
+            final wasNew = await dbHelper.saveOrUpdateEnquetePolygone(polygone);
+            if (wasNew) {
+              result.successCount++;
+            } else {
+              result.skippedCount++;
+            }
             processedItems++;
-
             if (onProgress != null) {
               onProgress(processedItems / totalItems, "Sauvegarde des zones de plaine...", processedItems, totalItems);
             }
@@ -1271,10 +1320,13 @@ class SyncService {
         print('🛤️ ${pistes.length} pistes à traiter');
         for (var piste in pistes) {
           final storageHelper = SimpleStorageHelper();
-          await storageHelper.saveOrUpdatePiste(piste);
-          result.successCount++;
+          final wasNew = await storageHelper.saveOrUpdatePiste(piste);
+          if (wasNew) {
+            result.successCount++;
+          } else {
+            result.skippedCount++;
+          }
           processedItems++;
-          print('✅ Piste sauvegardée: ${piste['properties']?['code_piste']}');
           if (onProgress != null) {
             onProgress(processedItems / totalItems, "Sauvegarde des pistes...", processedItems, totalItems);
           }
@@ -1287,7 +1339,7 @@ class SyncService {
         print('❌ Erreur lors du téléchargement/sauvegarde des pistes: $e');
       }
 
-      print('✅ Téléchargement terminé: ${result.successCount} données traitées sur $totalItems disponibles');
+      print('✅ Téléchargement terminé: ${result.successCount} nouvelles, ${result.skippedCount} déjà à jour, sur $totalItems disponibles');
       if (onProgress != null) {
         onProgress(1.0, "Téléchargement terminé!", processedItems, totalItems);
       }
