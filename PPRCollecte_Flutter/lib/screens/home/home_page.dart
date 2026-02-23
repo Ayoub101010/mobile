@@ -83,6 +83,7 @@ class MapFocusTarget {
 }
 
 class HomePage extends StatefulWidget {
+  static MapFocusTarget? pendingFocusTarget;
   final Function onLogout;
   final String agentName;
   final bool isOnline;
@@ -3191,30 +3192,35 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (
-          context,
-        ) =>
-            DataCategoriesPage(
+        builder: (context) => DataCategoriesPage(
           isOnline: _isOnlineDynamic,
           agentName: widget.agentName,
         ),
       ),
-    ).then(
-      (
-        _,
-      ) {
-        _refreshAllPoints();
-        // ⭐⭐ RAFRAÎCHIR TOUJOURS À LE RETOUR ⭐⭐
-        _loadDisplayedPoints();
-        _loadDisplayedPistes();
-        _loadDisplayedChaussees();
-        _loadDisplayedSpecialLines();
-        if (_legendVisibility['zone_plaine'] != false) {
-          _loadDisplayedPolygons();
-        }
-        _loadPointCountsByTable();
-      },
-    );
+    ).then((_) {
+      // Rafraîchir les données
+      _refreshAllPoints();
+      _loadDisplayedPoints();
+      _loadDisplayedPistes();
+      _loadDisplayedChaussees();
+      _loadDisplayedSpecialLines();
+      if (_legendVisibility['zone_plaine'] != false) {
+        _loadDisplayedPolygons();
+      }
+      _loadPointCountsByTable();
+
+      // ⭐ Vérifier s'il y a un focus en attente (depuis l'icône œil)
+      if (HomePage.pendingFocusTarget != null) {
+        final target = HomePage.pendingFocusTarget!;
+        HomePage.pendingFocusTarget = null;
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            _suspendAutoCenterFor(const Duration(seconds: 10));
+            _focusOnTarget(target);
+          }
+        });
+      }
+    });
   }
 
   // Ajoutez cette méthode pour afficher la confirmation de déconnexion

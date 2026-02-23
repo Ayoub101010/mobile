@@ -569,18 +569,8 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
     final fullName = widget.agentName;
 
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HomePage(
-          agentName: fullName,
-          onLogout: () {}, // HomePage gère le vrai logout maintenant
-
-          initialFocus: target,
-          isOnline: widget.isOnline,
-        ),
-      ),
-    );
+    HomePage.pendingFocusTarget = target;
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   void _onCategorySelected(String category) {
