@@ -1205,15 +1205,48 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // APRÈS (code corrigé)
   Future<void> _checkOnlineStatus() async {
     final reachable = await _isApiReachableForStatus();
-
     if (!mounted) return;
+
+    final wasOffline = !_isOnlineDynamic;
 
     if (reachable != _isOnlineDynamic) {
       setState(() {
         _isOnlineDynamic = reachable;
       });
+
+      // ⭐ NOUVEAU : Quand on passe de offline → online,
+      // restaurer ApiService.userId depuis la DB locale
+      if (wasOffline && reachable) {
+        await _restoreApiServiceFromLocal();
+      }
+    }
+  }
+
+  /// Restaure les champs statiques d'ApiService depuis SQLite
+  /// (nécessaire après un login offline suivi d'un retour de connectivité)
+  Future<void> _restoreApiServiceFromLocal() async {
+    try {
+      // Ne rien écraser si déjà rempli (login online classique)
+      if (ApiService.userId != null) return;
+
+      final user = await DatabaseHelper().getCurrentUser();
+      if (user == null) return;
+
+      ApiService.userId = user['apiId'] is int ? user['apiId'] : int.tryParse(user['apiId']?.toString() ?? '');
+      ApiService.communeId = user['communes_rurales'] is int ? user['communes_rurales'] : int.tryParse(user['communes_rurales']?.toString() ?? '');
+      ApiService.prefectureId = user['prefecture_id'] is int ? user['prefecture_id'] : int.tryParse(user['prefecture_id']?.toString() ?? '');
+      ApiService.regionId = user['region_id'] is int ? user['region_id'] : int.tryParse(user['region_id']?.toString() ?? '');
+      ApiService.communeNom = user['commune_nom']?.toString();
+      ApiService.prefectureNom = user['prefecture_nom']?.toString();
+      ApiService.regionNom = user['region_nom']?.toString();
+      ApiService.userRole = user['role']?.toString();
+
+      print('🔄 ApiService restauré depuis SQLite: userId=${ApiService.userId}, role=${ApiService.userRole}');
+    } catch (e) {
+      print('❌ Erreur restauration ApiService: $e');
     }
   }
 

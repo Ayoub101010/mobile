@@ -69,6 +69,20 @@ class _LoginPageState extends State<LoginPage> {
       // ✅ Gérer la case "Se souvenir" même hors-ligne
       await DatabaseHelper().setCurrentUserEmail(email, remember: rememberMe);
 
+      // ⭐ NOUVEAU : Restaurer ApiService.userId depuis SQLite même en offline
+      final user = await DatabaseHelper().getCurrentUser();
+      if (user != null) {
+        ApiService.userId = user['apiId'] is int ? user['apiId'] : int.tryParse(user['apiId']?.toString() ?? '');
+        ApiService.communeId = user['communes_rurales'] is int ? user['communes_rurales'] : int.tryParse(user['communes_rurales']?.toString() ?? '');
+        ApiService.prefectureId = user['prefecture_id'] is int ? user['prefecture_id'] : int.tryParse(user['prefecture_id']?.toString() ?? '');
+        ApiService.regionId = user['region_id'] is int ? user['region_id'] : int.tryParse(user['region_id']?.toString() ?? '');
+        ApiService.communeNom = user['commune_nom']?.toString();
+        ApiService.prefectureNom = user['prefecture_nom']?.toString();
+        ApiService.regionNom = user['region_nom']?.toString();
+        ApiService.userRole = user['role']?.toString();
+        print('🔄 ApiService restauré (login offline): userId=${ApiService.userId}');
+      }
+
       final fullName = await DatabaseHelper().getAgentFullName(email) ?? 'Utilisateur Local';
 
       if (!mounted) return;
