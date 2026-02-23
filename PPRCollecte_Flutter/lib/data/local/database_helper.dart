@@ -1534,7 +1534,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   /// Sauvegarde ou met à jour une localité depuis PostgreSQL
-  Future<bool> saveOrUpdateLocalite(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateLocalite(Map<String, dynamic> geoJsonData) async {
     final db = await database;
 
     try {
@@ -1548,7 +1548,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false; // ← AJOUTÉ
+        return null; // ← AJOUTÉ
       }
 
       final existing = await db.query(
@@ -1599,7 +1599,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   /// Sauvegarde ou met à jour une école depuis PostgreSQL
-  Future<bool> saveOrUpdateEcole(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateEcole(Map<String, dynamic> geoJsonData) async {
     final db = await database;
 
     try {
@@ -1612,7 +1612,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false; // ← AJOUTÉ
+        return null; // ← AJOUTÉ
       }
 
       final existing = await db.query(
@@ -1663,7 +1663,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   /// Sauvegarde ou met à jour une marché depuis PostgreSQL
-  Future<bool> saveOrUpdateMarche(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateMarche(Map<String, dynamic> geoJsonData) async {
     final db = await database;
 
     try {
@@ -1677,7 +1677,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false; // ← AJOUTÉ
+        return null; // ← AJOUTÉ
       }
 
       final existing = await db.query(
@@ -1728,7 +1728,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   // ============ SERVICES SANTES ============
-  Future<bool> saveOrUpdateServiceSante(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateServiceSante(Map<String, dynamic> geoJsonData) async {
     final db = await database;
 
     try {
@@ -1742,7 +1742,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -1793,7 +1793,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ BATIMENTS ADMINISTRATIFS ============
-  Future<bool> saveOrUpdateBatimentAdministratif(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateBatimentAdministratif(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -1806,7 +1806,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -1857,7 +1857,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ INFRASTRUCTURES HYDRAULIQUES ============
-  Future<bool> saveOrUpdateInfrastructureHydraulique(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateInfrastructureHydraulique(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -1870,7 +1870,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -1921,7 +1921,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ AUTRES INFRASTRUCTURES ============
-  Future<bool> saveOrUpdateAutreInfrastructure(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateAutreInfrastructure(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -1934,7 +1934,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -2030,7 +2030,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ PONTS ============
-  Future<bool> saveOrUpdatePont(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdatePont(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -2043,7 +2043,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -2096,7 +2096,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ BACS ============
-  Future<bool> saveOrUpdateBac(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateBac(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -2112,7 +2112,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (dataUserId == ApiService.userId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -2192,7 +2192,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ BUSES ============
-  Future<bool> saveOrUpdateBuse(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateBuse(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -2205,7 +2205,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -2255,7 +2255,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ DALOTS ============
-  Future<bool> saveOrUpdateDalot(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateDalot(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -2268,7 +2268,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -2319,7 +2319,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ PASSAGES SUBMERSIBLES ============
-  Future<bool> saveOrUpdatePassageSubmersible(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdatePassageSubmersible(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -2335,7 +2335,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (dataUserId == ApiService.userId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -2414,7 +2414,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ POINTS CRITIQUES ============
-  Future<bool> saveOrUpdatePointCritique(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdatePointCritique(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -2427,7 +2427,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       double? x;
@@ -2495,7 +2495,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============ POINTS COUPURES ============
-  Future<bool> saveOrUpdatePointCoupure(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdatePointCoupure(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -2508,7 +2508,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -2558,7 +2558,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
   // ============  SITE ENQUETE ============
-  Future<bool> saveOrUpdateSiteEnquete(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateSiteEnquete(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     try {
       final properties = geoJsonData['properties'];
@@ -2571,7 +2571,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final existing = await db.query(
@@ -2631,7 +2631,7 @@ CREATE TABLE IF NOT EXISTS app_session (
   }
 
 // ============  ENQUETE POLYGONE ============
-  Future<bool> saveOrUpdateEnquetePolygone(Map<String, dynamic> geoJsonData) async {
+  Future<bool?> saveOrUpdateEnquetePolygone(Map<String, dynamic> geoJsonData) async {
     final db = await database;
     final properties = geoJsonData['properties'] as Map<String, dynamic>? ?? {};
     final geometry = geoJsonData['geometry'] as Map<String, dynamic>? ?? {};
@@ -2640,6 +2640,12 @@ CREATE TABLE IF NOT EXISTS app_session (
     final dataUserId = properties['login_id'];
     final viewerId = await DatabaseHelper().resolveLoginId(); // ← FIX : comme les autres méthodes
     final communeId = properties['communes_rurales_id'];
+
+    final apiUserId = ApiService.userId;
+    if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
+      print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
+      return null;
+    }
 
     // Extraire les coordonnées du polygone (MultiPolygon → premier polygone)
     List<dynamic> coordinates = [];

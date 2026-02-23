@@ -887,7 +887,7 @@ ON displayed_pistes(login_id, code_piste);
   }
 
   // Ajouter cette méthode dans la classe SimpleStorageHelper
-  Future<bool> saveOrUpdatePiste(Map<String, dynamic> pisteData) async {
+  Future<bool?> saveOrUpdatePiste(Map<String, dynamic> pisteData) async {
     try {
       final db = await database;
       final properties = pisteData['properties'];
@@ -899,7 +899,7 @@ ON displayed_pistes(login_id, code_piste);
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       final serverId = pisteData['id'];
@@ -1291,7 +1291,7 @@ ON displayed_pistes(login_id, code_piste);
     }
   }
 
-  Future<bool> saveOrUpdateChausseeTest(Map<String, dynamic> chausseeData) async {
+  Future<bool?> saveOrUpdateChausseeTest(Map<String, dynamic> chausseeData) async {
     try {
       final db = await database;
       final properties = chausseeData['properties'];
@@ -1302,7 +1302,7 @@ ON displayed_pistes(login_id, code_piste);
 
       if (apiUserId != null && dataUserId != null && dataUserId == apiUserId) {
         print('🚫 Donnée ignorée - créée par le même utilisateur (login_id: $dataUserId)');
-        return false;
+        return null;
       }
 
       // Extraire les coordonnées du MultiLineString GeoJSON

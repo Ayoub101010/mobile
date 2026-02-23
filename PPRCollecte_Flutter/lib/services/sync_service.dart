@@ -841,9 +841,9 @@ class SyncService {
         for (var chaussee in chaussees) {
           final storageHelper = SimpleStorageHelper();
           final wasNew = await storageHelper.saveOrUpdateChausseeTest(chaussee);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -870,9 +870,9 @@ class SyncService {
         print('📍 ${localites.length} localités à traiter');
         for (var localite in localites) {
           final wasNew = await dbHelper.saveOrUpdateLocalite(localite);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -898,9 +898,9 @@ class SyncService {
         print('🏫 ${ecoles.length} écoles à traiter');
         for (var ecole in ecoles) {
           final wasNew = await dbHelper.saveOrUpdateEcole(ecole);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -926,9 +926,9 @@ class SyncService {
         print('🛒 ${marches.length} marchés à traiter');
         for (var marche in marches) {
           final wasNew = await dbHelper.saveOrUpdateMarche(marche);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -954,9 +954,9 @@ class SyncService {
         print('🏥 ${servicesSantes.length} services de santé à traiter');
         for (var service in servicesSantes) {
           final wasNew = await dbHelper.saveOrUpdateServiceSante(service);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -982,9 +982,9 @@ class SyncService {
         print('🏛️ ${batiments.length} bâtiments administratifs à traiter');
         for (var batiment in batiments) {
           final wasNew = await dbHelper.saveOrUpdateBatimentAdministratif(batiment);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1010,9 +1010,9 @@ class SyncService {
         print('💧 ${infrastructures.length} infrastructures hydrauliques à traiter');
         for (var infrastructure in infrastructures) {
           final wasNew = await dbHelper.saveOrUpdateInfrastructureHydraulique(infrastructure);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1038,9 +1038,9 @@ class SyncService {
         print('🏗️ ${autresInfrastructures.length} autres infrastructures à traiter');
         for (var infrastructure in autresInfrastructures) {
           final wasNew = await dbHelper.saveOrUpdateAutreInfrastructure(infrastructure);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1066,9 +1066,9 @@ class SyncService {
         print('🌉 ${ponts.length} ponts à traiter');
         for (var pont in ponts) {
           final wasNew = await dbHelper.saveOrUpdatePont(pont);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1094,9 +1094,9 @@ class SyncService {
         print('⛴️ ${bacs.length} bacs à traiter');
         for (var bac in bacs) {
           final wasNew = await dbHelper.saveOrUpdateBac(bac);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1122,9 +1122,9 @@ class SyncService {
         print('🕳️ ${buses.length} buses à traiter');
         for (var buse in buses) {
           final wasNew = await dbHelper.saveOrUpdateBuse(buse);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1150,9 +1150,9 @@ class SyncService {
         print('🔄 ${dalots.length} dalots à traiter');
         for (var dalot in dalots) {
           final wasNew = await dbHelper.saveOrUpdateDalot(dalot);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1178,9 +1178,9 @@ class SyncService {
         print('🌊 ${passages.length} passages submersibles à traiter');
         for (var passage in passages) {
           final wasNew = await dbHelper.saveOrUpdatePassageSubmersible(passage);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1206,9 +1206,9 @@ class SyncService {
         print('⚠️ ${pointsCritiques.length} points critiques à traiter');
         for (var pointCritique in pointsCritiques) {
           final wasNew = await dbHelper.saveOrUpdatePointCritique(pointCritique);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1234,9 +1234,9 @@ class SyncService {
         print('🔌 ${pointsCoupures.length} points de coupure à traiter');
         for (var pointCoupure in pointsCoupures) {
           final wasNew = await dbHelper.saveOrUpdatePointCoupure(pointCoupure);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1261,9 +1261,9 @@ class SyncService {
         print('📋 ${sites.length} sites d\'enquête à traiter');
         for (var site in sites) {
           final wasNew = await dbHelper.saveOrUpdateSiteEnquete(site);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
@@ -1290,9 +1290,9 @@ class SyncService {
         for (var polygone in polygones) {
           try {
             final wasNew = await dbHelper.saveOrUpdateEnquetePolygone(polygone);
-            if (wasNew) {
+            if (wasNew == true) {
               result.successCount++;
-            } else {
+            } else if (wasNew == false) {
               result.skippedCount++;
             }
             processedItems++;
@@ -1321,9 +1321,9 @@ class SyncService {
         for (var piste in pistes) {
           final storageHelper = SimpleStorageHelper();
           final wasNew = await storageHelper.saveOrUpdatePiste(piste);
-          if (wasNew) {
+          if (wasNew == true) {
             result.successCount++;
-          } else {
+          } else if (wasNew == false) {
             result.skippedCount++;
           }
           processedItems++;
