@@ -835,15 +835,38 @@ ON displayed_pistes(login_id, code_piste);
   Future<void> markPisteAsSyncedAndUpdated(int pisteId, Map<String, dynamic> apiResponse) async {
     try {
       final db = await database;
+
+      // 1. Récupérer l'ancien code_piste AVANT la mise à jour
+      final oldRows = await db.query(
+        'pistes',
+        columns: [
+          'code_piste'
+        ],
+        where: 'id = ?',
+        whereArgs: [
+          pisteId
+        ],
+        limit: 1,
+      );
+      final String? oldCodePiste = oldRows.isNotEmpty ? oldRows.first['code_piste']?.toString() : null;
+
+      // 2. Préparer les mises à jour
       final updates = <String, dynamic>{
         'synced': 1,
         'downloaded': 0,
         'date_sync': DateTime.now().toIso8601String(),
         'sync_status': 'synced',
-        'api_id': apiResponse['id'], // ID serveur
+        'api_id': apiResponse['id'],
       };
 
       final props = apiResponse['properties'] as Map<String, dynamic>? ?? apiResponse;
+
+      // ⭐ Récupérer le nouveau code_piste du serveur
+      final String? newCodePiste = props['code_piste']?.toString();
+      if (newCodePiste != null) {
+        updates['code_piste'] = newCodePiste;
+        print('🔄 Code piste mis à jour: $oldCodePiste → $newCodePiste');
+      }
 
       if (props['communes_rurales_id'] != null) {
         updates['commune_rurale_id'] = props['communes_rurales_id'].toString();
@@ -858,6 +881,7 @@ ON displayed_pistes(login_id, code_piste);
         updates['commune_name'] = props['commune_name'];
       }
 
+      // 3. Mettre à jour la table pistes
       await db.update(
         'pistes',
         updates,
@@ -866,7 +890,27 @@ ON displayed_pistes(login_id, code_piste);
           pisteId
         ],
       );
-      print('✅ Piste $pisteId marquée comme synchronisée et mise à jour (api_id: ${apiResponse['id']})');
+
+      // ⭐⭐ 4. Mettre à jour AUSSI la table displayed_pistes ⭐⭐
+      if (newCodePiste != null && oldCodePiste != null && newCodePiste != oldCodePiste) {
+        final dbHelper = DatabaseHelper();
+        final loginId = await dbHelper.resolveLoginId();
+
+        await db.update(
+          'displayed_pistes',
+          {
+            'code_piste': newCodePiste
+          },
+          where: 'code_piste = ? AND login_id = ?',
+          whereArgs: [
+            oldCodePiste,
+            loginId
+          ],
+        );
+        print('✅ displayed_pistes mis à jour: $oldCodePiste → $newCodePiste');
+      }
+
+      print('✅ Piste $pisteId marquée comme synchronisée et mise à jour');
     } catch (e) {
       print('❌ Erreur markPisteAsSyncedAndUpdated: $e');
     }
@@ -1240,6 +1284,22 @@ ON displayed_pistes(login_id, code_piste);
   Future<void> markChausseeAsSyncedAndUpdated(int chausseeId, Map<String, dynamic> apiResponse) async {
     try {
       final db = await database;
+
+      // 1. Récupérer l'ancien code_piste AVANT la mise à jour
+      final oldRows = await db.query(
+        'chaussees',
+        columns: [
+          'code_piste'
+        ],
+        where: 'id = ?',
+        whereArgs: [
+          chausseeId
+        ],
+        limit: 1,
+      );
+      final String? oldCodePiste = oldRows.isNotEmpty ? oldRows.first['code_piste']?.toString() : null;
+
+      // 2. Préparer les mises à jour
       final updates = <String, dynamic>{
         'synced': 1,
         'downloaded': 0,
@@ -1249,6 +1309,13 @@ ON displayed_pistes(login_id, code_piste);
       };
 
       final props = apiResponse['properties'] as Map<String, dynamic>? ?? apiResponse;
+
+      // ⭐ Récupérer le nouveau code_piste du serveur
+      final String? newCodePiste = props['code_piste']?.toString();
+      if (newCodePiste != null) {
+        updates['code_piste'] = newCodePiste;
+        print('🔄 Code piste chaussée mis à jour: $oldCodePiste → $newCodePiste');
+      }
 
       if (props['communes_rurales_id'] != null) {
         updates['communes_rurales_id'] = props['communes_rurales_id'];
@@ -1263,6 +1330,7 @@ ON displayed_pistes(login_id, code_piste);
         updates['commune_name'] = props['commune_name'];
       }
 
+      // 3. Mettre à jour la table chaussees
       await db.update(
         'chaussees',
         updates,
@@ -1271,6 +1339,26 @@ ON displayed_pistes(login_id, code_piste);
           chausseeId
         ],
       );
+
+      // ⭐⭐ 4. Mettre à jour AUSSI la table displayed_chaussees ⭐⭐
+      if (newCodePiste != null && oldCodePiste != null && newCodePiste != oldCodePiste) {
+        final dbHelper = DatabaseHelper();
+        final loginId = await dbHelper.resolveLoginId();
+
+        await db.update(
+          'displayed_chaussees',
+          {
+            'code_piste': newCodePiste
+          },
+          where: 'code_piste = ? AND login_id = ?',
+          whereArgs: [
+            oldCodePiste,
+            loginId
+          ],
+        );
+        print('✅ displayed_chaussees mis à jour: $oldCodePiste → $newCodePiste');
+      }
+
       print('✅ Chaussée $chausseeId marquée comme synchronisée et mise à jour');
     } catch (e) {
       print('❌ Erreur markChausseeAsSyncedAndUpdated: $e');

@@ -395,36 +395,93 @@ class _FormulaireChausseePageState extends State<FormulaireChausseePage> {
                     _buildFormSection(
                       title: '🏷️ Identification',
                       children: [
-                        _buildTextField(
-                          controller: _codePisteController,
-                          label: 'Code Piste *',
-                          hint: 'Ex: 1B-02CR03P01',
-                          required: true,
-                          enabled: false,
-                        ),
-                        if (widget.nearestPisteCode != null)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green),
-                            ),
-                            child: Row(
+                        //  Code Piste - Affichage conditionnel
+                        Builder(builder: (context) {
+                          final String codePiste = _codePisteController.text;
+                          final bool isTemporary = codePiste.isEmpty || codePiste.startsWith('Piste_0_0_0_') || codePiste.startsWith('TEMP_') || codePiste.startsWith('CH_');
+
+                          if (isTemporary) {
+                            // CAS 1 : Code temporaire → message
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F5E9),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.4)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.sync, size: 20, color: Color(0xFF4CAF50)),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Code Piste',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF388E3C),
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Attribué automatiquement lors de la synchronisation',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF2E7D32),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          } else {
+                            return Column(
                               children: [
-                                Icon(Icons.auto_awesome, size: 16, color: Colors.green[700]),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Code piste le plus proche détecté automatiquement',
+                                const Text(
+                                  'Code Piste',
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green[700],
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF374151),
                                   ),
                                 ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF9FAFB),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.verified, size: 20, color: Color(0xFF1976D2)),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        codePiste,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'monospace',
+                                          color: Colors.blue[800],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
                               ],
-                            ),
-                          ),
+                            );
+                          }
+                        }),
                         _buildTextField(
                           controller: _codeGpsController,
                           label: 'Code GPS ',

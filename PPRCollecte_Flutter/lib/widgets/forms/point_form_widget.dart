@@ -968,18 +968,27 @@ class _PointFormWidgetState extends State<PointFormWidget> {
     );
   }
 
+// =====================================================================
+// - Si le code_piste est temporaire (Piste_0_0_0_...) → message vert
+// - Si le code_piste est officiel (1B-28CR04P30) → afficher le vrai code
+// =====================================================================
+
   Widget _buildCodePisteField() {
-    // ⭐⭐ PRÉ-REMPLIR AVEC LE CODE PISTE ⭐⭐
+    // Pré-remplir en interne (pour la sauvegarde)
     if (widget.nearestPisteCode != null && _formData['code_piste'] == null) {
       _formData['code_piste'] = widget.nearestPisteCode;
     }
+
+    final String codePiste = (_formData['code_piste'] ?? '').toString();
+    final bool isTemporary = codePiste.isEmpty || codePiste.startsWith('Piste_0_0_0_') || codePiste.startsWith('TEMP_') || codePiste == 'Non spécifié';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Code Piste *',
+            'Code Piste',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -987,48 +996,59 @@ class _PointFormWidgetState extends State<PointFormWidget> {
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                const Icon(Icons.confirmation_number, size: 20, color: Color(0xFF1976D2)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: TextEditingController(
-                      text: _formData['code_piste']?.toString() ?? '',
+          if (isTemporary)
+            // ⭐ CAS 1 : Code temporaire → message vert
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.4)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.sync, size: 20, color: Color(0xFF4CAF50)),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Attribué automatiquement lors de la synchronisation',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF2E7D32),
+                      ),
                     ),
-                    decoration: const InputDecoration(
-                      hintText: 'Entrez le code de la piste',
-                      hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF374151),
-                    ),
-                    enabled: false, // ← DÉSACTIVÉ
-                    readOnly: true, // ← LECTURE SEULE
-                    onChanged: (value) {
-                      _formData['code_piste'] = value;
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Le code piste est obligatoire';
-                      }
-                      return null;
-                    },
                   ),
-                ),
-              ],
+                ],
+              ),
+            )
+          else
+            //  CAS 2 : Code officiel → afficher le vrai code
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified, size: 20, color: Color(0xFF1976D2)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      codePiste,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                        color: Colors.blue[800],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -1993,11 +1993,14 @@ CREATE TABLE IF NOT EXISTS app_session (
         'api_id': apiResponse['id'],
       };
 
-      // Attributs administratifs (si renvoyés par le serveur)
-      // Commune ID (depuis la réponse POST du serveur)
-      // La réponse POST est en GeoJSON: {id, type, geometry, properties: {...}}
-      // Les champs sont dans 'properties', pas au top level
       final props = apiResponse['properties'] as Map<String, dynamic>? ?? apiResponse;
+
+      // ⭐ Mettre à jour le code_piste avec le code officiel du serveur
+      final String? newCodePiste = props['code_piste']?.toString();
+      if (newCodePiste != null) {
+        updates['code_piste'] = newCodePiste;
+        print('🔄 Code piste mis à jour localement pour $tableName: $newCodePiste');
+      }
 
       if (props['communes_rurales_id'] != null) {
         updates['commune_id'] = props['communes_rurales_id'];
@@ -2013,8 +2016,8 @@ CREATE TABLE IF NOT EXISTS app_session (
       if (props['commune_name'] != null) {
         updates['commune_name'] = props['commune_name'];
       }
-      // Ajoutez d'autres champs si le serveur les renvoie (ex. region_id, prefecture_id)
 
+      // 1. Mettre à jour la table principale
       await db.update(
         tableName,
         updates,
@@ -2023,9 +2026,37 @@ CREATE TABLE IF NOT EXISTS app_session (
           localId
         ],
       );
-      print('✅ $tableName ID $localId mis à jour avec infos serveur (api_id: ${apiResponse['id']}, commune: ${updates['commune_id']})');
+
+      //  2. Mettre à jour AUSSI displayed_points
+      if (newCodePiste != null) {
+        try {
+          final tableExists = Sqflite.firstIntValue(
+            await db.rawQuery("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='displayed_points'"),
+          );
+          if (tableExists != null && tableExists > 0) {
+            final updated = await db.update(
+              'displayed_points',
+              {
+                'code_piste': newCodePiste
+              },
+              where: 'id = ? AND original_table = ?',
+              whereArgs: [
+                localId,
+                tableName
+              ],
+            );
+            if (updated > 0) {
+              print('✅ displayed_points mis à jour: $tableName ID $localId → $newCodePiste');
+            }
+          }
+        } catch (e) {
+          print('⚠️ Erreur mise à jour displayed_points: $e');
+        }
+      }
+
+      print('✅ $tableName ID $localId synchronisé et mis à jour');
     } catch (e) {
-      print('❌ Erreur updateSyncedEntity $tableName: $e');
+      print('❌ Erreur updateSyncedEntity: $e');
     }
   }
 

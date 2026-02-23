@@ -1054,13 +1054,63 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                     _buildFormSection(
                       title: '🏷️ Identification',
                       children: [
-                        _buildTextField(
-                          controller: _codeController,
-                          label: 'Code Piste *',
-                          hint: 'Code unique de la piste',
-                          required: true,
-                          enabled: false,
-                        ),
+                        // ⭐ Code Piste - Affichage conditionnel
+                        Builder(builder: (context) {
+                          final String codePiste = _codeController.text;
+                          final bool isTemporary = codePiste.isEmpty || codePiste.startsWith('Piste_0_0_0_') || codePiste.startsWith('TEMP_');
+
+                          if (isTemporary) {
+                            // CAS 1 : Temporaire → message vert
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F5E9),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.4)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.sync, size: 20, color: Color(0xFF4CAF50)),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Code Piste',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF388E3C),
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Le code officiel sera attribué automatiquement lors de la synchronisation',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF2E7D32),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          } else {
+                            // CAS 2 : Officiel → afficher normalement
+                            return _buildTextField(
+                              controller: _codeController,
+                              label: 'Code Piste',
+                              hint: 'Code unique de la piste',
+                              required: false,
+                              enabled: false,
+                            );
+                          }
+                        }),
                         _buildReadOnlyCommuneField(),
                         _buildDateCreationField(),
                         _buildDateModificationField(),

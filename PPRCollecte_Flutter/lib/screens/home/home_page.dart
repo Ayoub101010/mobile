@@ -1123,18 +1123,10 @@ class _HomePageState extends State<HomePage> {
         filtered.addAll(entry.value);
       }
     }
-    // Ajouter les markers qui ne sont dans aucune table (sécurité)
-    final byTablePositions = <String>{};
-    for (final markers in _displayedPointsByTable.values) {
-      for (final m in markers) {
-        byTablePositions.add('${m.point.latitude}_${m.point.longitude}');
-      }
-    }
-    for (final m in _displayedPointsMarkers) {
-      if (!byTablePositions.contains('${m.point.latitude}_${m.point.longitude}')) {
-        filtered.add(m);
-      }
-    }
+
+    //  FIX: NE PLUS ajouter les markers "orphelins" sans vérification
+    // Avant: tous les markers non catégorisés étaient toujours affichés
+    // Maintenant: on les ignore (ils seront catégorisés correctement)
 
     // === Points téléchargés — filtrer par sous-type ===
     if (_showDownloadedPoints) {
@@ -1142,18 +1134,6 @@ class _HomePageState extends State<HomePage> {
         final subKey = 'point_${entry.key}';
         if (_legendVisibility[subKey] != false) {
           filtered.addAll(entry.value);
-        }
-      }
-      // Ajouter les downloaded non classés
-      final dlPositions = <String>{};
-      for (final markers in _downloadedPointsByTable.values) {
-        for (final m in markers) {
-          dlPositions.add('${m.point.latitude}_${m.point.longitude}');
-        }
-      }
-      for (final m in _downloadedPointsMarkers) {
-        if (!dlPositions.contains('${m.point.latitude}_${m.point.longitude}')) {
-          filtered.add(m);
         }
       }
     }
@@ -2072,19 +2052,30 @@ class _HomePageState extends State<HomePage> {
       }
 
       // Regrouper les markers par table pour le filtrage légende
+
       final Map<String, List<Marker>> byTable = {};
+
+      // Construire une map position → liste de tables (pour gérer les doublons de position)
+      final Map<String, List<Map<String, dynamic>>> pointsByPosition = {};
       for (var point in existingPoints) {
-        final table = (point['original_table'] ?? '').toString();
-        if (table.isEmpty) continue;
         final lat = (point['latitude'] as num).toDouble();
         final lng = (point['longitude'] as num).toDouble();
         final posKey = '${lat}_${lng}';
-        // Trouver le marker correspondant à cette position
-        for (var m in validMarkers) {
-          if ('${m.point.latitude}_${m.point.longitude}' == posKey) {
+        pointsByPosition.putIfAbsent(posKey, () => []);
+        pointsByPosition[posKey]!.add(point);
+      }
+
+      // Pour chaque marker, trouver sa table
+      for (var m in validMarkers) {
+        final posKey = '${m.point.latitude}_${m.point.longitude}';
+        final pointsAtPos = pointsByPosition[posKey];
+        if (pointsAtPos != null && pointsAtPos.isNotEmpty) {
+          // Prendre le premier point disponible et le retirer de la liste
+          final point = pointsAtPos.removeAt(0);
+          final table = (point['original_table'] ?? '').toString();
+          if (table.isNotEmpty) {
             byTable.putIfAbsent(table, () => []);
             byTable[table]!.add(m);
-            break;
           }
         }
       }
@@ -3663,7 +3654,7 @@ class _HomePageState extends State<HomePage> {
 
     // 2. Filtrer les polylines selon la légende
     final List<Polyline> filteredPolylines = _getFilteredPolylines();
-    List<Polygon> filteredPolygons = List.from(_displayedPolygons);
+    List<Polygon> filteredPolygons = (_legendVisibility['zone_plaine'] != false) ? List.from(_displayedPolygons) : <Polygon>[];
     // === LOGS POUR DEBUG ===
     print('📍 [MAP] filteredMarkers size = ${filteredMarkers.length}');
     print('🧮 [MAP] filteredPolylines size = ${filteredPolylines.length}');

@@ -491,13 +491,22 @@ class _PolygonFormPageState extends State<PolygonFormPage> {
   }
 
   Widget _buildPisteDetectedBanner() {
+    final String code = _nearestPisteCode ?? '';
+    final bool isTemporary = code.isEmpty || code.startsWith('Piste_0_0_0_') || code.startsWith('TEMP_');
+
+    if (isTemporary) {
+      // Pas de banner pour code temporaire (le message est dans _buildCodePisteField)
+      return const SizedBox.shrink();
+    }
+
+    // Code officiel → afficher le banner normalement
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.green[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green),
+        border: Border.all(color: Colors.green.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -508,7 +517,7 @@ class _PolygonFormPageState extends State<PolygonFormPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Piste la plus proche détectée:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700])),
-                Text(_nearestPisteCode!, style: TextStyle(color: Colors.green[700], fontFamily: 'monospace')),
+                Text(code, style: TextStyle(color: Colors.green[700], fontFamily: 'monospace')),
               ],
             ),
           ),
@@ -518,6 +527,9 @@ class _PolygonFormPageState extends State<PolygonFormPage> {
   }
 
   Widget _buildCodePisteField() {
+    final String code = _nearestPisteCode ?? '';
+    final bool isTemporary = code.isEmpty || code.startsWith('Piste_0_0_0_') || code.startsWith('TEMP_');
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -525,34 +537,61 @@ class _PolygonFormPageState extends State<PolygonFormPage> {
         children: [
           const Text('Code Piste *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
           const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                const Icon(Icons.confirmation_number, size: 20, color: Color(0xFF1976D2)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: _nearestPisteCode ?? '',
-                    decoration: const InputDecoration(
-                      hintText: 'Code piste auto-détecté',
-                      hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 12),
+          if (isTemporary)
+            // CAS 1 : Temporaire → message vert
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.4)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.sync, size: 20, color: Color(0xFF4CAF50)),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Attribué automatiquement lors de la synchronisation',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF2E7D32),
+                      ),
                     ),
-                    style: const TextStyle(fontSize: 16, color: Color(0xFF374151)),
-                    enabled: false,
-                    readOnly: true,
                   ),
-                ),
-              ],
+                ],
+              ),
+            )
+          else
+            // CAS 2 : Officiel → afficher le code
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.confirmation_number, size: 20, color: Color(0xFF1976D2)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: code,
+                      decoration: const InputDecoration(
+                        hintText: 'Code piste',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      style: const TextStyle(fontSize: 16, color: Color(0xFF374151)),
+                      enabled: false,
+                      readOnly: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
