@@ -45,13 +45,20 @@ class CommuneInfoMixin(serializers.Serializer):
             if hasattr(pref, 'regions_id') and pref.regions_id:
                 return pref.regions_id.nom
         return None
-# APRÈS 
+
+ 
 class CodePisteResolveMixin:
-    """Mixin pour résoudre code_piste _0_0_0_ vers le code corrigé avant validation FK"""
+    """
+    Mixin pour résoudre le code_piste temporaire du frontend
+    vers le code officiel déjà corrigé en BD, avant validation FK.
     
+    Utilise d'abord le mapping en mémoire (rapide, même session sync),
+    puis fallback sur recherche BD par suffixe timestamp.
+    """
+
     def to_internal_value(self, data):
-        # ⭐ FIX: Le data peut être un GeoJSON Feature (code_piste dans 'properties')
-        # ou un dict plat (code_piste au top-level)
+        from .codification import is_temporary_code, resolve_temp_code
+
         code_piste = data.get('code_piste')
         is_geojson = False
 
@@ -59,20 +66,53 @@ class CodePisteResolveMixin:
             code_piste = (data.get('properties') or {}).get('code_piste')
             is_geojson = True
 
-        if code_piste and isinstance(code_piste, str) and '_0_0_0_' in code_piste:
-            date_suffix = code_piste.split('_0_0_0_')[-1]
-            from .models import Piste
-            matching = Piste.objects.filter(code_piste__endswith=date_suffix).first()
-            if matching:
+        if code_piste and isinstance(code_piste, str) and is_temporary_code(code_piste):
+            
+            resolved_code = None
+
+            #  ÉTAPE 1 : Chercher dans le mapping en mémoire (rapide)
+            official_code = resolve_temp_code(code_piste)
+            if official_code:
+                from .models import Piste
+                matching = Piste.objects.filter(code_piste=official_code).first()
+                if matching:
+                    resolved_code = matching.code_piste
+                    print(f"🔄 Résolu via mapping mémoire: {code_piste} → {resolved_code}")
+
+            #  ÉTAPE 2 : Fallback - recherche BD par suffixe (ancien comportement)
+            if not resolved_code:
+                date_suffix = code_piste.split('_')[-1] if '_' in code_piste else code_piste
+                from .models import Piste
+                matching = Piste.objects.filter(
+                    code_piste__endswith=date_suffix
+                ).first()
+                if matching:
+                    resolved_code = matching.code_piste
+                    print(f"🔄 Résolu via suffixe BD: {code_piste} → {resolved_code}")
+            
+            #  ÉTAPE 3 : Fallback _0_0_0_ (compatibilité ancien format)
+            if not resolved_code and '_0_0_0_' in code_piste:
+                full_suffix = code_piste.split('_0_0_0_')[-1]
+                from .models import Piste
+                matching = Piste.objects.filter(
+                    code_piste__endswith=full_suffix
+                ).first()
+                if matching:
+                    resolved_code = matching.code_piste
+                    print(f"🔄 Résolu via suffixe _0_0_0_: {code_piste} → {resolved_code}")
+
+            # Appliquer la résolution
+            if resolved_code:
                 data = data.copy() if hasattr(data, 'copy') else dict(data)
                 if is_geojson:
-                    # ⭐ Mettre à jour dans properties, pas au top-level
                     props = dict(data['properties'])
-                    props['code_piste'] = matching.code_piste
+                    props['code_piste'] = resolved_code
                     data['properties'] = props
                 else:
-                    data['code_piste'] = matching.code_piste
-                print(f"🔄 Serializer: code_piste résolu {code_piste} → {matching.code_piste}")
+                    data['code_piste'] = resolved_code
+            else:
+                print(f"⚠️ Impossible de résoudre code_piste: {code_piste}")
+
         return super().to_internal_value(data)
     
 class RegionSerializer(GeoFeatureModelSerializer):

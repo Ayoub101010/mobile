@@ -74,11 +74,27 @@ class AutoCommuneMixin:
         # ===== CORRECTION DU CODE_PISTE =====
         self._fix_code_piste(instance, commune, model_class)
 
+    
+    # la méthode _fix_code_piste 
+
     def _fix_code_piste(self, instance, commune, model_class):
-        """Remplace _0_0_0_ dans code_piste par _regionId_prefectureId_communeId_"""
+        """
+        Remplace le code_piste temporaire par le code officiel du rapport.
+        Format: {RegionNat}{BTGR}-{CodePref}CR{CodeCommune}P{Numero}
+        Exemple: 1B-02CR03P01
+        
+        Gère 3 cas:
+          CAS 1: Piste (code_piste = CharField direct)
+          CAS 2: Entités avec FK code_piste vers Piste
+          CAS 3: Entités avec code_piste CharField (non FK)
+        """
+        from .codification import (
+            generate_official_code_piste, is_temporary_code, is_official_code, register_code_mapping  
+        )
+
         try:
+            # --- Récupérer la commune si non fournie ---
             if not commune:
-                # Essayer de récupérer la commune depuis l'instance sauvée
                 if hasattr(instance, 'communes_rurales_id') and instance.communes_rurales_id:
                     commune = instance.communes_rurales_id
                 elif hasattr(instance, 'commune_id') and instance.commune_id:
@@ -86,53 +102,54 @@ class AutoCommuneMixin:
                 else:
                     return
 
-            # Remonter la hiérarchie : commune → préfecture → région
+            # Remonter la hiérarchie pour log
             prefecture = commune.prefectures_id if commune.prefectures_id else None
             region = prefecture.regions_id if prefecture and prefecture.regions_id else None
+            print(f"📍 Hiérarchie: {commune.nom} → {prefecture.nom if prefecture else '?'} → {region.nom if region else '?'}")
 
-            region_id = region.id if region else 0
-            prefecture_id = prefecture.id if prefecture else 0
-            commune_id = commune.id if commune else 0
-
-            new_prefix = f"{region_id}_{prefecture_id}_{commune_id}"
-
-            # --- CAS 1 : Piste (code_piste est un CharField) ---
+            # === CAS 1 : PISTE (code_piste est un CharField) ===
             if model_class.__name__ == 'Piste' and hasattr(instance, 'code_piste'):
                 old_code = instance.code_piste or ''
-                if '_0_0_0_' in old_code:
-                    new_code = old_code.replace('_0_0_0_', f'_{new_prefix}_', 1)
-                    instance.code_piste = new_code
-                    instance.save(update_fields=['code_piste'])
-                    print(f"✅ Code piste corrigé: {old_code} → {new_code}")
 
-           # --- CAS 2 : Autres entités (code_piste est un FK vers Piste) ---
+                # Ne transformer que les codes temporaires
+                if is_temporary_code(old_code):
+                    new_code = generate_official_code_piste(commune, instance)
+                    if new_code:
+                        instance.code_piste = new_code
+                        instance.save(update_fields=['code_piste'])
+                        register_code_mapping(old_code, new_code)
+                        print(f"✅ Code piste transformé: {old_code} → {new_code}")
+                    else:
+                        print(f"⚠️ Impossible de générer le code officiel pour {old_code}")
+                elif is_official_code(old_code):
+                    print(f"ℹ️ Code piste déjà officiel: {old_code}")
+
+            # === CAS 2 : ENTITÉS AVEC FK code_piste (vers Piste) ===
             elif hasattr(instance, 'code_piste_id'):
                 old_code = instance.code_piste_id or ''
-                if '_0_0_0_' in old_code:
-                    date_suffix = old_code.split('_0_0_0_')[-1]
-                    
+
+                if is_temporary_code(old_code):
+                    # Extraire le suffixe temporel pour retrouver la piste
+                    date_suffix = old_code.split('_')[-1] if '_' in old_code else old_code
+
                     from .models import Piste
                     matching_piste = Piste.objects.filter(
                         code_piste__endswith=date_suffix
                     ).first()
-                    
+
                     if matching_piste:
-                        # Si la piste trouvée a encore _0_0_0_, la corriger d'abord
-                        if '_0_0_0_' in (matching_piste.code_piste or ''):
+                        # Si la piste a encore un code temporaire, la corriger aussi
+                        if is_temporary_code(matching_piste.code_piste):
                             piste_commune = matching_piste.communes_rurales_id
                             if piste_commune:
-                                pref = piste_commune.prefectures_id
-                                reg = pref.regions_id if pref else None
-                                r_id = reg.id if reg else 0
-                                p_id = pref.id if pref else 0
-                                c_id = piste_commune.id
-                                new_piste_code = matching_piste.code_piste.replace(
-                                    '_0_0_0_', f'_{r_id}_{p_id}_{c_id}_', 1
+                                new_piste_code = generate_official_code_piste(
+                                    piste_commune, matching_piste
                                 )
-                                matching_piste.code_piste = new_piste_code
-                                matching_piste.save(update_fields=['code_piste'])
-                                print(f"✅ Piste référencée corrigée aussi: → {new_piste_code}")
-                        
+                                if new_piste_code:
+                                    matching_piste.code_piste = new_piste_code
+                                    matching_piste.save(update_fields=['code_piste'])
+                                    print(f"✅ Piste référencée corrigée aussi: → {new_piste_code}")
+
                         # Maintenant mettre à jour le FK
                         instance.code_piste_id = matching_piste.code_piste
                         instance.save(update_fields=['code_piste_id'])
@@ -140,36 +157,32 @@ class AutoCommuneMixin:
                     else:
                         print(f"⚠️ Aucune piste trouvée avec suffixe '{date_suffix}'")
 
-           # --- CAS 3 : Autres entités avec code_piste CharField (non FK) ---
+            # === CAS 3 : ENTITÉS AVEC code_piste CharField (non FK) ===
             elif hasattr(instance, 'code_piste'):
                 field = model_class._meta.get_field('code_piste')
                 if not field.is_relation:
                     old_code = instance.code_piste or ''
-                    if '_0_0_0_' in old_code:
-                        date_suffix = old_code.split('_0_0_0_')[-1]
-                        
+                    if is_temporary_code(old_code):
+                        date_suffix = old_code.split('_')[-1] if '_' in old_code else old_code
+
                         from .models import Piste
                         matching_piste = Piste.objects.filter(
                             code_piste__endswith=date_suffix
                         ).first()
-                        
+
                         if matching_piste:
                             # Corriger la piste si nécessaire
-                            if '_0_0_0_' in (matching_piste.code_piste or ''):
+                            if is_temporary_code(matching_piste.code_piste):
                                 piste_commune = matching_piste.communes_rurales_id
                                 if piste_commune:
-                                    pref = piste_commune.prefectures_id
-                                    reg = pref.regions_id if pref else None
-                                    r_id = reg.id if reg else 0
-                                    p_id = pref.id if pref else 0
-                                    c_id = piste_commune.id
-                                    new_piste_code = matching_piste.code_piste.replace(
-                                        '_0_0_0_', f'_{r_id}_{p_id}_{c_id}_', 1
+                                    new_code = generate_official_code_piste(
+                                        piste_commune, matching_piste
                                     )
-                                    matching_piste.code_piste = new_piste_code
-                                    matching_piste.save(update_fields=['code_piste'])
-                                    print(f"✅ Piste référencée corrigée: → {new_piste_code}")
-                            
+                                    if new_code:
+                                        matching_piste.code_piste = new_code
+                                        matching_piste.save(update_fields=['code_piste'])
+                                        print(f"✅ Piste référencée corrigée: → {new_code}")
+
                             instance.code_piste = matching_piste.code_piste
                             instance.save(update_fields=['code_piste'])
                             print(f"✅ Code piste corrigé: {old_code} → {matching_piste.code_piste}")
@@ -178,6 +191,8 @@ class AutoCommuneMixin:
 
         except Exception as e:
             print(f"⚠️ Erreur correction code_piste: {e}")
+            import traceback
+            traceback.print_exc()
 
 class RBACFilterMixin:
     """
