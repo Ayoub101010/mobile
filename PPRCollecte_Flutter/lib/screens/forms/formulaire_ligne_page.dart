@@ -72,7 +72,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   DateTime? _finOccupation;
   double? _largeurEmprise; // Largeur de l'emprise de la piste
   String? _frequenceTrafic;
-  String? _typeTrafic;
+  List<String> _selectedTypeTrafic = [];
   DateTime? _dateDebutTravaux;
   DateTime? _dateCreation; // ← NOUVEAU
   DateTime? _dateModification;
@@ -543,7 +543,11 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       _finOccupation = data['fin_occupation'] != null ? DateTime.parse(data['fin_occupation']) : null;
       _largeurEmprise = data['largeur_emprise'];
       _frequenceTrafic = data['frequence_trafic'];
-      _typeTrafic = data['type_trafic'];
+      if (data['type_trafic'] != null && data['type_trafic'].toString().isNotEmpty) {
+        _selectedTypeTrafic = data['type_trafic'].toString().split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      } else {
+        _selectedTypeTrafic = [];
+      }
       _travauxRealisesController.text = data['travaux_realises'] ?? '';
       _dateDebutTravaux = data['date_travaux'] != null ? DateTime.parse(data['date_travaux']) : null;
       _entrepriseController.text = data['entreprise'] ?? '';
@@ -729,7 +733,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
         'fin_occupation': _finOccupation?.toIso8601String(),
         'largeur_emprise': _largeurEmprise,
         'frequence_trafic': _frequenceTrafic,
-        'type_trafic': _typeTrafic,
+        'type_trafic': _selectedTypeTrafic.isNotEmpty ? _selectedTypeTrafic.join(',') : null,
         'travaux_realises': _travauxRealisesController.text.isNotEmpty ? _travauxRealisesController.text : null,
         'date_travaux': _dateDebutTravaux?.toIso8601String(),
         'entreprise': _entrepriseController.text.isNotEmpty ? _entrepriseController.text : null,
@@ -984,7 +988,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       _finOccupation = null;
       _largeurEmprise = null;
       _frequenceTrafic = null;
-      _typeTrafic = null;
+      _selectedTypeTrafic = [];
       _dateDebutTravaux = null;
 
       // Garder les champs en lecture seule (ils seront réinitialisés automatiquement)
@@ -1274,11 +1278,11 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                           options: _frequenceTraficOptions,
                           onChanged: (value) => setState(() => _frequenceTrafic = value),
                         ),
-                        _buildRadioGroupField(
+                        _buildMultiSelectRoundField(
                           label: 'Type de Trafic',
-                          value: _typeTrafic,
+                          selectedValues: _selectedTypeTrafic,
                           options: _typeTraficOptions,
-                          onChanged: (value) => setState(() => _typeTrafic = value),
+                          onChanged: (values) => setState(() => _selectedTypeTrafic = values),
                         ),
                       ],
                     ),
@@ -2154,6 +2158,94 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultiSelectRoundField({
+    required String label,
+    required List<String> selectedValues,
+    required List<String> options,
+    required Function(List<String>) onChanged,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF374151),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              children: options.map((option) {
+                final isSelected = selectedValues.contains(option);
+                return InkWell(
+                  onTap: () {
+                    final newValues = List<String>.from(selectedValues);
+                    if (isSelected) {
+                      newValues.remove(option);
+                    } else {
+                      newValues.add(option);
+                    }
+                    onChanged(newValues);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? const Color(0xFF1976D2) : const Color(0xFF9CA3AF),
+                              width: 2,
+                            ),
+                          ),
+                          child: isSelected
+                              ? Center(
+                                  child: Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Color(0xFF1976D2),
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          option,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isSelected ? const Color(0xFF1976D2) : const Color(0xFF374151),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
         ],
       ),
     );
