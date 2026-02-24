@@ -201,8 +201,8 @@ class Piste(models.Model):
     protection_environnement = models.FloatField(null=True, blank=True)
     note_globale = models.FloatField(null=True, blank=True)
 
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
     login_id = models.ForeignKey(
         'Login', 
         on_delete=models.SET_NULL,
@@ -309,6 +309,16 @@ class PointsCoupures(models.Model):
     updated_at = models.CharField(max_length=24, null=True, blank=True)
     code_gps = models.CharField(max_length=254, null=True, blank=True)
 
+    
+    code_piste = models.ForeignKey(
+        'Piste',
+        to_field='code_piste',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='code_piste'
+    )
+
     commune_id = models.ForeignKey(
         'CommuneRurale',
         db_column='commune_id',
@@ -318,7 +328,6 @@ class PointsCoupures(models.Model):
         related_name='points_coupures'
     )
 
-    
     login_id = models.ForeignKey(
         'Login',
         db_column='login_id',
@@ -331,9 +340,6 @@ class PointsCoupures(models.Model):
     class Meta:
         db_table = 'points_coupures'
         managed = False
-
-    def __str__(self):
-        return f"Point coupure {self.fid}"
 
 
 
@@ -352,6 +358,16 @@ class PointsCritiques(models.Model):
     updated_at = models.CharField(max_length=24, null=True, blank=True)
     code_gps = models.CharField(max_length=254, null=True, blank=True)
 
+    
+    code_piste = models.ForeignKey(
+        'Piste',
+        to_field='code_piste',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='code_piste'
+    )
+
     commune_id = models.ForeignKey(
         'CommuneRurale',
         db_column='commune_id',
@@ -361,7 +377,6 @@ class PointsCritiques(models.Model):
         related_name='points_critiques'
     )
 
-    
     login_id = models.ForeignKey(
         'Login',
         db_column='login_id',
@@ -374,9 +389,6 @@ class PointsCritiques(models.Model):
     class Meta:
         db_table = 'points_critiques'
         managed = False
-
-    def __str__(self):
-        return f"Point critique {self.fid}"
 
 
 

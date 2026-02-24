@@ -417,8 +417,8 @@ class SyncService {
         'plateforme': localData['plateforme'],
         'relief': localData['relief'],
         'vegetation': localData['vegetation'],
-        'debut_travaux': localData['debut_travaux'],
-        'fin_travaux': localData['fin_travaux'],
+        'debut_travaux': _formatDateOnly(localData['debut_travaux']),
+        'fin_travaux': _formatDateOnly(localData['fin_travaux']),
         'financement': localData['financement'],
         'projet': localData['projet'],
         // ===== ÉVALUATION & PRIORISATION =====
@@ -459,6 +459,22 @@ class SyncService {
       }
     }
     return null;
+  }
+
+  /// Formate une date en YYYY-MM-DD uniquement (pour debut_travaux, fin_travaux)
+  String? _formatDateOnly(dynamic value) {
+    if (value == null) return null;
+    if (value is! String) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty || str == 'null') return null;
+    try {
+      final date = DateTime.parse(str);
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    } catch (e) {
+      // Si c'est déjà au format YYYY-MM-DD, on le retourne tel quel
+      if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(str)) return str;
+      return null;
+    }
   }
 
   String? _formatDateTime(dynamic dateValue) {

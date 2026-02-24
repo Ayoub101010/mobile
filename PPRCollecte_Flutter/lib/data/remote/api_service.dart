@@ -770,6 +770,7 @@ class ApiService {
       'updated_at': formatDateForPostgres(localData['date_modification']),
 
       'code_gps': localData['code_gps'],
+      'code_piste': localData['code_piste'],
       'commune_id': localData['commune_id'],
 
       'chaussee_id': localData['chaussee_id'] ?? null,
@@ -814,10 +815,25 @@ class ApiService {
 
       'code_gps': localData['code_gps'],
       'commune_id': localData['commune_id'],
+      'code_piste': localData['code_piste'],
       'chaussee_id': localData['chaussee_id'] ?? null,
 
       'login_id': userId,
     };
+  }
+
+  /// Formate une date en YYYY-MM-DD uniquement
+  static String? _formatDateOnly(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty || str == 'null') return null;
+    try {
+      final date = DateTime.parse(str);
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    } catch (e) {
+      if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(str)) return str;
+      return null;
+    }
   }
 
   static Map<String, dynamic> _mapSiteEnqueteToApi(Map<String, dynamic> localData) {
@@ -857,8 +873,8 @@ class ApiService {
       'projet': localData['projet'],
       'superficie_digitalisee': localData['superficie_digitalisee'],
       'superficie_estimee_lors_des_enquetes_ha': localData['superficie_estimee_lors_des_enquetes_ha'],
-      'travaux_debut': localData['travaux_debut'],
-      'travaux_fin': localData['travaux_fin'],
+      'travaux_debut': _formatDateOnly(localData['travaux_debut']),
+      'travaux_fin': _formatDateOnly(localData['travaux_fin']),
       'type_de_realisation': localData['type_de_realisation'],
     };
   }

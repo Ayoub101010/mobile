@@ -1663,27 +1663,33 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   }
 
   Widget _buildDateModificationField() {
+    final bool isCreation = !widget.isEditingMode; // ✅ Vrai si mode création
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Date de modification',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF374151),
+              color: isCreation ? Colors.grey : const Color(0xFF374151),
             ),
           ),
           const SizedBox(height: 8),
           GestureDetector(
-            onTap: widget.isEditingMode ? () => _selectDateModification(context) : null,
+            onTap: isCreation
+                ? null // ✅ Désactivé en création
+                : () => _selectDateModification(context),
             child: Container(
               decoration: BoxDecoration(
-                color: widget.isEditingMode ? const Color(0xFFF9FAFB) : const Color(0xFFF5F5F5),
+                color: isCreation ? const Color(0xFFF5F5F5) : const Color(0xFFF9FAFB),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                border: Border.all(
+                  color: isCreation ? const Color(0xFFE0E0E0) : const Color(0xFFE5E7EB),
+                ),
               ),
               padding: const EdgeInsets.all(12),
               child: Row(
@@ -1691,15 +1697,19 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                   Icon(
                     Icons.calendar_today,
                     size: 20,
-                    color: widget.isEditingMode ? const Color(0xFF1976D2) : Colors.grey,
+                    color: isCreation ? Colors.grey : const Color(0xFF1976D2),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _dateModification != null ? "${_dateModification!.day.toString().padLeft(2, '0')}/${_dateModification!.month.toString().padLeft(2, '0')}/${_dateModification!.year}" : "Sélectionner une date",
+                      isCreation
+                          ? "Non modifié" // ✅ Texte grisé en création
+                          : (_dateModification != null ? "${_dateModification!.day.toString().padLeft(2, '0')}/${_dateModification!.month.toString().padLeft(2, '0')}/${_dateModification!.year}" : "Sélectionner une date"),
                       style: TextStyle(
                         fontSize: 14,
-                        color: _dateModification != null ? const Color(0xFF374151) : const Color(0xFF9CA3AF),
+                        color: isCreation
+                            ? const Color(0xFF9E9E9E) // ✅ Gris en création
+                            : (_dateModification != null ? const Color(0xFF374151) : const Color(0xFF9CA3AF)),
                       ),
                     ),
                   ),
