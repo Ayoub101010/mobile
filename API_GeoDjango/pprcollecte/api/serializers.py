@@ -148,6 +148,17 @@ class CommuneRuraleSerializer(GeoFeatureModelSerializer):
 
 
 class SiteEnqueteSerializer(CodePisteResolveMixin, CommuneInfoMixin, GeoFeatureModelSerializer):
+    travaux_debut = serializers.DateField(
+        required=False,
+        allow_null=True,
+        input_formats=['%Y-%m-%d', 'iso-8601'],
+    )
+    travaux_fin = serializers.DateField(
+        required=False,
+        allow_null=True,
+        input_formats=['%Y-%m-%d', 'iso-8601'],
+    )
+
     class Meta:
         model = SiteEnquete
         geo_field = "geom"
@@ -158,6 +169,17 @@ class SiteEnqueteSerializer(CodePisteResolveMixin, CommuneInfoMixin, GeoFeatureM
         }
     
     def to_internal_value(self, data):
+        for field in ['travaux_debut', 'travaux_fin']:
+            val = data.get(field)
+            if val is not None:
+                val = str(val).strip()
+                if val == '' or val == 'null' or val == 'None':
+                    data[field] = None
+                elif 'T' in val:
+                    data[field] = val.split('T')[0]
+                elif len(val) == 4 and val.isdigit():
+                    data[field] = f"{val}-01-01"
+
         if 'x_site' in data and 'y_site' in data:
             x = float(data['x_site'])
             y = float(data['y_site'])

@@ -762,12 +762,14 @@ class _PointFormWidgetState extends State<PointFormWidget> {
                       hint: 'Nom de ${widget.type.toLowerCase()}',
                       key: 'nom',
                       required: true,
+                      autoCapitalize: true,
                     ),
                     _buildTextField(
                       label: 'Code GPS',
                       hint: 'Code GPS optionnel',
                       key: 'code_gps',
                       required: false, // Non requis
+                      autoCapitalize: true,
                     ),
                     if (typeOptions.isNotEmpty)
                       (config?['multiSelectType'] == true)
@@ -792,6 +794,7 @@ class _PointFormWidgetState extends State<PointFormWidget> {
                         hint: 'Nom du cours d\'eau traversé',
                         key: 'nom_cours_eau',
                         required: true,
+                        autoCapitalize: true,
                       ),
                     // Champ date de création
                     _buildDateField(
@@ -1130,6 +1133,155 @@ class _PointFormWidgetState extends State<PointFormWidget> {
     );
   }
 
+  Widget _buildDatePickerField({
+    required String label,
+    required String key,
+  }) {
+    DateTime? currentValue;
+    if (_formData[key] != null && _formData[key].toString().isNotEmpty) {
+      currentValue = DateTime.tryParse(_formData[key].toString());
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF374151),
+            ),
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () async {
+              FocusManager.instance.primaryFocus?.unfocus();
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: currentValue ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+                selectableDayPredicate: (DateTime day) {
+                  return !day.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+                },
+                builder: (BuildContext context, Widget? child) {
+                  return Theme(
+                    data: ThemeData.light().copyWith(
+                      colorScheme: const ColorScheme.light(
+                        primary: Color(0xFF1976D2),
+                        onPrimary: Colors.white,
+                      ),
+                      dialogBackgroundColor: Colors.white,
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              FocusManager.instance.primaryFocus?.unfocus();
+              if (picked != null) {
+                setState(() {
+                  _formData[key] = picked.toIso8601String();
+                });
+              }
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 20, color: Color(0xFF666666)),
+                  const SizedBox(width: 12),
+                  Text(
+                    currentValue != null ? "${currentValue.day.toString().padLeft(2, '0')}/${currentValue.month.toString().padLeft(2, '0')}/${currentValue.year}" : "Sélectionner une date",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: currentValue != null ? const Color(0xFF374151) : const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPositiveNumberField({
+    required String label,
+    required String hint,
+    required String key,
+  }) {
+    final controller = TextEditingController(text: _formData[key]?.toString() ?? '');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF374151),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+              filled: true,
+              fillColor: const Color(0xFFF9FAFB),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1976D2)),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.red),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.red, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) return null;
+              final n = double.tryParse(value.trim());
+              if (n == null) return 'Veuillez entrer un nombre valide';
+              if (n <= 0) return 'La valeur doit être un nombre positif';
+              return null;
+            },
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onChanged: (value) {
+              _formData[key] = value;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFormSection({required String title, required List<Widget> children}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1176,6 +1328,7 @@ class _PointFormWidgetState extends State<PointFormWidget> {
     required String key,
     bool required = false,
     int maxLines = 1,
+    bool autoCapitalize = false,
   }) {
     // Créer un contrôleur avec la valeur pré-remplie
     final controller = TextEditingController(text: _formData[key]?.toString() ?? '');
@@ -1234,7 +1387,16 @@ class _PointFormWidgetState extends State<PointFormWidget> {
                   }
                 : null,
             onChanged: (value) {
-              _formData[key] = value;
+              if (autoCapitalize && value.isNotEmpty && value[0] != value[0].toUpperCase()) {
+                final capitalized = value[0].toUpperCase() + value.substring(1);
+                controller.value = controller.value.copyWith(
+                  text: capitalized,
+                  selection: TextSelection.collapsed(offset: controller.selection.baseOffset),
+                );
+                _formData[key] = capitalized;
+              } else {
+                _formData[key] = value;
+              }
             },
           ),
         ],
@@ -1751,16 +1913,19 @@ class _PointFormWidgetState extends State<PointFormWidget> {
         label: 'Projet',
         hint: 'Nom du projet',
         key: 'projet',
+        autoCapitalize: true,
       ));
       fields.add(_buildTextField(
         label: 'Entreprise',
         hint: 'Nom de l\'entreprise',
         key: 'entreprise',
+        autoCapitalize: true,
       ));
       fields.add(_buildTextField(
         label: 'Financement',
         hint: 'Source de financement',
         key: 'financement',
+        autoCapitalize: true,
       ));
       if (config?.containsKey('typeRealisationOptions') == true) {
         fields.add(_buildDropdownField(
@@ -1770,22 +1935,20 @@ class _PointFormWidgetState extends State<PointFormWidget> {
           key: 'type_de_realisation',
         ));
       }
-      fields.add(_buildTextField(
+      fields.add(_buildDatePickerField(
         label: 'Début des travaux',
-        hint: 'Date ou année de début',
         key: 'travaux_debut',
       ));
-      fields.add(_buildTextField(
+      fields.add(_buildDatePickerField(
         label: 'Fin des travaux',
-        hint: 'Année de fin (ex: 2025)',
         key: 'travaux_fin',
       ));
-      fields.add(_buildTextField(
+      fields.add(_buildPositiveNumberField(
         label: 'Superficie digitalisée (ha)',
         hint: 'En hectares',
         key: 'superficie_digitalisee',
       ));
-      fields.add(_buildTextField(
+      fields.add(_buildPositiveNumberField(
         label: 'Superficie estimée lors des enquêtes (ha)',
         hint: 'En hectares',
         key: 'superficie_estimee_lors_des_enquetes_ha',

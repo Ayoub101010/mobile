@@ -60,6 +60,7 @@ class _FormulaireChausseePageState extends State<FormulaireChausseePage> {
   void initState() {
     super.initState();
     _initializeForm();
+    _setupAutoCapitalize();
   }
 
   void _initializeForm() {
@@ -106,6 +107,25 @@ class _FormulaireChausseePageState extends State<FormulaireChausseePage> {
     // je vais complèter ça après
 
     return 'user_demo'; // Valeur temporaire pour test
+  }
+
+  void _setupAutoCapitalize() {
+    final textControllers = [
+      _codeGpsController,
+      _endroitController,
+    ];
+    for (var ctrl in textControllers) {
+      ctrl.addListener(() {
+        final text = ctrl.text;
+        if (text.isNotEmpty && text[0] != text[0].toUpperCase()) {
+          final pos = ctrl.selection;
+          ctrl.value = ctrl.value.copyWith(
+            text: text[0].toUpperCase() + text.substring(1),
+            selection: pos,
+          );
+        }
+      });
+    }
   }
 
   Future<void> _selectDateCreation(BuildContext context) async {

@@ -50,6 +50,7 @@ class _PolygonFormPageState extends State<PolygonFormPage> {
   void initState() {
     super.initState();
     _initializeData();
+    _setupAutoCapitalize();
   }
 
   Future<void> _initializeData() async {
@@ -89,6 +90,25 @@ class _PolygonFormPageState extends State<PolygonFormPage> {
     }
 
     setState(() => _isLoading = false);
+  }
+
+  void _setupAutoCapitalize() {
+    final textControllers = [
+      _nomController,
+      _codeGpsController,
+    ];
+    for (var ctrl in textControllers) {
+      ctrl.addListener(() {
+        final text = ctrl.text;
+        if (text.isNotEmpty && text[0] != text[0].toUpperCase()) {
+          final pos = ctrl.selection;
+          ctrl.value = ctrl.value.copyWith(
+            text: text[0].toUpperCase() + text.substring(1),
+            selection: pos,
+          );
+        }
+      });
+    }
   }
 
   double _calculateAreaHectares(List<LatLng> points) {

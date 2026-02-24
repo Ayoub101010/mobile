@@ -958,8 +958,8 @@ class SiteEnquete(models.Model):
     projet = models.TextField(null=True, blank=True)
     superficie_digitalisee = models.FloatField(null=True, blank=True)
     superficie_estimee_lors_des_enquetes_ha = models.FloatField(null=True, blank=True)
-    travaux_debut = models.TextField(null=True, blank=True)
-    travaux_fin = models.IntegerField(null=True, blank=True)
+    travaux_debut = models.DateField(null=True, blank=True)
+    travaux_fin = models.DateField(null=True, blank=True)
     type_de_realisation = models.TextField(null=True, blank=True)
     code_piste = models.ForeignKey(
         'Piste',
