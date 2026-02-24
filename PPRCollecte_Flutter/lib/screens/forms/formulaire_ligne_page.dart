@@ -1258,12 +1258,40 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                             ),
                           ],
                         ),
-                        _buildTextFieldWithCallback(
-                          controller: TextEditingController(text: _largeurEmprise?.toString() ?? ''),
-                          label: 'Largeur Emprise (m)',
-                          hint: 'Largeur de l\'emprise en mètres',
-                          keyboardType: TextInputType.number,
-                          onChanged: (value) => _largeurEmprise = double.tryParse(value),
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Largeur Emprise (m)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                initialValue: _largeurEmprise?.toString() ?? '',
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  hintText: 'Largeur de l\'emprise en mètres',
+                                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF9FAFB),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF1976D2), width: 2)),
+                                  errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.red)),
+                                  focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.red, width: 2)),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) return null;
+                                  final n = double.tryParse(value.trim());
+                                  if (n == null) return 'Veuillez entrer un nombre valide';
+                                  if (n <= 0) return 'La largeur doit être un nombre positif';
+                                  return null;
+                                },
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                                onChanged: (value) => _largeurEmprise = double.tryParse(value),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -1291,47 +1319,33 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                     _buildFormSection(
                       title: '📊 Évaluation et Priorisation',
                       children: [
-                        _buildTextField(
+                        _buildEvaluationField(
                           controller: _niveauServiceController,
                           label: 'Niveau de service (NS)',
-                          hint: 'Note (0-10)',
-                          keyboardType: TextInputType.number,
                         ),
-                        _buildTextField(
+                        _buildEvaluationField(
                           controller: _fonctionnaliteController,
                           label: 'Fonctionnalité (FO)',
-                          hint: 'Note (0-10)',
-                          keyboardType: TextInputType.number,
                         ),
-                        _buildTextField(
+                        _buildEvaluationField(
                           controller: _interetSocioAdminController,
                           label: 'Intérêt socio-administratif (ISA)',
-                          hint: 'Note (0-10)',
-                          keyboardType: TextInputType.number,
                         ),
-                        _buildTextField(
+                        _buildEvaluationField(
                           controller: _populationDesservieController,
                           label: 'Population desservie (P)',
-                          hint: 'Note (0-10)',
-                          keyboardType: TextInputType.number,
                         ),
-                        _buildTextField(
+                        _buildEvaluationField(
                           controller: _potentielAgricoleController,
                           label: 'Potentiel agricole (PA)',
-                          hint: 'Note (0-10)',
-                          keyboardType: TextInputType.number,
                         ),
-                        _buildTextField(
+                        _buildEvaluationField(
                           controller: _coutInvestissementController,
                           label: 'Coût d’investissement (CI)',
-                          hint: 'Note (0-10)',
-                          keyboardType: TextInputType.number,
                         ),
-                        _buildTextField(
+                        _buildEvaluationField(
                           controller: _protectionEnvController,
                           label: 'Protection de l’environnement (PE)',
-                          hint: 'Note (0-10)',
-                          keyboardType: TextInputType.number,
                         ),
                         const Divider(height: 32, thickness: 1, color: Colors.blueAccent),
                         _buildReadOnlyField(
@@ -2245,6 +2259,47 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                 );
               }).toList(),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEvaluationField({
+    required TextEditingController controller,
+    required String label,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              hintText: 'Note (0-10)',
+              hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+              filled: true,
+              fillColor: const Color(0xFFF9FAFB),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF1976D2), width: 2)),
+              errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.red)),
+              focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.red, width: 2)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) return null;
+              final n = double.tryParse(value.trim());
+              if (n == null) return 'Veuillez entrer un nombre valide';
+              if (n < 0) return 'La note ne peut pas être inférieure à 0';
+              if (n > 10) return 'La note ne peut pas dépasser 10';
+              return null;
+            },
+            autovalidateMode: AutovalidateMode.onUserInteraction,
           ),
         ],
       ),
