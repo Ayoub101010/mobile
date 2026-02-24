@@ -445,6 +445,7 @@ class _FormulairePageState extends State<FormulaireLignePage> {
     super.initState();
     _initializeForm();
     _setupNoteGlobaleListeners();
+    _setupAutoCapitalize();
   }
 
   void _setupNoteGlobaleListeners() {
@@ -460,6 +461,33 @@ class _FormulairePageState extends State<FormulaireLignePage> {
 
     for (var controller in controllers) {
       controller.addListener(_calculateNoteGlobale);
+    }
+  }
+
+  void _setupAutoCapitalize() {
+    final textControllers = [
+      _nomOrigineController,
+      _nomDestinationController,
+      _entrepriseController,
+      _travauxRealisesController,
+      _plateformeController,
+      _reliefController,
+      _vegetationController,
+      _financementController,
+      _projetController,
+    ];
+
+    for (var ctrl in textControllers) {
+      ctrl.addListener(() {
+        final text = ctrl.text;
+        if (text.isNotEmpty && text[0] != text[0].toUpperCase()) {
+          final pos = ctrl.selection;
+          ctrl.value = ctrl.value.copyWith(
+            text: text[0].toUpperCase() + text.substring(1),
+            selection: pos,
+          );
+        }
+      });
     }
   }
 
