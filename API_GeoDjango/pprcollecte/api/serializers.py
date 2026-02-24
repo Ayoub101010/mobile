@@ -482,16 +482,42 @@ class LoginSerializer(serializers.ModelSerializer):
 
 
 
-class PisteWriteSerializer(CommuneInfoMixin,GeoFeatureModelSerializer):
+class PisteWriteSerializer(CommuneInfoMixin, GeoFeatureModelSerializer):
+    #  Accepter les dates ISO envoyées par Flutter
+    debut_travaux = serializers.DateField(
+        required=False, 
+        allow_null=True,
+        input_formats=['%Y-%m-%d', 'iso-8601'],
+    )
+    fin_travaux = serializers.DateField(
+        required=False, 
+        allow_null=True,
+        input_formats=['%Y-%m-%d', 'iso-8601'],
+    )
+
     class Meta:
         model = Piste
         geo_field = "geom"
         fields = "__all__"
 
     def to_internal_value(self, data):
+        #  Nettoyer les dates avant validation
+        for field in ['debut_travaux', 'fin_travaux']:
+            val = data.get(field)
+            if val is not None and isinstance(val, str):
+                val = val.strip()
+                if val == '' or val == 'null':
+                    data[field] = None
+                elif 'T' in val:
+                    # "2024-06-15T00:00:00.000" → "2024-06-15"
+                    data[field] = val.split('T')[0]
+                elif len(val) == 4 and val.isdigit():
+                    # "2024" → "2024-01-01"
+                    data[field] = f"{val}-01-01"
+
         if 'geom' in data and data['geom'] is not None:
             geom = GEOSGeometry(str(data['geom']))
-            geom.srid = 4326  
+            geom.srid = 4326
             data['geom'] = geom
         return super().to_internal_value(data)
 

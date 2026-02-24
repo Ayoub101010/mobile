@@ -997,7 +997,7 @@ class _PointFormWidgetState extends State<PointFormWidget> {
           ),
           const SizedBox(height: 8),
           if (isTemporary)
-            // ⭐ CAS 1 : Code temporaire → message vert
+            //  CAS 1 : Code temporaire → message vert
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
