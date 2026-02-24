@@ -59,11 +59,12 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   final _plateformeController = TextEditingController();
   final _reliefController = TextEditingController();
   final _vegetationController = TextEditingController();
-  final _debutTravauxController = TextEditingController();
-  final _finTravauxController = TextEditingController();
+
   final _financementController = TextEditingController();
   final _projetController = TextEditingController();
   double _noteGlobale = 0.0;
+  DateTime? _debutTravaux;
+  DateTime? _finTravaux;
 
   String? _communeRurale;
   String? _typeOccupation;
@@ -561,8 +562,8 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       _plateformeController.text = data['plateforme'] ?? '';
       _reliefController.text = data['relief'] ?? '';
       _vegetationController.text = data['vegetation'] ?? '';
-      _debutTravauxController.text = data['debut_travaux'] ?? '';
-      _finTravauxController.text = data['fin_travaux'] ?? '';
+      _debutTravaux = (data['debut_travaux'] != null && data['debut_travaux'].toString().isNotEmpty) ? DateTime.tryParse(data['debut_travaux'].toString()) : null;
+      _finTravaux = (data['fin_travaux'] != null && data['fin_travaux'].toString().isNotEmpty) ? DateTime.tryParse(data['fin_travaux'].toString()) : null;
       _financementController.text = data['financement'] ?? '';
       _projetController.text = data['projet'] ?? '';
     });
@@ -632,8 +633,9 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final DateTime? picked = await _showDatePickerWithValidation(context, DateTime.now());
-
+    FocusManager.instance.primaryFocus?.unfocus();
     if (picked != null) {
       setState(() {
         _dateDebutTravaux = picked;
@@ -642,14 +644,30 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   }
 
   Future<void> _selectOccupationDate(BuildContext context, bool isStartDate) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final DateTime? picked = await _showDatePickerWithValidation(context, DateTime.now());
-
+    FocusManager.instance.primaryFocus?.unfocus();
     if (picked != null) {
       setState(() {
         if (isStartDate) {
           _debutOccupation = picked;
         } else {
           _finOccupation = picked;
+        }
+      });
+    }
+  }
+
+  Future<void> _selectTravauxDate(BuildContext context, bool isStart) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final DateTime? picked = await _showDatePickerWithValidation(context, DateTime.now());
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _debutTravaux = picked;
+        } else {
+          _finTravaux = picked;
         }
       });
     }
@@ -727,8 +745,8 @@ class _FormulairePageState extends State<FormulaireLignePage> {
         'plateforme': _plateformeController.text.isNotEmpty ? _plateformeController.text : null,
         'relief': _reliefController.text.isNotEmpty ? _reliefController.text : null,
         'vegetation': _vegetationController.text.isNotEmpty ? _vegetationController.text : null,
-        'debut_travaux': _debutTravauxController.text.isNotEmpty ? _debutTravauxController.text : null,
-        'fin_travaux': _finTravauxController.text.isNotEmpty ? _finTravauxController.text : null,
+        'debut_travaux': _debutTravaux?.toIso8601String(),
+        'fin_travaux': _finTravaux?.toIso8601String(),
         'financement': _financementController.text.isNotEmpty ? _financementController.text : null,
         'projet': _projetController.text.isNotEmpty ? _projetController.text : null,
 
@@ -795,13 +813,14 @@ class _FormulairePageState extends State<FormulaireLignePage> {
   }
 
   Future<void> _selectDateModification(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _dateModification ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-
+    FocusManager.instance.primaryFocus?.unfocus();
     if (picked != null) {
       setState(() {
         _dateModification = picked;
@@ -951,8 +970,8 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       _plateformeController.clear();
       _reliefController.clear();
       _vegetationController.clear();
-      _debutTravauxController.clear();
-      _finTravauxController.clear();
+      _debutTravaux = null;
+      _finTravaux = null;
       _financementController.clear();
       _projetController.clear();
 
@@ -1370,15 +1389,15 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                           label: 'Projet',
                           hint: 'Nom du projet',
                         ),
-                        _buildTextField(
-                          controller: _debutTravauxController,
+                        _buildDateField(
                           label: 'Début des travaux',
-                          hint: 'Ex: 2024',
+                          value: _debutTravaux,
+                          onTap: () => _selectTravauxDate(context, true),
                         ),
-                        _buildTextField(
-                          controller: _finTravauxController,
+                        _buildDateField(
                           label: 'Fin des travaux',
-                          hint: 'Ex: 2025',
+                          value: _finTravaux,
+                          onTap: () => _selectTravauxDate(context, false),
                         ),
                       ],
                     ),
