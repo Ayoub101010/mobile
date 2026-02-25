@@ -480,10 +480,12 @@ class _FormulairePageState extends State<FormulaireLignePage> {
     for (var ctrl in textControllers) {
       ctrl.addListener(() {
         final text = ctrl.text;
-        if (text.isNotEmpty && text[0] != text[0].toUpperCase()) {
+        if (text.isEmpty) return;
+        final corrected = text[0].toUpperCase() + text.substring(1).toLowerCase();
+        if (text != corrected) {
           final pos = ctrl.selection;
           ctrl.value = ctrl.value.copyWith(
-            text: text[0].toUpperCase() + text.substring(1),
+            text: corrected,
             selection: pos,
           );
         }

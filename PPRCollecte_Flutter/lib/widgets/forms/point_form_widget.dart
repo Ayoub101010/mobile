@@ -1387,13 +1387,17 @@ class _PointFormWidgetState extends State<PointFormWidget> {
                   }
                 : null,
             onChanged: (value) {
-              if (autoCapitalize && value.isNotEmpty && value[0] != value[0].toUpperCase()) {
-                final capitalized = value[0].toUpperCase() + value.substring(1);
-                controller.value = controller.value.copyWith(
-                  text: capitalized,
-                  selection: TextSelection.collapsed(offset: controller.selection.baseOffset),
-                );
-                _formData[key] = capitalized;
+              if (autoCapitalize && value.isNotEmpty) {
+                final corrected = value[0].toUpperCase() + value.substring(1).toLowerCase();
+                if (value != corrected) {
+                  controller.value = controller.value.copyWith(
+                    text: corrected,
+                    selection: TextSelection.collapsed(offset: controller.selection.baseOffset),
+                  );
+                  _formData[key] = corrected;
+                } else {
+                  _formData[key] = value;
+                }
               } else {
                 _formData[key] = value;
               }

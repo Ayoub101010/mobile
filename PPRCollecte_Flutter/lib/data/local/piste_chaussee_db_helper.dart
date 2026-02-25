@@ -1029,6 +1029,7 @@ ON displayed_pistes(login_id, code_piste);
             'region_name': properties['region_name'],
             'prefecture_name': properties['prefecture_name'],
             'commune_name': properties['commune_name'],
+            'user_login': properties['enqueteur_name'] ?? 'Autre utilisateur',
           },
         );
 
@@ -1082,6 +1083,7 @@ ON displayed_pistes(login_id, code_piste);
             'region_name': properties['region_name'],
             'prefecture_name': properties['prefecture_name'],
             'commune_name': properties['commune_name'],
+            'user_login': properties['enqueteur_name'] ?? 'Autre utilisateur',
           },
           where: 'api_id = ? AND saved_by_user_id = ?',
           whereArgs: [
@@ -1423,7 +1425,7 @@ ON displayed_pistes(login_id, code_piste);
             'api_id': apiChausseeId,
             'code_piste': properties['code_piste'],
             'code_gps': properties['code_gps'],
-            'user_login': properties['login']?.toString() ?? 'Autre utilisateur',
+            'user_login': properties['enqueteur_name'] ?? 'Autre utilisateur',
             'endroit': properties['endroit'],
             'type_chaussee': properties['type_chaus'],
             'etat_piste': properties['etat_piste'],
@@ -1458,7 +1460,7 @@ ON displayed_pistes(login_id, code_piste);
           {
             'code_piste': properties['code_piste'],
             'code_gps': properties['code_gps'],
-            'user_login': properties['login']?.toString() ?? 'Autre utilisateur',
+            'user_login': properties['enqueteur_name'] ?? 'Autre utilisateur',
             'endroit': properties['endroit'],
             'type_chaussee': properties['type_chaus'],
             'etat_piste': properties['etat_piste'],

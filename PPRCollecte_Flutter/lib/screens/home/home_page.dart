@@ -4855,6 +4855,7 @@ class DownloadedPistesService {
               'region_name': (row['region_name'] ?? '----').toString(),
               'prefecture_name': (row['prefecture_name'] ?? '----').toString(),
               'commune_name': (row['commune_name'] ?? '----').toString(),
+              'enqueteur': (row['user_login'] ?? '').toString(),
             },
           ),
         );
@@ -5035,6 +5036,7 @@ class DownloadedChausseesService {
               'region_name': (r['region_name'] ?? '----').toString(),
               'prefecture_name': (r['prefecture_name'] ?? '----').toString(),
               'commune_name': (r['commune_name'] ?? '----').toString(),
+              'enqueteur': (r['user_login'] ?? '').toString(),
             },
           ),
         );
@@ -5151,6 +5153,7 @@ class DownloadedSpecialLinesService {
                 'region_name': (r['region_name'] ?? '----').toString(),
                 'prefecture_name': (r['prefecture_name'] ?? '----').toString(),
                 'commune_name': (r['commune_name'] ?? '----').toString(),
+                'enqueteur': (r['enqueteur'] ?? '').toString(),
               },
             ),
           ),
