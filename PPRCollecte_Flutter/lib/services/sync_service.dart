@@ -855,12 +855,17 @@ class SyncService {
         print('🛣️ ${chaussees.length} chaussées à traiter');
 
         for (var chaussee in chaussees) {
-          final storageHelper = SimpleStorageHelper();
-          final wasNew = await storageHelper.saveOrUpdateChausseeTest(chaussee);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final storageHelper = SimpleStorageHelper();
+            final wasNew = await storageHelper.saveOrUpdateChausseeTest(chaussee);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde chaussée téléchargée: $e');
           }
           processedItems++;
 
@@ -885,11 +890,16 @@ class SyncService {
         final localites = await ApiService.fetchLocalites();
         print('📍 ${localites.length} localités à traiter');
         for (var localite in localites) {
-          final wasNew = await dbHelper.saveOrUpdateLocalite(localite);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateLocalite(localite);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde localités téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -913,11 +923,16 @@ class SyncService {
         final ecoles = await ApiService.fetchEcoles();
         print('🏫 ${ecoles.length} écoles à traiter');
         for (var ecole in ecoles) {
-          final wasNew = await dbHelper.saveOrUpdateEcole(ecole);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateEcole(ecole);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde écoles téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -941,11 +956,16 @@ class SyncService {
         final marches = await ApiService.fetchMarches();
         print('🛒 ${marches.length} marchés à traiter');
         for (var marche in marches) {
-          final wasNew = await dbHelper.saveOrUpdateMarche(marche);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateMarche(marche);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde marchés téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -969,11 +989,16 @@ class SyncService {
         final servicesSantes = await ApiService.fetchServicesSantes();
         print('🏥 ${servicesSantes.length} services de santé à traiter');
         for (var service in servicesSantes) {
-          final wasNew = await dbHelper.saveOrUpdateServiceSante(service);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateServiceSante(service);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde marchés téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -997,11 +1022,16 @@ class SyncService {
         final batiments = await ApiService.fetchBatimentsAdministratifs();
         print('🏛️ ${batiments.length} bâtiments administratifs à traiter');
         for (var batiment in batiments) {
-          final wasNew = await dbHelper.saveOrUpdateBatimentAdministratif(batiment);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateBatimentAdministratif(batiment);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde bâtiments administratifs téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1025,11 +1055,16 @@ class SyncService {
         final infrastructures = await ApiService.fetchInfrastructuresHydrauliques();
         print('💧 ${infrastructures.length} infrastructures hydrauliques à traiter');
         for (var infrastructure in infrastructures) {
-          final wasNew = await dbHelper.saveOrUpdateInfrastructureHydraulique(infrastructure);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateInfrastructureHydraulique(infrastructure);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde infrastructures hydrauliques téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1053,11 +1088,16 @@ class SyncService {
         final autresInfrastructures = await ApiService.fetchAutresInfrastructures();
         print('🏗️ ${autresInfrastructures.length} autres infrastructures à traiter');
         for (var infrastructure in autresInfrastructures) {
-          final wasNew = await dbHelper.saveOrUpdateAutreInfrastructure(infrastructure);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateAutreInfrastructure(infrastructure);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde autres infrastructures téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1081,11 +1121,16 @@ class SyncService {
         final ponts = await ApiService.fetchPonts();
         print('🌉 ${ponts.length} ponts à traiter');
         for (var pont in ponts) {
-          final wasNew = await dbHelper.saveOrUpdatePont(pont);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdatePont(pont);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde ponts téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1109,11 +1154,16 @@ class SyncService {
         final bacs = await ApiService.fetchBacs();
         print('⛴️ ${bacs.length} bacs à traiter');
         for (var bac in bacs) {
-          final wasNew = await dbHelper.saveOrUpdateBac(bac);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateBac(bac);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde bacs téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1137,11 +1187,16 @@ class SyncService {
         final buses = await ApiService.fetchBuses();
         print('🕳️ ${buses.length} buses à traiter');
         for (var buse in buses) {
-          final wasNew = await dbHelper.saveOrUpdateBuse(buse);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateBuse(buse);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde buses téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1165,11 +1220,16 @@ class SyncService {
         final dalots = await ApiService.fetchDalots();
         print('🔄 ${dalots.length} dalots à traiter');
         for (var dalot in dalots) {
-          final wasNew = await dbHelper.saveOrUpdateDalot(dalot);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateDalot(dalot);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde dalots téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1193,11 +1253,16 @@ class SyncService {
         final passages = await ApiService.fetchPassagesSubmersibles();
         print('🌊 ${passages.length} passages submersibles à traiter');
         for (var passage in passages) {
-          final wasNew = await dbHelper.saveOrUpdatePassageSubmersible(passage);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdatePassageSubmersible(passage);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde passages submersibles téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1221,11 +1286,16 @@ class SyncService {
         final pointsCritiques = await ApiService.fetchPointsCritiques();
         print('⚠️ ${pointsCritiques.length} points critiques à traiter');
         for (var pointCritique in pointsCritiques) {
-          final wasNew = await dbHelper.saveOrUpdatePointCritique(pointCritique);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdatePointCritique(pointCritique);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde points critiques téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1249,11 +1319,16 @@ class SyncService {
         final pointsCoupures = await ApiService.fetchPointsCoupures();
         print('🔌 ${pointsCoupures.length} points de coupure à traiter');
         for (var pointCoupure in pointsCoupures) {
-          final wasNew = await dbHelper.saveOrUpdatePointCoupure(pointCoupure);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdatePointCoupure(pointCoupure);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde points coupure téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1276,11 +1351,16 @@ class SyncService {
         final sites = await ApiService.fetchSiteEnquetes();
         print('📋 ${sites.length} sites d\'enquête à traiter');
         for (var site in sites) {
-          final wasNew = await dbHelper.saveOrUpdateSiteEnquete(site);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final wasNew = await dbHelper.saveOrUpdateSiteEnquete(site);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde sites d\'enquête téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {
@@ -1295,14 +1375,20 @@ class SyncService {
         print('❌ Erreur lors du téléchargement/sauvegarde des sites d\'enquête: $e');
       }
 // ============ ENQUÊTE POLYGONES ============
-
       try {
         if (onProgress != null) {
-          onProgress(processedItems / totalItems, "Téléchargement des zones de plaine...", processedItems, totalItems);
+          onProgress(
+            processedItems / totalItems,
+            "Téléchargement des zones de plaine...",
+            processedItems,
+            totalItems,
+          );
         }
+
         print('📥 Téléchargement des zones de plaine...');
         final polygones = await ApiService.fetchEnquetePolygones();
         print('📐 ${polygones.length} zones de plaine à traiter');
+
         for (var polygone in polygones) {
           try {
             final wasNew = await dbHelper.saveOrUpdateEnquetePolygone(polygone);
@@ -1311,19 +1397,29 @@ class SyncService {
             } else if (wasNew == false) {
               result.skippedCount++;
             }
-            processedItems++;
-            if (onProgress != null) {
-              onProgress(processedItems / totalItems, "Sauvegarde des zones de plaine...", processedItems, totalItems);
-            }
           } catch (e) {
-            print('❌ Erreur sauvegarde zone de plaine: $e');
             result.failedCount++;
+            print('❌ Erreur sauvegarde zone de plaine téléchargée: $e');
+          }
+
+          //  IMPORTANT: toujours incrémenter, même si save échoue
+          processedItems++;
+
+          if (onProgress != null) {
+            onProgress(
+              processedItems / totalItems,
+              "Sauvegarde des zones de plaine...",
+              processedItems,
+              totalItems,
+            );
           }
         }
       } catch (e) {
         result.failedCount++;
-        result.errors.add('Erreur zones de plaine: $e');
-        print('❌ Erreur téléchargement zones de plaine: $e');
+        result.errors.add(
+          'Zones de plaine : les données n’ont pas pu être mises à jour (problème de connexion ou serveur indisponible).',
+        );
+        print('❌ Erreur lors du téléchargement/sauvegarde des zones de plaine: $e');
       }
 
       // ============ PISTES ============
@@ -1335,12 +1431,17 @@ class SyncService {
         final pistes = await ApiService.fetchPistes();
         print('🛤️ ${pistes.length} pistes à traiter');
         for (var piste in pistes) {
-          final storageHelper = SimpleStorageHelper();
-          final wasNew = await storageHelper.saveOrUpdatePiste(piste);
-          if (wasNew == true) {
-            result.successCount++;
-          } else if (wasNew == false) {
-            result.skippedCount++;
+          try {
+            final storageHelper = SimpleStorageHelper();
+            final wasNew = await storageHelper.saveOrUpdatePiste(piste);
+            if (wasNew == true) {
+              result.successCount++;
+            } else if (wasNew == false) {
+              result.skippedCount++;
+            }
+          } catch (e) {
+            result.failedCount++;
+            print('❌ Erreur sauvegarde sites d\'enquête téléchargée: $e');
           }
           processedItems++;
           if (onProgress != null) {

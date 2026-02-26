@@ -267,13 +267,23 @@ ON displayed_pistes(login_id, code_piste);
       case 'bitume':
         return Colors.black;
       case 'terre':
-        return const Color(0xFFD2691E); // Chocolate — distinct du brown des pistes
-      case 'latérite': // ← minuscule
+        return const Color(0xFFD2691E);
+      case 'latérite':
         return Colors.red.shade700;
       case 'bouwal':
+      case 'bowal':
         return Colors.yellow.shade700;
+      case 'déviation':
+      case 'deviation':
+        return Colors.orange.shade700;
+      case 'coupure':
+        return Colors.deepPurple;
+      case 'submersible':
+        return Colors.teal;
+      case 'col':
+        return Colors.green.shade800;
       default:
-        return Colors.blueGrey; // inconnu / autre
+        return Colors.blueGrey;
     }
   }
 
@@ -281,23 +291,46 @@ ON displayed_pistes(login_id, code_piste);
     switch (type.toLowerCase()) {
       case 'bitume':
       case 'asphalte':
-        return null; // ligne continue
+        return null;
       case 'terre':
         return StrokePattern.dashed(segments: [
           8,
           4,
           20,
           4
-        ]); // tiret-point — distinct du dotted des pistes
+        ]);
       case 'latérite':
         return StrokePattern.dashed(segments: [
           15,
           8
         ]);
       case 'bouwal':
+      case 'bowal':
         return StrokePattern.dashed(segments: [
           12,
           6
+        ]);
+      case 'déviation':
+      case 'deviation':
+        return StrokePattern.dashed(segments: [
+          15,
+          5,
+          5,
+          5
+        ]);
+      case 'coupure':
+        return StrokePattern.dotted(spacingFactor: 1.2);
+      case 'submersible':
+        return StrokePattern.dashed(segments: [
+          6,
+          3,
+          6,
+          3
+        ]);
+      case 'col':
+        return StrokePattern.dashed(segments: [
+          20,
+          5
         ]);
       case 'béton':
         return StrokePattern.dotted(spacingFactor: 1.5);
@@ -307,7 +340,7 @@ ON displayed_pistes(login_id, code_piste);
           5
         ]);
       default:
-        return null; // ligne continue par défaut
+        return null;
     }
   }
 
@@ -1426,9 +1459,9 @@ ON displayed_pistes(login_id, code_piste);
             'code_piste': properties['code_piste'],
             'code_gps': properties['code_gps'],
             'user_login': properties['enqueteur_name'] ?? 'Autre utilisateur',
-            'endroit': properties['endroit'],
-            'type_chaussee': properties['type_chaus'],
-            'etat_piste': properties['etat_piste'],
+            'endroit': properties['endroit'] ?? '',
+            'type_chaussee': properties['type_chaus'] ?? '',
+            'etat_piste': properties['etat_piste'] ?? '',
             'x_debut_chaussee': properties['x_debut_ch'],
             'y_debut_chaussee': properties['y_debut_ch'],
             'x_fin_chaussee': properties['x_fin_ch'],
@@ -1461,9 +1494,9 @@ ON displayed_pistes(login_id, code_piste);
             'code_piste': properties['code_piste'],
             'code_gps': properties['code_gps'],
             'user_login': properties['enqueteur_name'] ?? 'Autre utilisateur',
-            'endroit': properties['endroit'],
-            'type_chaussee': properties['type_chaus'],
-            'etat_piste': properties['etat_piste'],
+            'endroit': properties['endroit'] ?? '',
+            'type_chaussee': properties['type_chaus'] ?? '',
+            'etat_piste': properties['etat_piste'] ?? '',
             'x_debut_chaussee': properties['x_debut_ch'],
             'y_debut_chaussee': properties['y_debut_ch'],
             'x_fin_chaussee': properties['x_fin_ch'],

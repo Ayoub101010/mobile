@@ -94,16 +94,32 @@ class _LegendWidgetState extends State<LegendWidget> {
       'name': 'Bitume'
     },
     {
-      'id': 'terre',
-      'name': 'Terre'
-    },
-    {
       'id': 'latérite',
       'name': 'Latérite'
     },
     {
+      'id': 'terre',
+      'name': 'Terre'
+    },
+    {
       'id': 'bouwal',
       'name': 'Bouwal'
+    },
+    {
+      'id': 'déviation',
+      'name': 'Déviation'
+    },
+    {
+      'id': 'coupure',
+      'name': 'Coupure'
+    },
+    {
+      'id': 'submersible',
+      'name': 'Submersible'
+    },
+    {
+      'id': 'col',
+      'name': 'Col'
     },
     {
       'id': 'autre',
@@ -150,7 +166,7 @@ class _LegendWidgetState extends State<LegendWidget> {
   int get _totalChaussees {
     return widget.allPolylines.where((p) => p.strokeWidth > 3.5).where((p) {
       final c = p.color;
-      return c == Colors.black || c == Colors.brown || c.value == Colors.red.shade700.value || c.value == Colors.yellow.shade700.value || c == Colors.blueGrey;
+      return c == Colors.black || c.value == const Color(0xFFD2691E).value || c.value == Colors.red.shade700.value || c.value == Colors.yellow.shade700.value || c.value == Colors.orange.shade700.value || c == Colors.deepPurple || c == Colors.teal || c.value == Colors.green.shade800.value || c == Colors.blueGrey;
     }).length;
   }
 
@@ -165,6 +181,10 @@ class _LegendWidgetState extends State<LegendWidget> {
     if (color.value == const Color(0xFFD2691E).value) return 'terre';
     if (color.value == Colors.red.shade700.value) return 'latérite';
     if (color.value == Colors.yellow.shade700.value) return 'bouwal';
+    if (color.value == Colors.orange.shade700.value) return 'déviation';
+    if (color == Colors.deepPurple) return 'coupure';
+    if (color == Colors.teal) return 'submersible';
+    if (color.value == Colors.green.shade800.value) return 'col';
     if (color == Colors.blueGrey) return 'autre';
     return 'inconnu';
   }
@@ -174,11 +194,19 @@ class _LegendWidgetState extends State<LegendWidget> {
       case 'bitume':
         return Colors.black;
       case 'terre':
-        return const Color(0xFFD2691E); // Chocolate — distinct du brown des pistes
+        return const Color(0xFFD2691E);
       case 'latérite':
         return Colors.red.shade700;
       case 'bouwal':
         return Colors.yellow.shade700;
+      case 'déviation':
+        return Colors.orange.shade700;
+      case 'coupure':
+        return Colors.deepPurple;
+      case 'submersible':
+        return Colors.teal;
+      case 'col':
+        return Colors.green.shade800;
       default:
         return Colors.blueGrey;
     }
@@ -188,16 +216,42 @@ class _LegendWidgetState extends State<LegendWidget> {
     switch (type) {
       case 'terre':
         return StrokePattern.dashed(segments: [
+          8,
+          4,
           20,
-          10
+          4
         ]);
       case 'latérite':
         return StrokePattern.dashed(segments: [
-          10,
-          10
+          15,
+          8
         ]);
       case 'bouwal':
-        return StrokePattern.dotted(spacingFactor: 1.5);
+        return StrokePattern.dashed(segments: [
+          12,
+          6
+        ]);
+      case 'déviation':
+        return StrokePattern.dashed(segments: [
+          15,
+          5,
+          5,
+          5
+        ]);
+      case 'coupure':
+        return StrokePattern.dotted(spacingFactor: 1.2);
+      case 'submersible':
+        return StrokePattern.dashed(segments: [
+          6,
+          3,
+          6,
+          3
+        ]);
+      case 'col':
+        return StrokePattern.dashed(segments: [
+          20,
+          5
+        ]);
       default:
         return null;
     }

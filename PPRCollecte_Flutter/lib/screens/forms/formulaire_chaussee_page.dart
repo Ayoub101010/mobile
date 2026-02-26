@@ -47,6 +47,10 @@ class _FormulaireChausseePageState extends State<FormulaireChausseePage> {
     "Latérite",
     "Terre",
     "Bouwal",
+    "Déviation",
+    "Coupure",
+    "Submersible",
+    "Col",
     "Autre"
   ];
 

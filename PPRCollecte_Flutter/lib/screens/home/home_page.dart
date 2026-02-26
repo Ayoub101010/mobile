@@ -169,7 +169,11 @@ class _HomePageState extends State<HomePage> {
     'chaussee_terre': true,
     'chaussee_latérite': true,
     'chaussee_bouwal': true,
-    'chaussee_autre': true, // Pas de 'chaussee_sable'
+    'chaussee_déviation': true,
+    'chaussee_coupure': true,
+    'chaussee_submersible': true,
+    'chaussee_col': true,
+    'chaussee_autre': true,
     'bac': true,
     'passage_submersible': true,
     'zone_plaine': true,
@@ -956,6 +960,10 @@ class _HomePageState extends State<HomePage> {
     if (color.value == const Color(0xFFD2691E).value) return 'terre';
     if (color.value == Colors.red.shade700.value) return 'latérite';
     if (color.value == Colors.yellow.shade700.value) return 'bouwal';
+    if (color.value == Colors.orange.shade700.value) return 'déviation';
+    if (color == Colors.deepPurple) return 'coupure';
+    if (color == Colors.teal) return 'submersible';
+    if (color.value == Colors.green.shade800.value) return 'col';
     if (color == Colors.blueGrey) return 'autre';
     return 'inconnu';
   }
@@ -1173,7 +1181,11 @@ class _HomePageState extends State<HomePage> {
             'terre',
             'latérite',
             'bouwal',
-            'autre'
+            'déviation',
+            'coupure',
+            'submersible',
+            'col',
+            'autre',
           ].any((type) => visibility['chaussee_$type'] ?? true);
       _showDownloadedChaussees = hasVisibleChaussee;
 
@@ -1804,24 +1816,56 @@ class _HomePageState extends State<HomePage> {
     switch (type.toLowerCase()) {
       case 'asphalte':
       case 'bitume':
-        return null; // ligne continue
+        return null;
       case 'terre':
         return StrokePattern.dashed(segments: [
+          8,
+          4,
           20,
-          10
+          4
+        ]);
+      case 'latérite':
+        return StrokePattern.dashed(segments: [
+          15,
+          8
+        ]);
+      case 'bouwal':
+      case 'bowal':
+        return StrokePattern.dashed(segments: [
+          12,
+          6
+        ]);
+      case 'déviation':
+      case 'deviation':
+        return StrokePattern.dashed(segments: [
+          15,
+          5,
+          5,
+          5
+        ]);
+      case 'coupure':
+        return StrokePattern.dotted(spacingFactor: 1.2);
+      case 'submersible':
+        return StrokePattern.dashed(segments: [
+          6,
+          3,
+          6,
+          3
+        ]);
+      case 'col':
+        return StrokePattern.dashed(segments: [
+          20,
+          5
         ]);
       case 'béton':
         return StrokePattern.dotted(spacingFactor: 1.5);
       case 'pavée':
-      case 'latérite':
         return StrokePattern.dashed(segments: [
           10,
           5
         ]);
-      case 'bouwal':
-        return StrokePattern.dotted(spacingFactor: 2.0);
       default:
-        return null; // par défaut, ligne continue
+        return null;
     }
   }
 
@@ -2767,20 +2811,28 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Color getChausseeColor(
-    String type,
-  ) {
+  Color getChausseeColor(String type) {
     switch (type.toLowerCase()) {
       case 'bitume':
         return Colors.black;
       case 'terre':
-        return const Color(0xFFD2691E); // Chocolate — distinct du brown des pistes
-      case 'latérite': // ← minuscule
+        return const Color(0xFFD2691E);
+      case 'latérite':
         return Colors.red.shade700;
       case 'bouwal':
+      case 'bowal':
         return Colors.yellow.shade700;
+      case 'déviation':
+      case 'deviation':
+        return Colors.orange.shade700;
+      case 'coupure':
+        return Colors.deepPurple;
+      case 'submersible':
+        return Colors.teal;
+      case 'col':
+        return Colors.green.shade800;
       default:
-        return Colors.blueGrey; // inconnu / autre
+        return Colors.blueGrey;
     }
   }
 
@@ -3054,17 +3106,29 @@ class _HomePageState extends State<HomePage> {
       builder: (ctx) {
         final errorsToShow = result.errors.take(10).toList();
         final remaining = result.errors.length - errorsToShow.length;
+        final bool nothingAvailable = result.successCount == 0 && result.skippedCount == 0 && result.failedCount == 0;
 
         return AlertDialog(
-          title: const Text('Sauvegarde terminée'),
+          title: Text(nothingAvailable ? 'Aucune donnée disponible' : 'Sauvegarde terminée'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (result.successCount > 0) Text('📥 ${result.successCount} nouvelles données sauvegardées'),
-                if (result.skippedCount > 0) Text('✅ ${result.skippedCount} données déjà à jour'),
-                if (result.successCount == 0 && result.skippedCount > 0) const Text('ℹ️ Toutes les données étaient déjà à jour.'),
+                if (nothingAvailable) ...[
+                  const Text('📭 Aucune donnée n\'a été trouvée sur le serveur pour votre compte.'),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '💡 Causes possibles :\n'
+                    '• Aucune donnée n\'est encore associée à votre zone\n'
+                    '• Vos permissions (région/préfecture) ne sont pas encore configurées\n'
+                    '• Les données n\'ont pas encore été collectées dans votre zone',
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ],
+                if (!nothingAvailable && result.successCount > 0) Text('📥 ${result.successCount} nouvelles données sauvegardées'),
+                if (!nothingAvailable && result.skippedCount > 0) Text('✅ ${result.skippedCount} données déjà à jour'),
+                if (!nothingAvailable && result.successCount == 0 && result.skippedCount > 0) const Text('ℹ️ Toutes les données étaient déjà à jour.'),
                 if (result.failedCount > 0) Text('❌ ${result.failedCount} types de données n\'ont pas pu être mis à jour'),
                 if (result.failedCount > 0) ...[
                   const SizedBox(height: 8),
@@ -3133,7 +3197,7 @@ class _HomePageState extends State<HomePage> {
         isDownloading = true;
         _progressValue = 0.0;
         _processedItems = 0;
-        _totalItems = 1; // Valeur initiale
+        _totalItems = 1;
       },
     );
 
@@ -3160,14 +3224,24 @@ class _HomePageState extends State<HomePage> {
       );
       _showDownloadResult(
         result,
-      ); // Réutilisez la même méthode d'affichage
+      );
+
+      final bool nothingAvailable = result.successCount == 0 && result.skippedCount == 0 && result.failedCount == 0;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            result.successCount > 0 ? 'Sauvegarde: ${result.successCount} nouvelles, ${result.skippedCount} déjà à jour' : 'Toutes les données sont déjà à jour (${result.skippedCount})',
+            nothingAvailable
+                ? 'Aucune donnée disponible pour votre compte'
+                : result.successCount > 0
+                    ? 'Sauvegarde: ${result.successCount} nouvelles, ${result.skippedCount} déjà à jour'
+                    : 'Toutes les données sont déjà à jour (${result.skippedCount})',
           ),
-          backgroundColor: result.successCount > 0 ? Colors.green : Colors.blue,
+          backgroundColor: nothingAvailable
+              ? Colors.orange
+              : result.successCount > 0
+                  ? Colors.green
+                  : Colors.blue,
         ),
       );
     } catch (e) {
