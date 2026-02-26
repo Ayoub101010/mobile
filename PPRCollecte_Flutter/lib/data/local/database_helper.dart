@@ -2211,6 +2211,23 @@ CREATE TABLE IF NOT EXISTS app_session (
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
+        await _saveDownloadedSpecialLine(
+          db: db,
+          apiId: sqliteId,
+          tableName: 'bacs',
+          latDebut: yDebut,
+          lngDebut: xDebut,
+          latFin: yFin,
+          lngFin: xFin,
+          specialType: 'Bac',
+          name: properties['nom'] ?? 'Sans nom',
+          codePiste: properties['code_piste'] ?? '',
+          viewerId: viewerId,
+          regionName: properties['region_name'],
+          prefectureName: properties['prefecture_name'],
+          communeName: properties['commune_name'],
+          enqueteur: properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+        );
         print('✅ Bac sauvegardé: ${properties['nom']}');
         return true;
       }
@@ -2432,6 +2449,23 @@ CREATE TABLE IF NOT EXISTS app_session (
             'date_sync': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        await _saveDownloadedSpecialLine(
+          db: db,
+          apiId: sqliteId,
+          tableName: 'passages_submersibles',
+          latDebut: yDebut,
+          lngDebut: xDebut,
+          latFin: yFin,
+          lngFin: xFin,
+          specialType: 'Passage Submersible',
+          name: properties['nom'] ?? 'Sans nom',
+          codePiste: properties['code_piste'] ?? '',
+          viewerId: viewerId,
+          regionName: properties['region_name'],
+          prefectureName: properties['prefecture_name'],
+          communeName: properties['commune_name'],
+          enqueteur: properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
         );
         print('✅ Passage submersible sauvegardé: ${properties['nom']}');
         return true;
@@ -2734,6 +2768,77 @@ CREATE TABLE IF NOT EXISTS app_session (
     return false;
   }
 
+  /// Sauvegarde une ligne spéciale téléchargée dans special_lines pour l'affichage carte
+  Future<void> _saveDownloadedSpecialLine({
+    required Database db,
+    required dynamic apiId,
+    required String tableName,
+    required double latDebut,
+    required double lngDebut,
+    required double latFin,
+    required double lngFin,
+    required String specialType,
+    required String name,
+    required String codePiste,
+    required dynamic viewerId,
+    String? regionName,
+    String? prefectureName,
+    String? communeName,
+    String? enqueteur,
+  }) async {
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS special_lines (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          api_id INTEGER,
+          original_table TEXT,
+          lat_debut REAL,
+          lng_debut REAL,
+          lat_fin REAL,
+          lng_fin REAL,
+          special_type TEXT,
+          line_name TEXT,
+          code_piste TEXT,
+          login_id INTEGER,
+          saved_by_user_id INTEGER,
+          downloaded INTEGER DEFAULT 1,
+          date_created TEXT,
+          region_name TEXT,
+          prefecture_name TEXT,
+          commune_name TEXT,
+          enqueteur TEXT,
+          UNIQUE(api_id, original_table, saved_by_user_id)
+        )
+      ''');
+
+      await db.insert(
+        'special_lines',
+        {
+          'api_id': apiId,
+          'original_table': tableName,
+          'lat_debut': latDebut,
+          'lng_debut': lngDebut,
+          'lat_fin': latFin,
+          'lng_fin': lngFin,
+          'special_type': specialType,
+          'line_name': name,
+          'code_piste': codePiste,
+          'saved_by_user_id': viewerId,
+          'downloaded': 1,
+          'date_created': DateTime.now().toIso8601String(),
+          'region_name': regionName,
+          'prefecture_name': prefectureName,
+          'commune_name': communeName,
+          'enqueteur': enqueteur,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      print('✅ Special line ($specialType) ajoutée pour affichage carte');
+    } catch (e) {
+      print('⚠️ Erreur sauvegarde special_line: $e');
+    }
+  }
+
 // Dans database_helper.dart
   Future<void> saveDisplayedSpecialLine({
     required int id,
@@ -2788,6 +2893,33 @@ CREATE TABLE IF NOT EXISTS app_session (
     );
 
     print('✅ Ligne spéciale sauvegardée: $name (original_id: $id, table: $tableName)');
+  }
+
+  Future<void> deleteSpecialLine(int originalId, String originalTable) async {
+    final db = await database;
+    try {
+      // Supprimer de special_lines (downloaded)
+      await db.delete(
+        'special_lines',
+        where: 'api_id = ? AND original_table = ?',
+        whereArgs: [
+          originalId,
+          originalTable
+        ],
+      );
+      // Supprimer aussi de displayed_special_lines (local)
+      await db.delete(
+        'displayed_special_lines',
+        where: 'original_id = ? AND original_table = ?',
+        whereArgs: [
+          originalId,
+          originalTable
+        ],
+      );
+      print('🗑️ Special line supprimée ($originalTable, id: $originalId)');
+    } catch (e) {
+      print('⚠️ Erreur suppression special_line: $e');
+    }
   }
 
   Future<List<Map<String, dynamic>>> loadDisplayedSpecialLines() async {

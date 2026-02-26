@@ -316,9 +316,10 @@ class _HomePageState extends State<HomePage> {
             context: context,
             specialType: (data['special_type'] ?? '----').toString(),
             statut: 'Sauvegardée (downloaded)',
-            region: _regionNom,
-            prefecture: _prefectureNom,
-            commune: _communeNom,
+            region: (data['region_name'] ?? '').toString().isNotEmpty ? data['region_name'].toString() : _regionNom,
+            prefecture: (data['prefecture_name'] ?? '').toString().isNotEmpty ? data['prefecture_name'].toString() : _prefectureNom,
+            commune: (data['commune_name'] ?? '').toString().isNotEmpty ? data['commune_name'].toString() : _communeNom,
+            enqueteur: (data['enqueteur'] ?? '').toString(),
             distanceKm: distanceKm,
             startLat: start.latitude,
             startLng: start.longitude,
@@ -1501,6 +1502,7 @@ class _HomePageState extends State<HomePage> {
         '❌ Erreur chargement points téléchargés: $e',
       );
     }
+    await _loadDisplayedPolygons();
   }
 
   Future<void> _refreshAfterNavigation() async {
@@ -5145,7 +5147,7 @@ class DownloadedChausseesService {
 }
 
 class DownloadedSpecialLinesService {
-  final SimpleStorageHelper _storageHelper = SimpleStorageHelper();
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   Future<List<Polyline>> getDownloadedSpecialLinesPolylines({
     required void Function(Map<String, dynamic>) onTapDetails,
@@ -5153,7 +5155,7 @@ class DownloadedSpecialLinesService {
     final polylines = <Polyline>{};
 
     try {
-      final db = await _storageHelper.database;
+      final db = await _dbHelper.database;
       final loginId = await DatabaseHelper().resolveLoginId();
 
       if (loginId == null) {
