@@ -232,27 +232,7 @@ class _DataListViewState extends State<DataListView> {
   }
 
   void _confirmDelete(int id, BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: const Text('Êtes-vous sûr de vouloir supprimer cet élément ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              widget.onDelete(id);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
-    );
+    widget.onDelete(id);
   }
 
   void _showDetails(Map<String, dynamic> item, BuildContext context) {
