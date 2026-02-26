@@ -1,4 +1,3 @@
-// lib/chaussee_model.dart
 import 'dart:convert';
 import '../../data/remote/api_service.dart';
 
@@ -18,18 +17,20 @@ class ChausseeModel {
   final String endroit;
   final String? typeChaussee;
   final String? etatPiste;
-  final double xDebutChaussee;
-  final double yDebutChaussee;
-  final double xFinChaussee;
-  final double yFinChaussee;
+  //  CORRECTION: double? au lieu de double
+  final double? xDebutChaussee;
+  final double? yDebutChaussee;
+  final double? xFinChaussee;
+  final double? yFinChaussee;
   final String pointsJson;
   final double distanceTotaleM;
   final int nombrePoints;
   final String createdAt;
-  final String? updatedAt; // ← NOUVEAU
-  final String userLogin; // ← NOUVEAU
+  final String? updatedAt;
+  final String userLogin;
   final int? communesRuralesId;
   final dynamic loginId;
+
   ChausseeModel({
     int? id,
     required this.codePiste,
@@ -37,17 +38,18 @@ class ChausseeModel {
     required this.endroit,
     this.typeChaussee,
     this.etatPiste,
-    required this.xDebutChaussee,
-    required this.yDebutChaussee,
-    required this.xFinChaussee,
-    required this.yFinChaussee,
+    //  CORRECTION: Plus de "required"
+    this.xDebutChaussee,
+    this.yDebutChaussee,
+    this.xFinChaussee,
+    this.yFinChaussee,
     required this.pointsJson,
     required this.distanceTotaleM,
     required this.nombrePoints,
     required this.createdAt,
-    this.updatedAt, // ← NOUVEAU
+    this.updatedAt,
     required this.userLogin,
-    this.communesRuralesId, // ← NOUVEAU
+    this.communesRuralesId,
     this.loginId,
   }) : id = id ?? generateTimestampChaussId();
 
@@ -62,15 +64,16 @@ class ChausseeModel {
       endroit: formData['endroit'] ?? '',
       typeChaussee: formData['type_chaussee'],
       etatPiste: formData['etat_piste'],
-      xDebutChaussee: _parseDouble(formData['x_debut_chaussee']),
-      yDebutChaussee: _parseDouble(formData['y_debut_chaussee']),
-      xFinChaussee: _parseDouble(formData['x_fin_chaussee']),
-      yFinChaussee: _parseDouble(formData['y_fin_chaussee']),
+      //  CORRECTION: _parseDoubleNullable
+      xDebutChaussee: _parseDoubleNullable(formData['x_debut_chaussee']),
+      yDebutChaussee: _parseDoubleNullable(formData['y_debut_chaussee']),
+      xFinChaussee: _parseDoubleNullable(formData['x_fin_chaussee']),
+      yFinChaussee: _parseDoubleNullable(formData['y_fin_chaussee']),
       pointsJson: pointsJson,
       distanceTotaleM: _parseDouble(formData['distance_totale_m']),
       nombrePoints: formData['nombre_points'] ?? 0,
       createdAt: formData['created_at'] ?? DateTime.now().toIso8601String(),
-      updatedAt: formData['updated_at'], // ← NOUVEAU
+      updatedAt: formData['updated_at'],
       userLogin: formData['user_login'] ?? '',
       communesRuralesId: formData['communes_rurales_id'] is int ? formData['communes_rurales_id'] : null,
       loginId: formData['login_id'],
@@ -93,9 +96,9 @@ class ChausseeModel {
       'distance_totale_m': distanceTotaleM,
       'nombre_points': nombrePoints,
       'created_at': createdAt,
-      'updated_at': updatedAt, // ← NOUVEAU
+      'updated_at': updatedAt,
       'user_login': userLogin,
-      'login_id': loginId ?? ApiService.userId, // ← NOUVEAU
+      'login_id': loginId ?? ApiService.userId,
       'communes_rurales_id': communesRuralesId,
     };
   }
@@ -108,10 +111,11 @@ class ChausseeModel {
       endroit: map['endroit'] ?? '',
       typeChaussee: map['type_chaussee'],
       etatPiste: map['etat_piste'],
-      xDebutChaussee: _parseDouble(map['x_debut_chaussee']),
-      yDebutChaussee: _parseDouble(map['y_debut_chaussee']),
-      xFinChaussee: _parseDouble(map['x_fin_chaussee']),
-      yFinChaussee: _parseDouble(map['y_fin_chaussee']),
+      //  CORRECTION: _parseDoubleNullable
+      xDebutChaussee: _parseDoubleNullable(map['x_debut_chaussee']),
+      yDebutChaussee: _parseDoubleNullable(map['y_debut_chaussee']),
+      xFinChaussee: _parseDoubleNullable(map['x_fin_chaussee']),
+      yFinChaussee: _parseDoubleNullable(map['y_fin_chaussee']),
       pointsJson: map['points_json'] ?? '[]',
       distanceTotaleM: _parseDouble(map['distance_totale_m']),
       nombrePoints: map['nombre_points'] ?? 0,
@@ -134,5 +138,20 @@ class ChausseeModel {
       }
     }
     return 0.0;
+  }
+
+  // ✅ NOUVEAU: Pour les coordonnées nullable
+  static double? _parseDoubleNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      try {
+        return double.parse(value);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   }
 }
