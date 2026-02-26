@@ -1758,7 +1758,17 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadDisplayedPolygons() async {
     try {
       final db = await DatabaseHelper().database;
-      final polygons = await db.query('enquete_polygone');
+      final loginId = await DatabaseHelper().resolveLoginId();
+
+      // ✅ CORRECTION: Filtrer par utilisateur (même logique que les autres données)
+      final polygons = await db.query(
+        'enquete_polygone',
+        where: '(login_id = ? OR saved_by_user_id = ?)',
+        whereArgs: [
+          loginId,
+          loginId
+        ],
+      );
 
       List<Polygon> mapPolygons = [];
       for (var poly in polygons) {
@@ -2146,6 +2156,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadPointCountsByTable() async {
     try {
       final db = await DatabaseHelper().database;
+      final loginId = await DatabaseHelper().resolveLoginId(); // ✅ AJOUT
       final Map<String, int> counts = {};
       final tables = [
         'localites',
@@ -2165,7 +2176,13 @@ class _HomePageState extends State<HomePage> {
 
       for (var table in tables) {
         try {
-          final result = await db.rawQuery('SELECT COUNT(*) as c FROM $table');
+          final result = await db.rawQuery(
+            'SELECT COUNT(*) as c FROM $table WHERE login_id = ? OR saved_by_user_id = ?',
+            [
+              loginId,
+              loginId
+            ],
+          );
           counts[table] = result.first['c'] as int? ?? 0;
         } catch (_) {
           counts[table] = 0;
