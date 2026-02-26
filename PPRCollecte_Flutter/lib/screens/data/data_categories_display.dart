@@ -1047,7 +1047,21 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
       if (confirmed == true) {
         try {
           final dbHelper = DatabaseHelper();
-          await dbHelper.deleteDisplayedPoint(id, tableName);
+
+          if (tableName == 'bacs' || tableName == 'passages_submersibles') {
+            final db = await dbHelper.database;
+            await db.delete(
+              'displayed_special_lines',
+              where: 'original_id = ? AND original_table = ?',
+              whereArgs: [
+                id,
+                tableName
+              ],
+            );
+            print('🗑️ Ligne spéciale supprimée de displayed_special_lines: $id / $tableName');
+          } else {
+            await dbHelper.deleteDisplayedPoint(id, tableName);
+          }
           await dbHelper.deleteEntity(tableName, id);
           _fetchData(); // Rafraîchir la liste
 

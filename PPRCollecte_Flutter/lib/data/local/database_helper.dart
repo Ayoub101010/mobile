@@ -2895,33 +2895,6 @@ CREATE TABLE IF NOT EXISTS app_session (
     print('✅ Ligne spéciale sauvegardée: $name (original_id: $id, table: $tableName)');
   }
 
-  Future<void> deleteSpecialLine(int originalId, String originalTable) async {
-    final db = await database;
-    try {
-      // Supprimer de special_lines (downloaded)
-      await db.delete(
-        'special_lines',
-        where: 'api_id = ? AND original_table = ?',
-        whereArgs: [
-          originalId,
-          originalTable
-        ],
-      );
-      // Supprimer aussi de displayed_special_lines (local)
-      await db.delete(
-        'displayed_special_lines',
-        where: 'original_id = ? AND original_table = ?',
-        whereArgs: [
-          originalId,
-          originalTable
-        ],
-      );
-      print('🗑️ Special line supprimée ($originalTable, id: $originalId)');
-    } catch (e) {
-      print('⚠️ Erreur suppression special_line: $e');
-    }
-  }
-
   Future<List<Map<String, dynamic>>> loadDisplayedSpecialLines() async {
     final db = await database;
     final loginId = await _resolveLoginId();
