@@ -826,7 +826,35 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop(pisteData);
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Succès'),
+              ],
+            ),
+            content: Text(
+              'Piste "${_nomOrigineController.text} → ${_nomDestinationController.text}" enregistrée avec succès\n'
+              'Code Piste: ${_codeController.text}\n'
+              'Origine: ${widget.linePoints.first.latitude.toStringAsFixed(6)}, ${widget.linePoints.first.longitude.toStringAsFixed(6)}\n'
+              'Destination: ${widget.linePoints.last.latitude.toStringAsFixed(6)}, ${widget.linePoints.last.longitude.toStringAsFixed(6)}\n'
+              'Nombre de points: ${widget.linePoints.length}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) {
+          Navigator.of(context).pop(pisteData);
+        }
       }
     } catch (error) {
       if (mounted) {

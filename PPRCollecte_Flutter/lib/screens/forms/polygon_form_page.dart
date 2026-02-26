@@ -212,7 +212,36 @@ class _PolygonFormPageState extends State<PolygonFormPage> {
         print('✅ Zone de Plaine créée (${widget.polygonPoints.length} points, ${_superficieHa.toStringAsFixed(4)} ha)');
       }
 
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Succès'),
+              ],
+            ),
+            content: Text(
+              'Zone de Plaine "${_nomController.text.isNotEmpty ? _nomController.text : "Sans nom"}" enregistrée avec succès\n'
+              'Code Piste: ${_nearestPisteCode ?? "Non spécifié"}\n'
+              'Superficie: ${_superficieHa.toStringAsFixed(4)} ha\n'
+              'Nombre de points: ${widget.polygonPoints.length}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
+      }
     } catch (e) {
       print('❌ Erreur sauvegarde polygone: $e');
       if (mounted) {

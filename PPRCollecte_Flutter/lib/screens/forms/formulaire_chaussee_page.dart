@@ -249,7 +249,36 @@ class _FormulaireChausseePageState extends State<FormulaireChausseePage> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop(chausseeData);
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Succès'),
+              ],
+            ),
+            content: Text(
+              'Chaussée enregistrée avec succès\n'
+              'Code Piste: ${_codePisteController.text}\n'
+              'Endroit: ${_endroitController.text.isNotEmpty ? _endroitController.text : "Non spécifié"}\n'
+              'Type: ${_typeChaussee ?? "Non spécifié"}\n'
+              'État: ${_etatPiste ?? "Non spécifié"}\n'
+              'Nombre de points: ${widget.chausseePoints.length}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) {
+          Navigator.of(context).pop(chausseeData);
+        }
       }
     } catch (error) {
       if (mounted) {
