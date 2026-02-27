@@ -375,7 +375,7 @@ class SyncService {
       ];
     }).toList();
 
-    // ⭐⭐ CORRECTION: Utiliser des valeurs par défaut pour éviter les null
+    //  CORRECTION: Utiliser des valeurs par défaut pour éviter les null
     return {
       'type': 'Feature',
       'geometry': {
@@ -396,10 +396,7 @@ class SyncService {
         'nom_destination_piste': localData['nom_destination_piste'] ?? '',
         'x_destination': _parseDouble(localData['x_destination']) ?? 0.0,
         'y_destination': _parseDouble(localData['y_destination']) ?? 0.0,
-        'existence_intersection': _parseInt(localData['existence_intersection']) ?? 0,
-        'x_intersection': _parseDouble(localData['x_intersection']),
-        'y_intersection': _parseDouble(localData['y_intersection']),
-        'intersection_piste_code': localData['intersection_piste_code'],
+
         'type_occupation': localData['type_occupation'],
         'debut_occupation': _formatDateTime(localData['debut_occupation']),
         'fin_occupation': _formatDateTime(localData['fin_occupation']),

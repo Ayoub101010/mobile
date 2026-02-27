@@ -551,6 +551,11 @@ class PisteWriteSerializer(CommuneInfoMixin, GeoFeatureModelSerializer):
         model = Piste
         geo_field = "geom"
         fields = "__all__"
+        read_only_fields = (
+            'existence_intersection',
+            'nombre_intersections',
+            'intersections_json',
+        )
 
     def to_internal_value(self, data):
         #  Nettoyer les dates — chercher AUSSI dans properties (format GeoJSON)

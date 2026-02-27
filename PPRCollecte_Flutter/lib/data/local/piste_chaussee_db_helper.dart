@@ -52,10 +52,9 @@ class SimpleStorageHelper {
             nom_destination_piste TEXT ,
             x_destination REAL ,
             y_destination REAL ,
-            existence_intersection INTEGER DEFAULT 0, -- ← NOUVEAU
-      x_intersection REAL,                      -- ← NOUVEAU
-      y_intersection REAL,                      -- ← NOUVEAU
-      intersection_piste_code TEXT,             -- ← NOUVEAU
+            existence_intersection INTEGER DEFAULT 0,
+            nombre_intersections INTEGER DEFAULT 0,
+            intersections_json TEXT DEFAULT '[]',
             type_occupation TEXT,
             debut_occupation TEXT,
             fin_occupation TEXT,
@@ -810,24 +809,55 @@ ON displayed_pistes(login_id, code_piste);
           loginId
         ],
         columns: [
-          // ⭐⭐ SPÉCIFIEZ EXPLICITEMENT TOUTES LES COLONNES
-          'id', 'code_piste', 'commune_rurale_id', 'commune_rurales', 'user_login',
-          'heure_debut', 'heure_fin', 'nom_origine_piste', 'x_origine',
-          'y_origine', 'nom_destination_piste', 'x_destination', 'y_destination',
-          'existence_intersection', 'x_intersection', 'y_intersection',
-          'intersection_piste_code', 'type_occupation', 'debut_occupation',
-          'fin_occupation', 'largeur_emprise', 'frequence_trafic', 'type_trafic',
-          'travaux_realises', 'date_travaux', 'entreprise',
-          'plateforme', 'relief', 'vegetation', 'debut_travaux', 'fin_travaux', 'financement', 'projet',
+          'id',
+          'code_piste',
+          'commune_rurale_id',
+          'commune_rurales',
+          'user_login',
+          'heure_debut',
+          'heure_fin',
+          'nom_origine_piste',
+          'x_origine',
+          'y_origine',
+          'nom_destination_piste',
+          'x_destination',
+          'y_destination',
+          'existence_intersection',
+          'nombre_intersections',
+          'intersections_json',
+          'type_occupation',
+          'debut_occupation',
+          'fin_occupation',
+          'largeur_emprise',
+          'frequence_trafic',
+          'type_trafic',
+          'travaux_realises',
+          'date_travaux',
+          'entreprise',
+          'plateforme',
+          'relief',
+          'vegetation',
+          'debut_travaux',
+          'fin_travaux',
+          'financement',
+          'projet',
           'points_json',
-          'niveau_service', 'fonctionnalite', 'interet_socio_administratif',
-          'population_desservie', 'potentiel_agricole', 'cout_investissement',
-          'protection_environnement', 'note_globale',
-          'created_at', 'updated_at', 'login_id', 'synced', 'date_sync' // ⭐⭐ AJOUTEZ login_id ICI
+          'niveau_service',
+          'fonctionnalite',
+          'interet_socio_administratif',
+          'population_desservie',
+          'potentiel_agricole',
+          'cout_investissement',
+          'protection_environnement',
+          'note_globale',
+          'created_at',
+          'updated_at',
+          'login_id',
+          'synced',
+          'date_sync'
         ],
       );
 
-      // ⭐⭐ LOG POUR VÉRIFIER
       print('📊 Pistes non synchronisées trouvées: ${maps.length}');
       if (maps.isNotEmpty) {
         print('🔍 Premier piste - login_id: ${maps.first['login_id']}');
@@ -892,7 +922,7 @@ ON displayed_pistes(login_id, code_piste);
 
       final props = apiResponse['properties'] as Map<String, dynamic>? ?? apiResponse;
 
-      // ⭐ Récupérer le nouveau code_piste du serveur
+      //  Récupérer le nouveau code_piste du serveur
       final String? newCodePiste = props['code_piste']?.toString();
       if (newCodePiste != null) {
         updates['code_piste'] = newCodePiste;
@@ -910,6 +940,16 @@ ON displayed_pistes(login_id, code_piste);
       }
       if (props['commune_name'] != null) {
         updates['commune_name'] = props['commune_name'];
+      }
+      //  Stocker les données d'intersection renvoyées par le serveur
+      if (props['existence_intersection'] != null) {
+        updates['existence_intersection'] = _apiExistenceToInt(props['existence_intersection']);
+      }
+      if (props['nombre_intersections'] != null) {
+        updates['nombre_intersections'] = props['nombre_intersections'];
+      }
+      if (props['intersections_json'] != null) {
+        updates['intersections_json'] = props['intersections_json'] is String ? props['intersections_json'] : jsonEncode(props['intersections_json']);
       }
 
       // 3. Mettre à jour la table pistes
@@ -1020,10 +1060,9 @@ ON displayed_pistes(login_id, code_piste);
             'nom_destination_piste': properties['nom_destination_piste'],
             'x_destination': properties['x_destination'],
             'y_destination': properties['y_destination'],
-            'existence_intersection': properties['existence_intersection'] ?? 'Non',
-            'x_intersection': properties['x_intersection'],
-            'y_intersection': properties['y_intersection'],
-            'intersection_piste_code': properties['intersection_piste_code'],
+            'existence_intersection': _apiExistenceToInt(properties['existence_intersection']),
+            'nombre_intersections': properties['nombre_intersections'] ?? 0,
+            'intersections_json': properties['intersections_json'] is String ? properties['intersections_json'] : jsonEncode(properties['intersections_json'] ?? []),
             'type_occupation': properties['type_occupation'],
             'debut_occupation': properties['debut_occupation'],
             'fin_occupation': properties['fin_occupation'],
@@ -1081,10 +1120,9 @@ ON displayed_pistes(login_id, code_piste);
             'nom_destination_piste': properties['nom_destination_piste'],
             'x_destination': properties['x_destination'],
             'y_destination': properties['y_destination'],
-            'existence_intersection': properties['existence_intersection'] ?? 'Non',
-            'x_intersection': properties['x_intersection'],
-            'y_intersection': properties['y_intersection'],
-            'intersection_piste_code': properties['intersection_piste_code'],
+            'existence_intersection': _apiExistenceToInt(properties['existence_intersection']),
+            'nombre_intersections': properties['nombre_intersections'] ?? 0,
+            'intersections_json': properties['intersections_json'] is String ? properties['intersections_json'] : jsonEncode(properties['intersections_json'] ?? []),
             'type_occupation': properties['type_occupation'],
             'debut_occupation': properties['debut_occupation'],
             'fin_occupation': properties['fin_occupation'],
@@ -1131,6 +1169,18 @@ ON displayed_pistes(login_id, code_piste);
       print('📋 Données problématiques: ${jsonEncode(pisteData)}');
       return false;
     }
+  }
+
+  /// Convertit la valeur existence_intersection de l'API (bool/int/string) en int pour SQLite
+  int _apiExistenceToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is bool) return value ? 1 : 0;
+    if (value is int) return value;
+    if (value is String) {
+      if (value == '1' || value.toLowerCase() == 'true') return 1;
+      return 0;
+    }
+    return 0;
   }
 
   // Dans SimpleStorageHelper class

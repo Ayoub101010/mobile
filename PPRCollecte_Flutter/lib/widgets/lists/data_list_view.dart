@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../data/remote/api_service.dart';
 import '../../data/local/database_helper.dart';
+import 'dart:convert';
+import 'package:latlong2/latlong.dart';
+import '../../screens/home/home_page.dart'; // Pour MapFocusTarget + HomePage
 
 class DataListView extends StatefulWidget {
   final List<Map<String, dynamic>> data;
@@ -92,6 +95,30 @@ class _DataListViewState extends State<DataListView> {
     }
   }
 
+  bool _hasIntersection(Map<String, dynamic> item) {
+    final existence = item['existence_intersection'];
+    if (existence is bool) return existence;
+    if (existence is int) return existence == 1;
+    if (existence is String) return existence == '1' || existence.toLowerCase() == 'true';
+    return false;
+  }
+
+  /// Navigue vers la carte et focus sur le point d'intersection
+  void _focusOnIntersectionPoint(double? x, double? y, String label) {
+    if (x == null || y == null) return;
+
+    // x = longitude, y = latitude (convention de votre BDD)
+    final point = LatLng(y, x);
+
+    HomePage.pendingFocusTarget = MapFocusTarget.point(
+      point: point,
+      label: 'Intersection: $label',
+    );
+
+    // Remonter jusqu'à la HomePage (carte)
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -104,6 +131,80 @@ class _DataListViewState extends State<DataListView> {
       children: [
         _buildSearchBar(),
         Expanded(child: _buildDataList()),
+      ],
+    );
+  }
+
+  Widget _buildIntersectionDetailSection(Map<String, dynamic> item) {
+    final nombre = item['nombre_intersections'] ?? 0;
+    final intersectionsRaw = item['intersections_json'];
+    List<dynamic> intersections = [];
+
+    try {
+      if (intersectionsRaw is String && intersectionsRaw.isNotEmpty) {
+        intersections = jsonDecode(intersectionsRaw);
+      } else if (intersectionsRaw is List) {
+        intersections = intersectionsRaw;
+      }
+    } catch (_) {}
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.call_split, size: 16, color: Colors.orange.shade700),
+            const SizedBox(width: 6),
+            Text(
+              'Intersections ($nombre)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange.shade800,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...intersections.map((inter) {
+          final code = inter['code_piste']?.toString() ?? '----';
+          final x = inter['x'];
+          final y = inter['y'];
+          return Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.compare_arrows, size: 14, color: Colors.orange.shade600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        code,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade900,
+                        ),
+                      ),
+                      if (x != null && y != null)
+                        Text(
+                          'X: ${double.tryParse(x.toString())?.toStringAsFixed(6) ?? x}  •  Y: ${double.tryParse(y.toString())?.toStringAsFixed(6) ?? y}',
+                          style: TextStyle(fontSize: 11, color: Colors.brown.shade700, fontWeight: FontWeight.w500),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
       ],
     );
   }
@@ -149,6 +250,92 @@ class _DataListViewState extends State<DataListView> {
         final item = _filteredData[index];
         return _buildListItem(item, context);
       },
+    );
+  }
+
+  /// Construit le badge d'intersection à afficher dans la liste
+  Widget _buildIntersectionBadge(Map<String, dynamic> item) {
+    final nombre = item['nombre_intersections'] ?? 0;
+    final intersectionsRaw = item['intersections_json'];
+    List<dynamic> intersections = [];
+
+    try {
+      if (intersectionsRaw is String && intersectionsRaw.isNotEmpty) {
+        intersections = jsonDecode(intersectionsRaw);
+      } else if (intersectionsRaw is List) {
+        intersections = intersectionsRaw;
+      }
+    } catch (_) {}
+
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.shade300, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.call_split, size: 14, color: Colors.orange.shade700),
+              const SizedBox(width: 4),
+              Text(
+                '$nombre intersection${nombre > 1 ? 's' : ''}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+            ],
+          ),
+          if (intersections.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            ...intersections.take(3).map((inter) {
+              final code = inter['code_piste'] ?? '----';
+              final x = inter['x'];
+              final y = inter['y'];
+              return Padding(
+                padding: const EdgeInsets.only(left: 18, top: 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '↗ $code${x != null && y != null ? '  (${double.tryParse(x.toString())?.toStringAsFixed(4) ?? x}, ${double.tryParse(y.toString())?.toStringAsFixed(4) ?? y})' : ''}',
+                        style: TextStyle(fontSize: 11, color: Colors.brown.shade700, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    //  Icône œil — focus sur le point d'intersection
+                    if (x != null && y != null)
+                      GestureDetector(
+                        onTap: () => _focusOnIntersectionPoint(
+                          double.tryParse(x.toString()),
+                          double.tryParse(y.toString()),
+                          code.toString(),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Icon(Icons.visibility, size: 16, color: Colors.orange.shade700),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
+            if (intersections.length > 3)
+              Padding(
+                padding: const EdgeInsets.only(left: 18, top: 2),
+                child: Text(
+                  '... et ${intersections.length - 3} autre(s)',
+                  style: TextStyle(fontSize: 11, color: Colors.orange.shade600, fontStyle: FontStyle.italic),
+                ),
+              ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -200,6 +387,9 @@ class _DataListViewState extends State<DataListView> {
                 : item['downloaded'] == 1
                     ? const Text('Status: Téléchargé 📥', style: TextStyle(color: Colors.blue))
                     : const Text('Status: Non synchronisé ⏳', style: TextStyle(color: Colors.orange)),
+
+            //  INTERSECTION — affiché seulement si existence_intersection > 0
+            if (_hasIntersection(item)) _buildIntersectionBadge(item),
           ],
         ),
         trailing: Row(
@@ -461,7 +651,14 @@ class _DataListViewState extends State<DataListView> {
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
-                      children: grouped.entries.map((g) => section(g.key, g.value)).toList(),
+                      children: [
+                        ...grouped.entries.map((g) => section(g.key, g.value)),
+                        //  SECTION INTERSECTION (conditionnelle)
+                        if (_hasIntersection(item)) ...[
+                          const Divider(),
+                          _buildIntersectionDetailSection(item),
+                        ],
+                      ],
                     ),
                   ),
                 ),
@@ -516,6 +713,10 @@ class _DataListViewState extends State<DataListView> {
       'cout_investissement': 'Coût Investissement',
       'protection_environnement': 'Protection Environnement',
       'note_globale': 'Note Globale',
+      //========== INTERSECTION ======
+      'existence_intersection': 'Croisement détecté',
+      'nombre_intersections': 'Nombre d\'intersections',
+      'intersections_json': 'Détail des intersections',
       // ajoute ici les autres si tu veux
     };
 

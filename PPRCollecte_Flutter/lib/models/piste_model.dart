@@ -45,10 +45,9 @@ class PisteModel {
   final String pointsJson;
   final String createdAt;
   final String? updatedAt;
-  final int? existenceIntersection;
-  final double? xIntersection;
-  final double? yIntersection;
-  final String? intersectionPisteCode;
+  final bool existenceIntersection;
+  final int nombreIntersections;
+  final String intersectionsJson; // JSON string : "[{piste_id, code_piste, x, y}, ...]"
   final int? loginId;
   final String? plateforme;
   final String? relief;
@@ -92,10 +91,9 @@ class PisteModel {
     required this.pointsJson,
     required this.createdAt,
     required this.updatedAt,
-    this.existenceIntersection = 0, // ← Nouveau
-    this.xIntersection, // ← Nouveau
-    this.yIntersection, // ← Nouveau
-    this.intersectionPisteCode,
+    this.existenceIntersection = false,
+    this.nombreIntersections = 0,
+    this.intersectionsJson = '[]',
     this.loginId,
     this.plateforme,
     this.relief,
@@ -145,10 +143,9 @@ class PisteModel {
       pointsJson: pointsJson,
       createdAt: formData['created_at'] ?? DateTime.now().toIso8601String(),
       updatedAt: formData['updated_at'],
-      existenceIntersection: formData['existence_intersection'] ?? 0,
-      xIntersection: formData['x_intersection'] != null ? double.parse(formData['x_intersection'].toString()) : null,
-      yIntersection: formData['y_intersection'] != null ? double.parse(formData['y_intersection'].toString()) : null,
-      intersectionPisteCode: formData['intersection_piste_code'],
+      existenceIntersection: _parseBool(formData['existence_intersection']),
+      nombreIntersections: _parseInt(formData['nombre_intersections']),
+      intersectionsJson: formData['intersections_json'] is String ? formData['intersections_json'] : jsonEncode(formData['intersections_json'] ?? []),
       loginId: formData['login_id'],
       plateforme: formData['plateforme'],
       relief: formData['relief'],
@@ -195,10 +192,9 @@ class PisteModel {
       'points_json': pointsJson,
       'created_at': createdAt,
       'updated_at': updatedAt,
-      'existence_intersection': existenceIntersection,
-      'x_intersection': xIntersection,
-      'y_intersection': yIntersection,
-      'intersection_piste_code': intersectionPisteCode,
+      'existence_intersection': existenceIntersection ? 1 : 0,
+      'nombre_intersections': nombreIntersections,
+      'intersections_json': intersectionsJson,
       'login_id': loginId,
       'plateforme': plateforme,
       'relief': relief,
@@ -244,10 +240,9 @@ class PisteModel {
       pointsJson: map['points_json'] ?? '[]',
       createdAt: map['created_at'] ?? DateTime.now().toIso8601String(),
       updatedAt: map['updated_at'] ?? DateTime.now().toIso8601String(), // ← NOUVEAU
-      existenceIntersection: map['existence_intersection'] ?? 0,
-      xIntersection: _parseDouble(map['x_intersection']),
-      yIntersection: _parseDouble(map['y_intersection']),
-      intersectionPisteCode: map['intersection_piste_code'],
+      existenceIntersection: _parseBool(map['existence_intersection']),
+      nombreIntersections: _parseInt(map['nombre_intersections']),
+      intersectionsJson: map['intersections_json']?.toString() ?? '[]',
       loginId: map['login_id'],
       plateforme: map['plateforme'],
       relief: map['relief'],
@@ -266,6 +261,21 @@ class PisteModel {
       noteGlobale: _parseDouble(map['note_globale']),
     );
   }
+  static bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value == '1' || value.toLowerCase() == 'true';
+    return false;
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
 
   static double _parseDouble(dynamic value) {
     if (value == null) return 0.0;
@@ -279,5 +289,18 @@ class PisteModel {
       }
     }
     return 0.0;
+  }
+
+  /// Retourne la liste des intersections parsées depuis le JSON
+  List<Map<String, dynamic>> get intersections {
+    try {
+      final decoded = jsonDecode(intersectionsJson);
+      if (decoded is List) {
+        return decoded.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
   }
 }

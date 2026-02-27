@@ -3306,7 +3306,7 @@ class _HomePageState extends State<HomePage> {
       if (HomePage.pendingFocusTarget != null) {
         final target = HomePage.pendingFocusTarget!;
         HomePage.pendingFocusTarget = null;
-        Future.delayed(const Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 2000), () {
           if (mounted) {
             _suspendAutoCenterFor(const Duration(seconds: 10));
             _focusOnTarget(target);
