@@ -126,6 +126,8 @@ class _HomePageState extends State<HomePage> {
   int _syncTotalItems = 0;
   int _syncProcessedItems = 0;
   List<Marker> _displayedPointsMarkers = [];
+  List<Marker> _focusOverlayMarkers = [];
+  List<Polyline> _focusOverlayPolylines = [];
   String? _currentNearestPisteCode;
   bool _isSpecialCollection = false;
   String? _specialCollectionType;
@@ -1114,7 +1116,7 @@ class _HomePageState extends State<HomePage> {
         }
       }
     }
-
+    filtered.addAll(_focusOverlayPolylines);
     return filtered;
   }
 
@@ -1380,11 +1382,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _focusOnTarget(MapFocusTarget target) async {
-    //  Désactiver l'auto-center définitivement (comme si l'utilisateur avait touché la carte)
-    // L'utilisateur devra appuyer sur "Ma position" pour réactiver le suivi GPS
     _autoCenterDisabledByUser = true;
 
-    // Créer les éléments de focus
     Polyline? focusPolyline;
     Marker? focusMarker;
 
@@ -1401,49 +1400,53 @@ class _HomePageState extends State<HomePage> {
     } else if (target.kind == 'point' && target.point != null) {
       focusMarker = Marker(
         point: target.point!,
-        width: 40,
-        height: 40,
+        width: 48,
+        height: 48,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.purpleAccent,
+            color: Colors.deepOrange,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.deepOrange.withOpacity(0.5),
+                blurRadius: 12,
+                spreadRadius: 4,
+              ),
+            ],
           ),
-          child: const Icon(Icons.location_on, color: Colors.white, size: 24),
+          child: const Icon(Icons.close, color: Colors.white, size: 28),
         ),
       );
     }
 
+    // ⭐ 1) D'abord ajouter le marqueur
     setState(() {
-      if (focusPolyline != null) {
-        _displayedSpecialLines.add(focusPolyline);
-      }
-      if (focusMarker != null) {
-        _displayedPointsMarkers.add(focusMarker);
-      }
+      if (focusPolyline != null) _focusOverlayPolylines.add(focusPolyline);
+      if (focusMarker != null) _focusOverlayMarkers.add(focusMarker);
     });
 
+    // ⭐ 2) Attendre un frame pour que le marqueur soit rendu
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // ⭐ 3) Puis bouger la caméra
     if (_mapController != null) {
       if (target.kind == 'point' && target.point != null) {
-        _mapController!.move(target.point!, 18);
-        _lastCameraPosition = target.point; // ⭐ IMPORTANT: Mettre à jour la dernière position
+        _mapController!.move(target.point!, 15);
+        _lastCameraPosition = target.point;
       } else if (target.kind == 'polyline' && target.polyline != null && target.polyline!.isNotEmpty) {
         final bounds = LatLngBounds.fromPoints(target.polyline!);
         _mapController!.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(64)));
-        _lastCameraPosition = bounds.center; // ⭐ IMPORTANT: Mettre à jour la dernière position
+        _lastCameraPosition = bounds.center;
       }
     }
 
-    // ⏱️ Retirer le focus après 10 secondes (par référence exacte, pas removeLast)
-    Future.delayed(const Duration(seconds: 10), () {
+    // 4) Retirer après 15 secondes
+    Future.delayed(const Duration(seconds: 15), () {
       if (!mounted) return;
       setState(() {
-        if (focusPolyline != null) {
-          _displayedSpecialLines.remove(focusPolyline);
-        }
-        if (focusMarker != null) {
-          _displayedPointsMarkers.remove(focusMarker);
-        }
+        if (focusPolyline != null) _focusOverlayPolylines.remove(focusPolyline);
+        if (focusMarker != null) _focusOverlayMarkers.remove(focusMarker);
       });
     });
   }
@@ -3306,7 +3309,7 @@ class _HomePageState extends State<HomePage> {
       if (HomePage.pendingFocusTarget != null) {
         final target = HomePage.pendingFocusTarget!;
         HomePage.pendingFocusTarget = null;
-        Future.delayed(const Duration(milliseconds: 2000), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             _suspendAutoCenterFor(const Duration(seconds: 10));
             _focusOnTarget(target);
@@ -3749,10 +3752,10 @@ class _HomePageState extends State<HomePage> {
   Widget build(
     BuildContext context,
   ) {
-    final List<Marker> filteredMarkers = _getFilteredMarkers();
+    final List<Marker> filteredMarkers = _getFilteredMarkers()..addAll(_focusOverlayMarkers);
 
     // 2. Filtrer les polylines selon la légende
-    final List<Polyline> filteredPolylines = _getFilteredPolylines();
+    final List<Polyline> filteredPolylines = _getFilteredPolylines()..addAll(_focusOverlayPolylines);
     List<Polygon> filteredPolygons = (_legendVisibility['zone_plaine'] != false) ? List.from(_displayedPolygons) : <Polygon>[];
     // === LOGS POUR DEBUG ===
     print('📍 [MAP] filteredMarkers size = ${filteredMarkers.length}');
