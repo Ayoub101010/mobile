@@ -535,7 +535,7 @@ class LoginSerializer(serializers.ModelSerializer):
 
 
 class PisteWriteSerializer(CommuneInfoMixin, GeoFeatureModelSerializer):
-    # ✅ Accepter les dates ISO envoyées par Flutter
+    #  Accepter les dates ISO envoyées par Flutter
     debut_travaux = serializers.DateField(
         required=False,
         allow_null=True,

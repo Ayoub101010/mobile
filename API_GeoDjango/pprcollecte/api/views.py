@@ -534,7 +534,50 @@ class PisteListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCre
         return PisteWriteSerializer
 
     def perform_create(self, serializer):
+        # 1) Sauvegarder la piste (AutoCommuneMixin gère commune + code_piste)
         super().perform_create(serializer)
+        
+        # 2) Récupérer l'instance créée
+        instance = serializer.instance
+        
+        # 3) Stocker l'ID pour le calcul d'intersection post-sync
+        #    On utilise un attribut de classe pour accumuler les IDs
+        #    quand plusieurs pistes sont créées dans la même requête
+        if not hasattr(self, '_newly_created_piste_ids'):
+            self._newly_created_piste_ids = []
+        self._newly_created_piste_ids.append(instance.id)
+        
+        print(f"📍 Piste {instance.code_piste} (id={instance.id}) créée, "
+              f"intersection sera calculée après commit")
+    
+    def create(self, request, *args, **kwargs):
+        from .intersection_utils import update_intersections_for_pistes
+        
+        # Reset la liste des IDs
+        self._newly_created_piste_ids = []
+        
+        # Appel standard (qui appelle perform_create)
+        response = super().create(request, *args, **kwargs)
+        
+        # Après la création, calculer les intersections
+        if self._newly_created_piste_ids and response.status_code == 201:
+            try:
+                update_intersections_for_pistes(self._newly_created_piste_ids)
+                
+                # Recharger l'instance pour inclure les champs d'intersection
+                # dans la réponse renvoyée au mobile
+                instance = Piste.objects.get(id=self._newly_created_piste_ids[-1])
+                read_serializer = PisteReadSerializer(instance)
+                response.data = read_serializer.data
+                
+                print(f"✅ Réponse enrichie avec intersections pour piste {instance.id}")
+            except Exception as e:
+                print(f"⚠️ Erreur calcul intersections: {e}")
+                import traceback
+                traceback.print_exc()
+                # On ne fait pas échouer la création pour autant
+        
+        return response
 
 class UserManagementAPIView(APIView):
     """API dédiée à la gestion des utilisateurs par le super_admin"""

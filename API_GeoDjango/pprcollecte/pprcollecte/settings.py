@@ -80,9 +80,9 @@ WSGI_APPLICATION = 'pprcollecte.wsgi.application'
 DATABASES = {
     'default': {
        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'GeoDNGR_Db',
+        'NAME': 'DNGR_BDD',
         'USER': 'postgres',
-        'PASSWORD': 'postgres',
+        'PASSWORD': 'postgres123',
         'HOST': '127.0.0.1',
         'PORT': '5434',
          'OPTIONS': {
@@ -137,11 +137,11 @@ import os
 
 
 # GDAL/GEOS Configuration for Windows
-GDAL_LIBRARY_PATH = r"C:\Program Files\QGIS 3.40.14\bin\gdal312.dll"
-GEOS_LIBRARY_PATH = r"C:\Program Files\QGIS 3.40.14\bin\geos_c.dll"
-PROJ_LIB = r"C:\Program Files\QGIS 3.40.14\share\proj"
+GDAL_LIBRARY_PATH = r"C:\Program Files\QGIS 3.40.0\bin\gdal309.dll"
+GEOS_LIBRARY_PATH = r"C:\Program Files\QGIS 3.40.0\bin\geos_c.dll"
+PROJ_LIB = r"C:\Program Files\QGIS 3.40.0\share\proj"
 
-os.environ['PATH'] = r"C:\Program Files\QGIS 3.40.14\bin;" + os.environ['PATH']
+os.environ['PATH'] = r"C:\Program Files\QGIS 3.40.0\bin;" + os.environ['PATH']
 os.environ['PROJ_LIB'] = PROJ_LIB
 
 
