@@ -1589,9 +1589,34 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ Localité sauvegardée: ${properties['nom']}');
-        return true; // ← AJOUTÉ
+        return true;
+      } else {
+        await db.update(
+          'localites',
+          {
+            'x_localite': geometry['coordinates'][0],
+            'y_localite': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Localité mise à jour: ${properties['nom']}');
+        return false; // ← AJOUTÉ (déjà existante)
       }
-      return false; // ← AJOUTÉ (déjà existante)
     } catch (e) {
       print('❌ Erreur sauvegarde localité: $e');
       rethrow;
@@ -1652,10 +1677,35 @@ CREATE TABLE IF NOT EXISTS app_session (
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-        print('✅ école sauvegardée: ${properties['nom']}');
-        return true; // ← AJOUTÉ
+        print('✅ École sauvegardée: ${properties['nom']}');
+        return true;
+      } else {
+        await db.update(
+          'ecoles',
+          {
+            'x_ecole': geometry['coordinates'][0],
+            'y_ecole': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 École mise à jour: ${properties['nom']}');
+        return false; // ← AJOUTÉ
       }
-      return false; // ← AJOUTÉ
     } catch (e) {
       print('❌ Erreur sauvegarde école: $e');
       rethrow;
@@ -1718,9 +1768,34 @@ CREATE TABLE IF NOT EXISTS app_session (
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
         print('✅ Marché sauvegardée: ${properties['nom']}');
-        return true; // ← AJOUTÉ
+        return true;
+      } else {
+        await db.update(
+          'marches',
+          {
+            'x_marche': geometry['coordinates'][0],
+            'y_marche': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Marché mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false; // ← AJOUTÉ
     } catch (e) {
       print('❌ Erreur sauvegarde Marché: $e');
       rethrow;
@@ -1784,8 +1859,33 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ services_santes sauvegardée: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'services_santes',
+          {
+            'x_sante': geometry['coordinates'][0],
+            'y_sante': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Service santé mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde services_santes: $e');
       rethrow;
@@ -1848,8 +1948,33 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ batiments_administratifs sauvegardée: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'batiments_administratifs',
+          {
+            'x_batiment_administratif': geometry['coordinates'][0],
+            'y_batiment_administratif': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Bâtiment administratif mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde batiments_administratifs: $e');
       rethrow;
@@ -1912,8 +2037,33 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ infrastructures_hydrauliques sauvegardée: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'infrastructures_hydrauliques',
+          {
+            'x_infrastructure_hydraulique': geometry['coordinates'][0],
+            'y_infrastructure_hydraulique': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Infrastructure hydraulique mise à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde infrastructures_hydrauliques: $e');
       rethrow;
@@ -1976,8 +2126,33 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ autres_infrastructures sauvegardée: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'autres_infrastructures',
+          {
+            'x_autre_infrastructure': geometry['coordinates'][0],
+            'y_autre_infrastructure': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Autre infrastructure mise à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde autres_infrastructures: $e');
       rethrow;
@@ -2118,8 +2293,35 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ ponts sauvegardée: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'ponts',
+          {
+            'x_pont': geometry['coordinates'][0],
+            'y_pont': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'situation_pont': properties['situation_pont'] ?? 'Non spécifié',
+            'type_pont': properties['type_pont'] ?? 'Non spécifié',
+            'nom_cours_eau': properties['nom_cours_eau'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Pont mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde ponts: $e');
       rethrow;
@@ -2146,6 +2348,31 @@ CREATE TABLE IF NOT EXISTS app_session (
         return null;
       }
 
+      //  EXTRAIRE LES COORDONNÉES
+      double xDebut = 0.0, yDebut = 0.0, xFin = 0.0, yFin = 0.0;
+
+      if (geometry['type'] == 'LineString') {
+        final coordinates = geometry['coordinates'];
+        if (coordinates.length >= 2) {
+          xDebut = coordinates[0][0].toDouble();
+          yDebut = coordinates[0][1].toDouble();
+          xFin = coordinates[1][0].toDouble();
+          yFin = coordinates[1][1].toDouble();
+        }
+      } else if (geometry['type'] == 'MultiLineString') {
+        final coordinates = geometry['coordinates'];
+        if (coordinates.isNotEmpty && coordinates[0].length >= 2) {
+          xDebut = coordinates[0][0][0].toDouble();
+          yDebut = coordinates[0][0][1].toDouble();
+          xFin = coordinates[0][1][0].toDouble();
+          yFin = coordinates[0][1][1].toDouble();
+        }
+      } else {
+        print('⚠️ Format de géométrie non supporté: ${geometry['type']}');
+      }
+
+      print('📍 Coordonnées bac - Début: ($xDebut, $yDebut), Fin: ($xFin, $yFin)');
+
       final existing = await db.query(
         'bacs',
         where: 'api_id = ? AND saved_by_user_id = ?',
@@ -2158,30 +2385,6 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (existing.isEmpty) {
         final communeId = await _getCommuneId();
-
-        double xDebut = 0.0, yDebut = 0.0, xFin = 0.0, yFin = 0.0;
-
-        if (geometry['type'] == 'LineString') {
-          final coordinates = geometry['coordinates'];
-          if (coordinates.length >= 2) {
-            xDebut = coordinates[0][0].toDouble();
-            yDebut = coordinates[0][1].toDouble();
-            xFin = coordinates[1][0].toDouble();
-            yFin = coordinates[1][1].toDouble();
-          }
-        } else if (geometry['type'] == 'MultiLineString') {
-          final coordinates = geometry['coordinates'];
-          if (coordinates.isNotEmpty && coordinates[0].length >= 2) {
-            xDebut = coordinates[0][0][0].toDouble();
-            yDebut = coordinates[0][0][1].toDouble();
-            xFin = coordinates[0][1][0].toDouble();
-            yFin = coordinates[0][1][1].toDouble();
-          }
-        } else {
-          print('⚠️ Format de géométrie non supporté: ${geometry['type']}');
-        }
-
-        print('📍 Coordonnées bac - Début: ($xDebut, $yDebut), Fin: ($xFin, $yFin)');
 
         await db.insert(
           'bacs',
@@ -2230,8 +2433,53 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ Bac sauvegardé: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'bacs',
+          {
+            'x_debut_traversee_bac': xDebut,
+            'y_debut_traversee_bac': yDebut,
+            'x_fin_traversee_bac': xFin,
+            'y_fin_traversee_bac': yFin,
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type_bac': properties['type_bac'] ?? 'Non spécifié',
+            'nom_cours_eau': properties['nom_cours_eau'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        await _saveDownloadedSpecialLine(
+          db: db,
+          apiId: sqliteId,
+          tableName: 'bacs',
+          latDebut: yDebut,
+          lngDebut: xDebut,
+          latFin: yFin,
+          lngFin: xFin,
+          specialType: 'Bac',
+          name: properties['nom'] ?? 'Sans nom',
+          codePiste: properties['code_piste'] ?? '',
+          viewerId: viewerId,
+          regionName: properties['region_name'],
+          prefectureName: properties['prefecture_name'],
+          communeName: properties['commune_name'],
+          enqueteur: properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+        );
+        print('🔄 Bac mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde bacs: $e');
       print('📋 Données problématiques: ${jsonEncode(geoJsonData)}');
@@ -2294,8 +2542,32 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ buses sauvegardée: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'buses',
+          {
+            'x_buse': geometry['coordinates'][0] ?? 'Non spécifié',
+            'y_buse': geometry['coordinates'][1] ?? 'Non spécifié',
+            'nom': properties['nom'] ?? 'Sans nom',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Buse mise à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde buses: $e');
       rethrow;
@@ -2358,8 +2630,33 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ dalots sauvegardée: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'dalots',
+          {
+            'x_dalot': geometry['coordinates'][0] ?? 'Non spécifié',
+            'y_dalot': geometry['coordinates'][1] ?? 'Non spécifié',
+            'nom': properties['nom'] ?? 'Sans nom',
+            'situation_dalot': properties['situation_dalot'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Dalot mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde dalots: $e');
       rethrow;
@@ -2386,6 +2683,31 @@ CREATE TABLE IF NOT EXISTS app_session (
         return null;
       }
 
+      //  EXTRAIRE LES COORDONNÉES
+      double xDebut = 0.0, yDebut = 0.0, xFin = 0.0, yFin = 0.0;
+
+      if (geometry['type'] == 'LineString') {
+        final coordinates = geometry['coordinates'];
+        if (coordinates.length >= 2) {
+          xDebut = coordinates[0][0].toDouble();
+          yDebut = coordinates[0][1].toDouble();
+          xFin = coordinates[1][0].toDouble();
+          yFin = coordinates[1][1].toDouble();
+        }
+      } else if (geometry['type'] == 'MultiLineString') {
+        final coordinates = geometry['coordinates'];
+        if (coordinates.isNotEmpty && coordinates[0].length >= 2) {
+          xDebut = coordinates[0][0][0].toDouble();
+          yDebut = coordinates[0][0][1].toDouble();
+          xFin = coordinates[0][1][0].toDouble();
+          yFin = coordinates[0][1][1].toDouble();
+        }
+      } else {
+        print('⚠️ Format de géométrie non supporté: ${geometry['type']}');
+      }
+
+      print('📍 Coordonnées passage - Début: ($xDebut, $yDebut), Fin: ($xFin, $yFin)');
+
       final existing = await db.query(
         'passages_submersibles',
         where: 'api_id = ? AND saved_by_user_id = ?',
@@ -2398,30 +2720,6 @@ CREATE TABLE IF NOT EXISTS app_session (
 
       if (existing.isEmpty) {
         final communeId = await _getCommuneId();
-
-        double xDebut = 0.0, yDebut = 0.0, xFin = 0.0, yFin = 0.0;
-
-        if (geometry['type'] == 'LineString') {
-          final coordinates = geometry['coordinates'];
-          if (coordinates.length >= 2) {
-            xDebut = coordinates[0][0].toDouble();
-            yDebut = coordinates[0][1].toDouble();
-            xFin = coordinates[1][0].toDouble();
-            yFin = coordinates[1][1].toDouble();
-          }
-        } else if (geometry['type'] == 'MultiLineString') {
-          final coordinates = geometry['coordinates'];
-          if (coordinates.isNotEmpty && coordinates[0].length >= 2) {
-            xDebut = coordinates[0][0][0].toDouble();
-            yDebut = coordinates[0][0][1].toDouble();
-            xFin = coordinates[0][1][0].toDouble();
-            yFin = coordinates[0][1][1].toDouble();
-          }
-        } else {
-          print('⚠️ Format de géométrie non supporté: ${geometry['type']}');
-        }
-
-        print('📍 Coordonnées passage - Début: ($xDebut, $yDebut), Fin: ($xFin, $yFin)');
 
         await db.insert(
           'passages_submersibles',
@@ -2469,8 +2767,52 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ Passage submersible sauvegardé: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'passages_submersibles',
+          {
+            'x_debut_passage_submersible': xDebut,
+            'y_debut_passage_submersible': yDebut,
+            'x_fin_passage_submersible': xFin,
+            'y_fin_passage_submersible': yFin,
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type_materiau': properties['type_materiau'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        await _saveDownloadedSpecialLine(
+          db: db,
+          apiId: sqliteId,
+          tableName: 'passages_submersibles',
+          latDebut: yDebut,
+          lngDebut: xDebut,
+          latFin: yFin,
+          lngFin: xFin,
+          specialType: 'Passage Submersible',
+          name: properties['nom'] ?? 'Sans nom',
+          codePiste: properties['code_piste'] ?? '',
+          viewerId: viewerId,
+          regionName: properties['region_name'],
+          prefectureName: properties['prefecture_name'],
+          communeName: properties['commune_name'],
+          enqueteur: properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+        );
+        print('🔄 Passage submersible mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde passages_submersibles: $e');
       print('📋 Données problématiques: ${jsonEncode(geoJsonData)}');
@@ -2551,8 +2893,32 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ points_critiques sauvegardée: sqlite_id=$sqliteId');
         return true;
+      } else {
+        await db.update(
+          'points_critiques',
+          {
+            'x_point_critique': x,
+            'y_point_critique': y,
+            'type_point_critique': properties['type_point'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Point critique mis à jour: sqlite_id=$sqliteId');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde points_critiques: $e');
       rethrow;
@@ -2614,8 +2980,32 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ points_coupures sauvegardée: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'points_coupures',
+          {
+            'x_point_coupure': geometry['coordinates'][0],
+            'y_point_coupure': geometry['coordinates'][1],
+            'causes_coupures': properties['causes_coupures'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Point coupure mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde points_coupures: $e');
       rethrow;
@@ -2687,8 +3077,33 @@ CREATE TABLE IF NOT EXISTS app_session (
         );
         print('✅ Site enquête sauvegardé: ${properties['nom']}');
         return true;
+      } else {
+        await db.update(
+          'site_enquete',
+          {
+            'x_site': geometry['coordinates'][0],
+            'y_site': geometry['coordinates'][1],
+            'nom': properties['nom'] ?? 'Sans nom',
+            'type': properties['type'] ?? 'Non spécifié',
+            'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+            'date_modification': properties['updated_at'] ?? 'Non spécifié',
+            'code_piste': properties['code_piste'] ?? 'Non spécifié',
+            'code_gps': properties['code_gps'] ?? 'Non spécifié',
+            'commune_id': properties['communes_rurales_id'],
+            'region_name': properties['region_name'],
+            'prefecture_name': properties['prefecture_name'],
+            'commune_name': properties['commune_name'],
+            'date_sync': DateTime.now().toIso8601String(),
+          },
+          where: 'api_id = ? AND saved_by_user_id = ?',
+          whereArgs: [
+            sqliteId,
+            viewerId
+          ],
+        );
+        print('🔄 Site enquête mis à jour: ${properties['nom']}');
+        return false;
       }
-      return false;
     } catch (e) {
       print('❌ Erreur sauvegarde site_enquete: $e');
       rethrow;
@@ -2753,7 +3168,7 @@ CREATE TABLE IF NOT EXISTS app_session (
           'code_gps': properties['code_gps'] ?? 'Non spécifié',
           'synced': 0,
           'downloaded': 1,
-          'login_id': dataUserId,
+          'login_id': dataUserId ?? 'Non spécifié',
           'saved_by_user_id': viewerId,
           'commune_id': communeId,
           'region_name': properties['region_name'],
@@ -2763,9 +3178,34 @@ CREATE TABLE IF NOT EXISTS app_session (
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
+      print('✅ Enquête polygone sauvegardé');
       return true;
+    } else {
+      await db.update(
+        'enquete_polygone',
+        {
+          'nom': properties['nom'],
+          'points_json': pointsJson,
+          'superficie_en_ha': properties['superficie_en_ha'],
+          'enqueteur': properties['enqueteur_name'] ?? properties['enqueteur'] ?? 'Inconnu',
+          'date_modification': properties['updated_at'] ?? 'Non spécifié',
+          'code_piste': properties['code_piste'] ?? 'Non spécifié',
+          'code_gps': properties['code_gps'] ?? 'Non spécifié',
+          'commune_id': communeId,
+          'region_name': properties['region_name'],
+          'prefecture_name': properties['prefecture_name'],
+          'commune_name': properties['commune_name'],
+          'date_sync': DateTime.now().toIso8601String(),
+        },
+        where: 'api_id = ? AND saved_by_user_id = ?',
+        whereArgs: [
+          apiId,
+          viewerId
+        ],
+      );
+      print('🔄 Enquête polygone mis à jour');
+      return false;
     }
-    return false;
   }
 
   /// Sauvegarde une ligne spéciale téléchargée dans special_lines pour l'affichage carte
