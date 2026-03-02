@@ -275,14 +275,24 @@ class SyncService {
           dataToSend = data; // Ancienne logique pour les autres tables
         }
 
-        // ⭐⭐ VÉRIFICATION CRITIQUE : code_piste ne doit pas être "Non spécifié"
+        //  VÉRIFICATION CRITIQUE : code_piste ne doit pas être "Non spécifié" pour les pistes
         final codePiste = dataToSend['code_piste']?.toString().trim() ?? dataToSend['properties']?['code_piste']?.toString().trim();
 
-        if (codePiste == null || codePiste.isEmpty || codePiste == 'Non spécifié' || codePiste == 'Non spÃ©cifiÃ©') {
-          print('⏭️ Skipping ${tableName} ID ${data['id']} - code_piste invalide: "$codePiste"');
-          result.failedCount++;
-          result.errors.add('$tableName ID ${data['id']}: code_piste invalide');
-          continue;
+        //  Ne bloquer que pour les pistes
+        // Les autres entités (localités, ponts, buses...) peuvent être envoyées
+        // avec un code_piste vide → le serveur attribuera la piste la plus proche
+        if (tableName == 'pistes') {
+          if (codePiste == null || codePiste.isEmpty || codePiste == 'Non spécifié' || codePiste == 'Non spÃ©cifiÃ©') {
+            print('⏭️ Skipping ${tableName} ID ${data['id']} - code_piste invalide: "$codePiste"');
+            result.failedCount++;
+            result.errors.add('$tableName ID ${data['id']}: code_piste invalide');
+            continue;
+          }
+        } else {
+          // Pour les autres tables: si code_piste vide, on log mais on envoie quand même
+          if (codePiste == null || codePiste.isEmpty || codePiste == 'Non spécifié' || codePiste == 'Non spÃ©cifiÃ©') {
+            print('ℹ️ ${tableName} ID ${data['id']} - code_piste vide, le serveur attribuera la piste la plus proche');
+          }
         }
 
         // 3. Envoyer
@@ -318,9 +328,9 @@ class SyncService {
           result.errors.add('Échec synchronisation $tableName ID ${data['id']}');
           print('❌ Échec synchronisation $tableName ID ${data['id']}');
         }
-// ⭐⭐ FIN DE VOTRE LOGIQUE EXISTANTE ⭐⭐
+//  FIN DE VOTRE LOGIQUE EXISTANTE
 
-        // ⭐⭐ AJOUTEZ LE CALLBACK DE PROGRESSION ICI ⭐⭐
+        //  AJOUTEZ LE CALLBACK DE PROGRESSION ICI
         if (onProgress != null) {
           onProgress(i + 1, localData.length);
         }
@@ -683,9 +693,19 @@ class SyncService {
       for (var i = 0; i < localData.length; i++) {
         var data = localData[i];
 
-        bool success;
+        //  Bloquer uniquement les pistes sans code_piste valide
+        if (tableName == 'pistes') {
+          final codePiste = data['code_piste']?.toString().trim() ?? '';
+          if (codePiste.isEmpty || codePiste == 'Non spécifié' || codePiste == 'Non spÃ©cifiÃ©') {
+            print('⏭️ Skipping piste ID ${data['id']} - code_piste invalide: "$codePiste"');
+            result.failedCount++;
+            result.errors.add('piste ID ${data['id']}: code_piste invalide');
+            if (onProgress != null) onProgress(i + 1, localData.length);
+            continue;
+          }
+        }
 
-        // ⭐⭐ UTILISER LA MÊME MÉTHODE QUE POUR LES CHAUSSÉES
+        //  UTILISER LA MÊME MÉTHODE QUE POUR LES CHAUSSÉES
         // Utilisation uniformisée de _sendDataToApi pour récupérer la réponse
         final response = await _sendDataToApi(apiEndpoint, data);
 

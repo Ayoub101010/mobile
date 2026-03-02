@@ -188,7 +188,69 @@ class AutoCommuneMixin:
                             print(f"✅ Code piste corrigé: {old_code} → {matching_piste.code_piste}")
                         else:
                             print(f"⚠️ Aucune piste avec suffixe '{date_suffix}'")
-
+            # === CAS 4 : CODE_PISTE VIDE/NULL → TROUVER LA PISTE LA PLUS PROCHE (PostGIS) ===
+            # Ce cas gère les entités collectées sans aucune piste dans l'app mobile
+            if model_class.__name__ != 'Piste':
+                current_code = None
+                is_fk = False
+                
+                if hasattr(instance, 'code_piste_id'):
+                    current_code = instance.code_piste_id
+                    is_fk = True
+                elif hasattr(instance, 'code_piste'):
+                    field = model_class._meta.get_field('code_piste')
+                    if not field.is_relation:
+                        current_code = instance.code_piste
+                
+                # Si le code est vide/null/Non spécifié (pas temporaire, juste absent)
+                if not current_code or current_code.strip() == '' or current_code in ('Non spécifié', 'Non spÃ©cifiÃ©', 'null'):
+                    print(f"🔍 Code piste vide pour {model_class.__name__} ID {instance.pk}, recherche spatiale...")
+                    
+                    # Trouver le point géométrique de l'entité
+                    geom = getattr(instance, 'geom', None)
+                    if geom:
+                        from django.contrib.gis.db.models.functions import Distance
+                        from django.contrib.gis.geos import Point as GeoPoint
+                        
+                        point_to_check = None
+                        try:
+                            if geom.geom_type == 'Point':
+                                point_to_check = geom
+                            elif geom.geom_type == 'LineString':
+                                point_to_check = GeoPoint(geom[0], srid=geom.srid)
+                            elif geom.geom_type == 'MultiLineString':
+                                point_to_check = GeoPoint(geom[0][0], srid=geom.srid)
+                            elif geom.geom_type == 'Polygon':
+                                point_to_check = geom.centroid
+                            elif geom.geom_type == 'MultiPolygon':
+                                point_to_check = geom.centroid
+                        except Exception:
+                            pass
+                        
+                        if point_to_check:
+                            from .models import Piste
+                            nearest_piste = (
+                                Piste.objects
+                                .filter(geom__isnull=False)
+                                .annotate(distance=Distance('geom', point_to_check))
+                                .order_by('distance')
+                                .first()
+                            )
+                            
+                            if nearest_piste and nearest_piste.code_piste:
+                                if is_fk:
+                                    instance.code_piste_id = nearest_piste.code_piste
+                                    instance.save(update_fields=['code_piste_id'])
+                                else:
+                                    instance.code_piste = nearest_piste.code_piste
+                                    instance.save(update_fields=['code_piste'])
+                                
+                                print(f"✅ Piste la plus proche attribuée: {nearest_piste.code_piste} "
+                                      f"(distance: {nearest_piste.distance}) pour {model_class.__name__} ID {instance.pk}")
+                            else:
+                                print(f"⚠️ Aucune piste trouvée dans la BD pour {model_class.__name__} ID {instance.pk}")
+                    else:
+                        print(f"⚠️ Pas de géométrie pour {model_class.__name__} ID {instance.pk}, impossible de trouver la piste proche")
         except Exception as e:
             print(f"⚠️ Erreur correction code_piste: {e}")
             import traceback

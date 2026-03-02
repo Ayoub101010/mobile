@@ -15,8 +15,32 @@ def compute_intersections_for_piste(piste_id):
             SELECT 
                 b.id AS other_id,
                 b.code_piste AS other_code,
-                ROUND(ST_X(ST_Centroid(ST_Intersection(a.geom, b.geom)))::numeric, 6) AS x,
-                ROUND(ST_Y(ST_Centroid(ST_Intersection(a.geom, b.geom)))::numeric, 6) AS y
+                ROUND(ST_X(
+                    CASE 
+                        WHEN GeometryType(ST_Intersection(a.geom, b.geom)) = 'POINT' 
+                            THEN ST_Intersection(a.geom, b.geom)
+                        WHEN GeometryType(ST_Intersection(a.geom, b.geom)) = 'MULTIPOINT' 
+                            THEN ST_GeometryN(ST_Intersection(a.geom, b.geom), 1)
+                        WHEN GeometryType(ST_Intersection(a.geom, b.geom)) IN ('LINESTRING', 'MULTILINESTRING') 
+                            THEN ST_ClosestPoint(a.geom, b.geom)
+                        WHEN GeometryType(ST_Intersection(a.geom, b.geom)) = 'GEOMETRYCOLLECTION' 
+                            THEN ST_ClosestPoint(a.geom, b.geom)
+                        ELSE ST_Centroid(ST_Intersection(a.geom, b.geom))
+                    END
+                )::numeric, 6) AS x,
+                ROUND(ST_Y(
+                    CASE 
+                        WHEN GeometryType(ST_Intersection(a.geom, b.geom)) = 'POINT' 
+                            THEN ST_Intersection(a.geom, b.geom)
+                        WHEN GeometryType(ST_Intersection(a.geom, b.geom)) = 'MULTIPOINT' 
+                            THEN ST_GeometryN(ST_Intersection(a.geom, b.geom), 1)
+                        WHEN GeometryType(ST_Intersection(a.geom, b.geom)) IN ('LINESTRING', 'MULTILINESTRING') 
+                            THEN ST_ClosestPoint(a.geom, b.geom)
+                        WHEN GeometryType(ST_Intersection(a.geom, b.geom)) = 'GEOMETRYCOLLECTION' 
+                            THEN ST_ClosestPoint(a.geom, b.geom)
+                        ELSE ST_Centroid(ST_Intersection(a.geom, b.geom))
+                    END
+                )::numeric, 6) AS y
             FROM pistes a
             JOIN pistes b 
                 ON a.id != b.id 

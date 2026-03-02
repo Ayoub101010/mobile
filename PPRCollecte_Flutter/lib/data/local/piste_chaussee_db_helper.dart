@@ -962,7 +962,7 @@ ON displayed_pistes(login_id, code_piste);
         ],
       );
 
-      // ⭐⭐ 4. Mettre à jour AUSSI la table displayed_pistes ⭐⭐
+      //  4. Mettre à jour AUSSI la table displayed_pistes
       if (newCodePiste != null && oldCodePiste != null && newCodePiste != oldCodePiste) {
         final dbHelper = DatabaseHelper();
         final loginId = await dbHelper.resolveLoginId();
@@ -979,6 +979,110 @@ ON displayed_pistes(login_id, code_piste);
           ],
         );
         print('✅ displayed_pistes mis à jour: $oldCodePiste → $newCodePiste');
+      }
+
+      //  5. PROPAGER le nouveau code_piste à TOUTES les entités locales non synchronisées
+      // Ceci corrige le cas où la connexion est coupée après la sync de la piste
+      // mais avant la sync des autres entités qui référencent l'ancien code temporaire
+      if (newCodePiste != null && oldCodePiste != null && newCodePiste != oldCodePiste) {
+        final mainDb = await DatabaseHelper().database;
+
+        // Tables dans la BD principale (database_helper.dart)
+        final pointTables = [
+          'localites',
+          'ecoles',
+          'marches',
+          'services_santes',
+          'batiments_administratifs',
+          'infrastructures_hydrauliques',
+          'autres_infrastructures',
+          'ponts',
+          'bacs',
+          'buses',
+          'dalots',
+          'passages_submersibles',
+          'points_critiques',
+          'points_coupures',
+          'site_enquete',
+          'enquete_polygone',
+        ];
+
+        for (final table in pointTables) {
+          try {
+            final updated = await mainDb.update(
+              table,
+              {
+                'code_piste': newCodePiste
+              },
+              where: 'code_piste = ? AND synced = 0',
+              whereArgs: [
+                oldCodePiste
+              ],
+            );
+            if (updated > 0) {
+              print('🔄 $table: $updated entité(s) mises à jour $oldCodePiste → $newCodePiste');
+            }
+          } catch (e) {
+            // Table n'existe peut-être pas encore, on continue
+          }
+        }
+
+        // Tables dans la BD piste/chaussée (même BD ici)
+        try {
+          final updatedChaussees = await db.update(
+            'chaussees',
+            {
+              'code_piste': newCodePiste
+            },
+            where: 'code_piste = ? AND synced = 0',
+            whereArgs: [
+              oldCodePiste
+            ],
+          );
+          if (updatedChaussees > 0) {
+            print('🔄 chaussees: $updatedChaussees chaussée(s) mises à jour $oldCodePiste → $newCodePiste');
+          }
+        } catch (e) {
+          // Ignore si table n'existe pas
+        }
+
+        // Tables d'affichage
+        try {
+          await mainDb.update(
+            'displayed_points',
+            {
+              'code_piste': newCodePiste
+            },
+            where: 'code_piste = ?',
+            whereArgs: [
+              oldCodePiste
+            ],
+          );
+          await db.update(
+            'displayed_chaussees',
+            {
+              'code_piste': newCodePiste
+            },
+            where: 'code_piste = ?',
+            whereArgs: [
+              oldCodePiste
+            ],
+          );
+          await mainDb.update(
+            'special_lines',
+            {
+              'code_piste': newCodePiste
+            },
+            where: 'code_piste = ?',
+            whereArgs: [
+              oldCodePiste
+            ],
+          );
+        } catch (e) {
+          // Ignore
+        }
+
+        print('✅ Propagation code_piste terminée: $oldCodePiste → $newCodePiste');
       }
 
       print('✅ Piste $pisteId marquée comme synchronisée et mise à jour');
@@ -1594,7 +1698,7 @@ ON displayed_pistes(login_id, code_piste);
     try {
       final db = await database;
 
-      // ⭐⭐ PRIORITÉ ABSOLUE: Si une piste est active, utiliser son code ⭐⭐
+      // PRIORITÉ ABSOLUE: Si une piste est active, utiliser son code
       if (activePisteCode != null) {
         print('📍 Utilisation piste active: $activePisteCode');
         return activePisteCode;
@@ -1606,14 +1710,19 @@ ON displayed_pistes(login_id, code_piste);
         print('❌ Impossible de déterminer le login_id (API + local)');
         return null;
       }
-      // Récupérer toutes les pistes de l'utilisateur
-      final List<Map<String, dynamic>> pistes = await db.query(
-        'pistes',
-        where: 'login_id = ?',
-        whereArgs: [
-          loginId
-        ],
-      );
+
+      // - Pistes créées par l'utilisateur (login_id = loginId)
+      // - Pistes sauvegardées/téléchargées (saved_by_user_id = loginId AND downloaded = 1)
+      final List<Map<String, dynamic>> pistes = await db.rawQuery('''
+        SELECT id, code_piste, points_json FROM pistes 
+        WHERE login_id = ? 
+        UNION 
+        SELECT id, code_piste, points_json FROM pistes 
+        WHERE saved_by_user_id = ? AND downloaded = 1
+      ''', [
+        loginId,
+        loginId
+      ]);
 
       if (pistes.isEmpty) return null;
 
@@ -1626,8 +1735,8 @@ ON displayed_pistes(login_id, code_piste);
           final pointsData = jsonDecode(pointsJson) as List;
 
           for (final pointData in pointsData) {
-            final lat = pointData['latitude'] as double?;
-            final lng = pointData['longitude'] as double?;
+            final lat = pointData['latitude'] as double? ?? pointData['lat'] as double?;
+            final lng = pointData['longitude'] as double? ?? pointData['lng'] as double?;
 
             if (lat != null && lng != null) {
               final pistePoint = LatLng(lat, lng);

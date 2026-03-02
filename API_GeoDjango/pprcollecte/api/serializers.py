@@ -95,7 +95,20 @@ class CodePisteResolveMixin:
         if not code_piste and 'properties' in data:
             code_piste = (data.get('properties') or {}).get('code_piste')
             is_geojson = True
-
+        #  Si code_piste vide/null/Non spécifié,
+        # laisser passer → le CAS 4 de _fix_code_piste s'en occupera
+        if not code_piste or (isinstance(code_piste, str) and 
+            code_piste.strip() in ('', 'Non spécifié', 'Non spÃ©cifiÃ©', 'null')):
+            # Mettre à None pour que le serializer accepte
+            data = data.copy() if hasattr(data, 'copy') else dict(data)
+            if is_geojson and 'properties' in data:
+                props = dict(data.get('properties', {}))
+                props['code_piste'] = None
+                data['properties'] = props
+            else:
+                data['code_piste'] = None
+            return super().to_internal_value(data)
+        
         if code_piste and isinstance(code_piste, str) and is_temporary_code(code_piste):
             
             resolved_code = None
