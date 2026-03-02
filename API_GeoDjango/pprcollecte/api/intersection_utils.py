@@ -115,3 +115,6 @@ def update_intersections_for_pistes(piste_ids):
 
     print(f"✅ Intersections calculées pour {len(piste_ids)} nouvelle(s) piste(s), "
           f"{len(existing_impacted)} piste(s) existante(s) mise(s) à jour")
+    
+    #  NOUVEAU: Retourner les IDs impactés 
+    return list(existing_impacted)

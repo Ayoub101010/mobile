@@ -1084,7 +1084,41 @@ ON displayed_pistes(login_id, code_piste);
 
         print('✅ Propagation code_piste terminée: $oldCodePiste → $newCodePiste');
       }
+//  6. Mettre à jour les intersections des pistes impactées
+      final impactedPistes = props['impacted_pistes'];
+      if (impactedPistes != null && impactedPistes is List && impactedPistes.isNotEmpty) {
+        for (final impacted in impactedPistes) {
+          final impactedCode = impacted['code_piste']?.toString();
+          if (impactedCode == null) continue;
 
+          final impactedUpdates = <String, dynamic>{};
+
+          if (impacted['existence_intersection'] != null) {
+            impactedUpdates['existence_intersection'] = _apiExistenceToInt(impacted['existence_intersection']);
+          }
+          if (impacted['nombre_intersections'] != null) {
+            impactedUpdates['nombre_intersections'] = impacted['nombre_intersections'];
+          }
+          if (impacted['intersections_json'] != null) {
+            impactedUpdates['intersections_json'] = impacted['intersections_json'] is String ? impacted['intersections_json'] : jsonEncode(impacted['intersections_json']);
+          }
+
+          if (impactedUpdates.isNotEmpty) {
+            final updated = await db.update(
+              'pistes',
+              impactedUpdates,
+              where: 'code_piste = ?',
+              whereArgs: [
+                impactedCode
+              ],
+            );
+            if (updated > 0) {
+              print('🔄 Intersection mise à jour pour piste impactée: $impactedCode');
+            }
+          }
+        }
+        print('✅ ${impactedPistes.length} piste(s) impactée(s) mises à jour localement');
+      }
       print('✅ Piste $pisteId marquée comme synchronisée et mise à jour');
     } catch (e) {
       print('❌ Erreur markPisteAsSyncedAndUpdated: $e');

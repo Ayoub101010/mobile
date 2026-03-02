@@ -624,20 +624,33 @@ class PisteListCreateAPIView(RBACFilterMixin, AutoCommuneMixin, generics.ListCre
         # Après la création, calculer les intersections
         if self._newly_created_piste_ids and response.status_code == 201:
             try:
-                update_intersections_for_pistes(self._newly_created_piste_ids)
+                impacted_ids = update_intersections_for_pistes(self._newly_created_piste_ids)
                 
                 # Recharger l'instance pour inclure les champs d'intersection
-                # dans la réponse renvoyée au mobile
                 instance = Piste.objects.get(id=self._newly_created_piste_ids[-1])
                 read_serializer = PisteReadSerializer(instance)
                 response.data = read_serializer.data
+                
+                #   Inclure les pistes impactées dans la réponse 
+                if impacted_ids:
+                    from .models import Piste as PisteModel
+                    impacted_pistes = PisteModel.objects.filter(id__in=impacted_ids)
+                    impacted_data = []
+                    for p in impacted_pistes:
+                        impacted_data.append({
+                            'code_piste': p.code_piste,
+                            'existence_intersection': p.existence_intersection,
+                            'nombre_intersections': p.nombre_intersections,
+                            'intersections_json': p.intersections_json,
+                        })
+                    response.data['impacted_pistes'] = impacted_data
+                    print(f"📤 {len(impacted_data)} piste(s) impactée(s) incluses dans la réponse")
                 
                 print(f"✅ Réponse enrichie avec intersections pour piste {instance.id}")
             except Exception as e:
                 print(f"⚠️ Erreur calcul intersections: {e}")
                 import traceback
                 traceback.print_exc()
-                # On ne fait pas échouer la création pour autant
         
         return response
 
