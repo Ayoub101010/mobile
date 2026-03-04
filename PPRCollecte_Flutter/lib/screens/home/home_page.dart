@@ -2847,17 +2847,63 @@ class _HomePageState extends State<HomePage> {
       final pisteEnd = _continuationData!['piste_end'] as LatLng;
 
       // -----------------------------------------------------------
+      //  PROTECTION : si pisteStart == pisteEnd, charger les vrais points
+      // -----------------------------------------------------------
+      LatLng effectiveStart = pisteStart;
+      LatLng effectiveEnd = pisteEnd;
+
+      if (_haversineMeters(pisteStart, pisteEnd) < 5.0) {
+        try {
+          final storageHelper = SimpleStorageHelper();
+          final db = await storageHelper.database;
+          final loginId = await DatabaseHelper().resolveLoginId();
+          final rows = await db.query(
+            'pistes',
+            columns: [
+              'points_json'
+            ],
+            where: 'code_piste = ? AND login_id = ?',
+            whereArgs: [
+              continuationCode,
+              loginId
+            ],
+            limit: 1,
+          );
+          if (rows.isNotEmpty && rows.first['points_json'] != null) {
+            final pts = jsonDecode(rows.first['points_json'] as String) as List;
+            if (pts.length >= 2) {
+              final first = pts.first;
+              final last = pts.last;
+              effectiveStart = LatLng(
+                ((first['latitude'] ?? first['lat']) as num).toDouble(),
+                ((first['longitude'] ?? first['lng']) as num).toDouble(),
+              );
+              effectiveEnd = LatLng(
+                ((last['latitude'] ?? last['lat']) as num).toDouble(),
+                ((last['longitude'] ?? last['lng']) as num).toDouble(),
+              );
+              print('🔄 Coordonnées corrigées depuis points_json');
+              print('   effectiveStart: (${effectiveStart.latitude.toStringAsFixed(6)}, ${effectiveStart.longitude.toStringAsFixed(6)})');
+              print('   effectiveEnd: (${effectiveEnd.latitude.toStringAsFixed(6)}, ${effectiveEnd.longitude.toStringAsFixed(6)})');
+            }
+          }
+        } catch (e) {
+          print('⚠️ Erreur chargement vrais points: $e');
+        }
+      }
+
+      // -----------------------------------------------------------
       //  VÉRIFICATION DE COLINÉARITÉ (anti-duplication)
       // -----------------------------------------------------------
-      if (newPts.length >= 5) {
+      if (newPts.length >= 5 && _haversineMeters(effectiveStart, effectiveEnd) >= 10.0) {
         // Bearing de la NOUVELLE collecte
-        // Utiliser le 2ème point et l'avant-dernier pour éviter les imprécisions GPS aux extrémités
+        // Utiliser le 2ème point et l'avant-dernier pour éviter les imprécisions GPS
         final bearingStart = newPts.length > 3 ? newPts[1] : newPts.first;
         final bearingEnd = newPts.length > 3 ? newPts[newPts.length - 2] : newPts.last;
         final newBearing = _calculateBearing(bearingStart, bearingEnd);
 
         // Bearing de la PISTE EXISTANTE (toujours start → end)
-        final pisteBearing = _calculateBearing(pisteStart, pisteEnd);
+        final pisteBearing = _calculateBearing(effectiveStart, effectiveEnd);
 
         // Bearing INTERDIT :
         // Depuis END → interdit = revenir vers start = pisteBearing + 180°
@@ -2872,20 +2918,25 @@ class _HomePageState extends State<HomePage> {
         final angleDiff = _angleDifference(newBearing, forbiddenBearing);
 
         print('🧭 ===== VÉRIFICATION COLINÉARITÉ =====');
-        print('   Piste start: (${pisteStart.latitude.toStringAsFixed(6)}, ${pisteStart.longitude.toStringAsFixed(6)})');
-        print('   Piste end: (${pisteEnd.latitude.toStringAsFixed(6)}, ${pisteEnd.longitude.toStringAsFixed(6)})');
+        print('   Effective start: (${effectiveStart.latitude.toStringAsFixed(6)}, ${effectiveStart.longitude.toStringAsFixed(6)})');
+        print('   Effective end: (${effectiveEnd.latitude.toStringAsFixed(6)}, ${effectiveEnd.longitude.toStringAsFixed(6)})');
         print('   New first: (${newPts.first.latitude.toStringAsFixed(6)}, ${newPts.first.longitude.toStringAsFixed(6)})');
         print('   New last: (${newPts.last.latitude.toStringAsFixed(6)}, ${newPts.last.longitude.toStringAsFixed(6)})');
         print('   Bearing piste (start→end): ${pisteBearing.toStringAsFixed(1)}°');
         print('   Bearing nouveau tracé: ${newBearing.toStringAsFixed(1)}°');
         print('   Bearing interdit: ${forbiddenBearing.toStringAsFixed(1)}°');
         print('   Différence angulaire: ${angleDiff.toStringAsFixed(1)}°');
-        print('   Seuil: 25°');
-        print('   Résultat: ${angleDiff < 25.0 ? "❌ BLOQUÉ (duplication)" : "✅ OK (direction différente)"}');
+        print('   Seuil: 15°');
+        print('   Résultat: ${angleDiff < 15.0 ? "❌ BLOQUÉ (duplication)" : "✅ OK (direction différente)"}');
         print('🧭 =======================================');
 
         // Si angle < 15° → vraiment même direction → duplication !
         if (angleDiff < 15.0) {
+          // Nettoyer les polylines de collecte
+          setState(() {
+            homeController.collectedPolylines.clear();
+            collectedPolylines.clear();
+          });
           _continuationData = null;
 
           if (mounted) {
@@ -2967,6 +3018,9 @@ class _HomePageState extends State<HomePage> {
           }
           return; // ← Ne pas sauvegarder
         }
+      } else if (newPts.length >= 5) {
+        // La piste existante est trop courte pour un bearing fiable → skip la vérification
+        print('⚠️ Piste existante trop courte (< 10m entre start/end), vérification colinéarité ignorée');
       }
 
       // -----------------------------------------------------------
@@ -3083,23 +3137,22 @@ class _HomePageState extends State<HomePage> {
           context,
           MaterialPageRoute(
             builder: (_) => FormulaireLignePage(
-              linePoints: mergedPts, // ← Points fusionnés
+              linePoints: mergedPts,
               provisionalCode: continuationCode,
               startTime: existingRow['created_at'] != null ? DateTime.tryParse(existingRow['created_at'].toString()) : DateTime.now(),
               endTime: DateTime.now(),
               agentName: widget.agentName,
               initialData: existingData,
-              isEditingMode: true, // ← Mode modification
-              isContinuation: true, // ⭐ Mode continuation
-              continuationSide: fromSide, // ⭐ 'start' ou 'end'
+              isEditingMode: true,
+              isContinuation: true,
+              continuationSide: fromSide,
             ),
           ),
         );
 
         if (formResult != null) {
-          //  NETTOYER TOUTES les sources de polylines pour éviter les doublons
+          // NETTOYER TOUTES les sources de polylines pour éviter les doublons
           setState(() {
-            // 1. Supprimer l'ancienne polyline de la piste
             _finishedPistes.removeWhere((p) {
               if (p.hitValue is PolylineTapData) {
                 final tapData = p.hitValue as PolylineTapData;
@@ -3107,12 +3160,10 @@ class _HomePageState extends State<HomePage> {
               }
               return false;
             });
-            // 2. Supprimer les polylines de collecte
             homeController.collectedPolylines.clear();
             collectedPolylines.clear();
           });
 
-          // Le formulaire a sauvegardé via updatePiste → recharger
           // Mettre à jour displayed_pistes
           await db.delete(
             'displayed_pistes',
@@ -3164,7 +3215,7 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
-      // Toujours nettoyer les polylines de simulation
+      // Toujours nettoyer les polylines de collecte
       setState(() {
         homeController.collectedPolylines.clear();
         collectedPolylines.clear();
