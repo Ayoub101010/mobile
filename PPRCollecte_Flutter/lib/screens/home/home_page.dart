@@ -520,7 +520,7 @@ class _HomePageState extends State<HomePage> {
     required String region,
     required String prefecture,
     required String commune,
-    required String statut, // "Enregistrée" / "Sauvegardée"
+    required String statut,
     required int nbPoints,
     required double startLat,
     required double startLng,
@@ -545,96 +545,114 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 14,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+        final isLocal = statut.toLowerCase().contains('localement');
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.45,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 42,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 14,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Handle ──
+                Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Piste — ${safe(codePiste)}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              _detailRow('Statut', safe(statut)),
-              _detailRow(
-                'Enquêteur',
-                enqueteurDisplayByStatut(enqueteurValue: enqueteur, statut: statut),
-              ),
-              if (!statut.toLowerCase().contains('localement')) ...[
-                _detailRow('Région', safe(region)),
-                _detailRow('Préfecture', safe(prefecture)),
-                _detailRow('Commune', safe(commune)),
-              ],
-              _detailRow('Nb points', nbPoints.toString()),
-              _detailRow('Début', 'X=${startLng.toStringAsFixed(6)} • Y=${startLat.toStringAsFixed(6)}'),
-              _detailRow('Fin', 'X=${endLng.toStringAsFixed(6)} • Y=${endLat.toStringAsFixed(6)}'),
-              _detailRow('Distance', '${distanceKm.toStringAsFixed(2)} km'),
-              const Divider(),
-              _detailRow('Plateforme', safe(plateforme)),
-              _detailRow('Relief', safe(relief)),
-              _detailRow('Végétation', safe(vegetation)),
-              _detailRow('Début travaux', safe(debutTravaux)),
-              _detailRow('Fin travaux', safe(finTravaux)),
-              _detailRow('Financement', safe(financement)),
-              _detailRow('Projet', safe(projet)),
-              _detailRow('Entreprise', safe(entreprise)),
-
-              //  BOUTON CONTINUER LA COLLECTE
-              if (statut.toLowerCase().contains('localement')) ...[
                 const SizedBox(height: 12),
-                const Divider(),
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add_road, size: 20),
-                    label: const Text('Continuer la collecte'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+
+                // ── Titre ──
+                Text(
+                  'Piste — ${safe(codePiste)}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+
+                // ── Contenu scrollable ──
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _detailRow('Statut', safe(statut)),
+                        _detailRow(
+                          'Enquêteur',
+                          enqueteurDisplayByStatut(enqueteurValue: enqueteur, statut: statut),
+                        ),
+                        if (!statut.toLowerCase().contains('localement')) ...[
+                          _detailRow('Région', safe(region)),
+                          _detailRow('Préfecture', safe(prefecture)),
+                          _detailRow('Commune', safe(commune)),
+                        ],
+                        _detailRow('Nb points', nbPoints.toString()),
+                        _detailRow('Début', 'X=${startLng.toStringAsFixed(6)} • Y=${startLat.toStringAsFixed(6)}'),
+                        _detailRow('Fin', 'X=${endLng.toStringAsFixed(6)} • Y=${endLat.toStringAsFixed(6)}'),
+                        _detailRow('Distance', '${distanceKm.toStringAsFixed(2)} km'),
+                        const Divider(),
+                        _detailRow('Plateforme', safe(plateforme)),
+                        _detailRow('Relief', safe(relief)),
+                        _detailRow('Végétation', safe(vegetation)),
+                        _detailRow('Début travaux', safe(debutTravaux)),
+                        _detailRow('Fin travaux', safe(finTravaux)),
+                        _detailRow('Financement', safe(financement)),
+                        _detailRow('Projet', safe(projet)),
+                        _detailRow('Entreprise', safe(entreprise)),
+                      ],
                     ),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _continuePisteCollection(
-                        codePiste: codePiste,
-                        startLat: startLat,
-                        startLng: startLng,
-                        endLat: endLat,
-                        endLng: endLng,
-                      );
-                    },
+                  ),
+                ),
+
+                // ── Boutons fixes en bas ──
+                const Divider(),
+                if (isLocal) ...[
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.add_road, size: 20),
+                      label: const Text('Continuer la collecte'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1976D2),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _continuePisteCollection(
+                          codePiste: codePiste,
+                          startLat: startLat,
+                          startLng: startLng,
+                          endLat: endLat,
+                          endLng: endLng,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Fermer'),
                   ),
                 ),
               ],
-
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Fermer'),
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },

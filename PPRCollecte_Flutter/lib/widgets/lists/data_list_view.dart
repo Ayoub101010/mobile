@@ -441,6 +441,8 @@ class _DataListViewState extends State<DataListView> {
       'geom',
       'geometry',
       'wkt',
+      'api_id',
+      'id',
 
       // si jamais ils existent dans certains records
       'commune_nom',
