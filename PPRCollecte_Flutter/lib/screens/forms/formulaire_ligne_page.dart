@@ -12,17 +12,21 @@ class FormulaireLignePage extends StatefulWidget {
   final DateTime? endTime; // 🆕 Heure de fin de collecte
   final String? agentName;
   final Map<String, dynamic>? initialData; // ← NOUVEAU: Données existantes
-  final bool isEditingMode; // ← NOUVEAU: Mode édition
+  final bool isEditingMode; //  Mode édition
+  final bool isContinuation;
+  final String? continuationSide;
 
   const FormulaireLignePage({
     super.key,
     required this.linePoints,
     this.provisionalCode, // AJOUTER cette ligne
-    this.startTime, // 🆕 Passé depuis la page de collecte GPS
-    this.endTime, // 🆕 Passé depuis la page de collecte GPS
+    this.startTime, //  Passé depuis la page de collecte GPS
+    this.endTime, //  Passé depuis la page de collecte GPS
     this.agentName,
-    this.initialData, // ← NOUVEAU
-    this.isEditingMode = false, // ← NOUVEAU
+    this.initialData,
+    this.isEditingMode = false,
+    this.isContinuation = false,
+    this.continuationSide,
   });
 
   @override
@@ -448,6 +452,14 @@ class _FormulairePageState extends State<FormulaireLignePage> {
     _setupAutoCapitalize();
   }
 
+  /// Nettoie les valeurs d'évaluation : si 0.0 ou null → vide (pour que le hint s'affiche)
+  String _cleanEvalValue(dynamic value) {
+    if (value == null) return '';
+    final s = value.toString().trim();
+    if (s.isEmpty || s == '0.0' || s == '0' || s == 'null') return '';
+    return s;
+  }
+
   void _setupNoteGlobaleListeners() {
     final controllers = [
       _niveauServiceController,
@@ -513,6 +525,32 @@ class _FormulairePageState extends State<FormulaireLignePage> {
     }
     if (widget.provisionalCode != null) {
       _codeController.text = widget.provisionalCode!;
+    }
+
+    //  MODE CONTINUATION : écraser les coordonnées avec les points fusionnés
+    if (widget.isContinuation && widget.linePoints.isNotEmpty) {
+      final firstPoint = widget.linePoints.first;
+      final lastPoint = widget.linePoints.last;
+      _xOrigineController.text = firstPoint.longitude.toStringAsFixed(6);
+      _yOrigineController.text = firstPoint.latitude.toStringAsFixed(6);
+      _xDestinationController.text = lastPoint.longitude.toStringAsFixed(6);
+      _yDestinationController.text = lastPoint.latitude.toStringAsFixed(6);
+
+      //  Si continuation depuis la FIN → vider nom destination (à re-saisir)
+      if (widget.continuationSide == 'end') {
+        _nomDestinationController.text = '';
+      }
+      //  Si continuation depuis le DÉBUT → vider nom origine (à re-saisir)
+      if (widget.continuationSide == 'start') {
+        _nomOrigineController.text = '';
+      }
+
+      // Mettre à jour l'heure de fin avec l'heure actuelle
+      final now = TimeOfDay.now();
+      _heureFinController.text = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+
+      // Forcer la date de modification
+      _dateModification = DateTime.now();
     }
     _determineCommuneAuto();
     // Récupérer automatiquement l'utilisateur connecté et l'heure actuelle
@@ -584,13 +622,13 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       _dateCreation = data['created_at'] != null ? DateTime.parse(data['created_at']) : null;
       _dateModification = DateTime.now(); // ← Date modif actuelle
 
-      _niveauServiceController.text = data['niveau_service']?.toString() ?? '';
-      _fonctionnaliteController.text = data['fonctionnalite']?.toString() ?? '';
-      _interetSocioAdminController.text = data['interet_socio_administratif']?.toString() ?? '';
-      _populationDesservieController.text = data['population_desservie']?.toString() ?? '';
-      _potentielAgricoleController.text = data['potentiel_agricole']?.toString() ?? '';
-      _coutInvestissementController.text = data['cout_investissement']?.toString() ?? '';
-      _protectionEnvController.text = data['protection_environnement']?.toString() ?? '';
+      _niveauServiceController.text = _cleanEvalValue(data['niveau_service']);
+      _fonctionnaliteController.text = _cleanEvalValue(data['fonctionnalite']);
+      _interetSocioAdminController.text = _cleanEvalValue(data['interet_socio_administratif']);
+      _populationDesservieController.text = _cleanEvalValue(data['population_desservie']);
+      _potentielAgricoleController.text = _cleanEvalValue(data['potentiel_agricole']);
+      _coutInvestissementController.text = _cleanEvalValue(data['cout_investissement']);
+      _protectionEnvController.text = _cleanEvalValue(data['protection_environnement']);
       _noteGlobale = data['note_globale']?.toDouble() ?? 0.0;
       // ===== CHAMPS TERRAIN =====
       _plateformeController.text = data['plateforme'] ?? '';
@@ -812,8 +850,8 @@ class _FormulairePageState extends State<FormulaireLignePage> {
       print('   commune_rurale_id (nom): ${pisteData['commune_rurale_id']}');
       print('   commune_rurales (id): ${pisteData['commune_rurales']}');
       final storageHelper = SimpleStorageHelper();
-      if (widget.isEditingMode) {
-        // ✅ MODE ÉDITION: Mise à jour
+      if (widget.isEditingMode || widget.isContinuation) {
+        // ✅ MODE ÉDITION / CONTINUATION: Mise à jour
         await storageHelper.updatePiste(pisteData);
         print('✅ Piste "${pisteData['code_piste']}" mise à jour (ID: ${pisteData['id']})');
       } else {
@@ -1131,6 +1169,54 @@ class _FormulairePageState extends State<FormulaireLignePage> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    //  BANNIÈRE CONTINUATION
+                    if (widget.isContinuation) ...[
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.shade300, width: 1.5),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.add_road, color: Colors.orange.shade700, size: 24),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Mode Continuation',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange.shade800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              widget.continuationSide == 'end'
+                                  ? 'La piste a été prolongée depuis le point d\'arrivée.\n'
+                                      'Les coordonnées de destination ont été mises à jour.\n'
+                                      '⚠️ Veuillez re-saisir le Nom Destination.'
+                                  : 'La piste a été prolongée depuis le point de départ.\n'
+                                      'Les coordonnées d\'origine ont été mises à jour.\n'
+                                      '⚠️ Veuillez re-saisir le Nom Origine.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.orange.shade900,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     // Section Identification
                     _buildFormSection(
                       title: '🏷️ Identification',

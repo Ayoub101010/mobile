@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:math' as Math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -223,53 +224,54 @@ class HomeController extends ChangeNotifier {
   }*/
 
 //  Une methode pour tester les  pistes dans l'emulateur à supprimer après
+  // ⭐ VERSION AVEC DIRECTION ALÉATOIRE pour tester la continuation
   void addRealisticPisteSimulation() async {
     if (!hasActiveCollection) return;
 
     final random = Random();
-    final numberOfPoints = 100 + random.nextInt(100); // 100 à 200 points
+    final numberOfPoints = 15 + random.nextInt(10); // 15-25 points (plus court pour tester vite)
 
     double currentLat = userPosition.latitude;
     double currentLng = userPosition.longitude;
-    double angle = random.nextDouble() * 2 * pi;
-    double curveIntensity = 0.08;
 
-    List<LatLng> pistePoints = []; // ← liste pour la polyline
+    // ⭐ DIRECTION COMPLÈTEMENT ALÉATOIRE à chaque appel
+    double angle = random.nextDouble() * 2 * pi; // 0 à 360°
+    double curveIntensity = 0.03; // Léger virage
+
+    List<LatLng> pistePoints = [];
 
     for (int i = 0; i < numberOfPoints; i++) {
-      // Distance entre points (15-25m)
       final distance = 0.00015 + (random.nextDouble() * 0.00005);
-
-      // Courbure variable
       final curveVariation = (random.nextDouble() - 0.5) * curveIntensity;
       angle += curveVariation;
 
-      // Déplacement avec angle
       currentLat += distance * cos(angle);
       currentLng += distance * sin(angle);
 
       final point = LatLng(currentLat, currentLng);
       pistePoints.add(point);
 
-      // Si tu veux continuer à stocker les points dans ta collection
-      addManualPointToCollection(
-        activeCollectionType == 'ligne' ? CollectionType.ligne : CollectionType.chaussee,
+      _collectionManager.addManualPoint(
+        activeCollectionType == 'ligne'
+            ? CollectionType.ligne
+            : activeCollectionType == 'chaussée'
+                ? CollectionType.chaussee
+                : CollectionType.special,
+        point,
       );
-
-      // Délai progressif pour simulation
-      await Future.delayed(Duration(milliseconds: 20 + random.nextInt(30)));
     }
 
-    final newPolyline = Polyline(
-      points: pistePoints,
-      color: Colors.brown, // norme : piste non revêtue
-      strokeWidth: 3,
-      pattern: StrokePattern.dotted(spacingFactor: 2.0), // style pointillé
+    final bearingDeg = (angle * 180 / pi % 360).toStringAsFixed(0);
+    print('🧪 SIMULATION PISTE: $numberOfPoints pts, direction ~${bearingDeg}°');
+
+    collectedPolylines.add(
+      Polyline(
+        points: pistePoints,
+        color: const Color(0xFF1976D2),
+        strokeWidth: 3.0,
+      ),
     );
 
-    collectedPolylines.add(newPolyline);
-
-    print('✅ $numberOfPoints points réalistes simulés et reliés en polyline');
     notifyListeners();
   }
 
@@ -420,6 +422,11 @@ class HomeController extends ChangeNotifier {
       'startTime': result.startTime,
       'endTime': result.endTime,
     };
+  }
+
+  void setActivePisteCode(String code) {
+    _activePisteCode = code;
+    notifyListeners();
   }
 
   void clearActivePisteCode() {

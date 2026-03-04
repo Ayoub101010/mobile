@@ -129,6 +129,7 @@ class _HomePageState extends State<HomePage> {
   List<Marker> _focusOverlayMarkers = [];
   List<Polyline> _focusOverlayPolylines = [];
   String? _currentNearestPisteCode;
+  Map<String, dynamic>? _continuationData;
   bool _isSpecialCollection = false;
   String? _specialCollectionType;
   bool _isPolygonCollection = false;
@@ -592,6 +593,39 @@ class _HomePageState extends State<HomePage> {
               _detailRow('Financement', safe(financement)),
               _detailRow('Projet', safe(projet)),
               _detailRow('Entreprise', safe(entreprise)),
+
+              //  BOUTON CONTINUER LA COLLECTE
+              if (statut.toLowerCase().contains('localement')) ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.add_road, size: 20),
+                    label: const Text('Continuer la collecte'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1976D2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _continuePisteCollection(
+                        codePiste: codePiste,
+                        startLat: startLat,
+                        startLng: startLng,
+                        endLat: endLat,
+                        endLng: endLng,
+                      );
+                    },
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerRight,
@@ -2484,31 +2518,670 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> finishLigneCollection() async {
-    final result = homeController.finishLigneCollection();
-    if (result == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Une piste doit contenir au moins 2 points.",
+// =====================================================================
+  //  CONTINUER LA COLLECTE D'UNE PISTE EXISTANTE
+  // =====================================================================
+
+  /// Calcule le bearing (angle en degrés) entre deux points GPS
+  double _calculateBearing(LatLng from, LatLng to) {
+    final lat1 = from.latitude * Math.pi / 180;
+    final lat2 = to.latitude * Math.pi / 180;
+    final dLng = (to.longitude - from.longitude) * Math.pi / 180;
+
+    final y = Math.sin(dLng) * Math.cos(lat2);
+    final x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+    return (Math.atan2(y, x) * 180 / Math.pi + 360) % 360;
+  }
+
+  /// Calcule la différence angulaire minimale entre deux bearings (0-180°)
+  double _angleDifference(double bearing1, double bearing2) {
+    double diff = (bearing1 - bearing2).abs() % 360;
+    if (diff > 180) diff = 360 - diff;
+    return diff;
+  }
+
+  /// Widget utilitaire pour afficher la distance à une extrémité
+  Widget _distanceInfoTile({
+    required IconData icon,
+    required String label,
+    required double distance,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
           ),
+          child: Text(
+            '${distance.round()}m',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _continuePisteCollection({
+    required String codePiste,
+    required double startLat,
+    required double startLng,
+    required double endLat,
+    required double endLng,
+  }) async {
+    // 1. Vérifier le GPS
+    if (!homeController.gpsEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez activer le GPS'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    // Ouvrir le formulaire principal avec les données provisoires
+    // 2. Vérifier qu'aucune collecte n'est active
+    if (homeController.hasActiveCollection) {
+      final activeType = homeController.activeCollectionType;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Veuillez terminer la collecte de $activeType en cours'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 3. Position actuelle de l'utilisateur
+    final userPos = homeController.userPosition;
+    final pisteStart = LatLng(startLat, startLng);
+    final pisteEnd = LatLng(endLat, endLng);
+
+    // 4. Calculer les distances aux deux extrémités (en mètres)
+    final distToStartM = _haversineMeters(userPos, pisteStart);
+    final distToEndM = _haversineMeters(userPos, pisteEnd);
+
+    const double seuilProximite = 150.0; // 150 mètres
+
+    print('📍 Continuation piste $codePiste:');
+    print('   Distance au départ: ${distToStartM.round()}m');
+    print('   Distance à l\'arrivée: ${distToEndM.round()}m');
+
+    // 5. Trop loin des deux extrémités ?
+    if (distToStartM > seuilProximite && distToEndM > seuilProximite) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: const Row(
+            children: [
+              Icon(Icons.location_off, color: Colors.red, size: 28),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text('Trop loin de la piste', style: TextStyle(fontSize: 17)),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Votre position actuelle est trop éloignée des extrémités de cette piste :',
+                style: TextStyle(color: Colors.grey[700], height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              _distanceInfoTile(
+                icon: Icons.flag_outlined,
+                label: 'Point de départ',
+                distance: distToStartM,
+                color: Colors.blue,
+              ),
+              const SizedBox(height: 8),
+              _distanceInfoTile(
+                icon: Icons.sports_score,
+                label: 'Point d\'arrivée',
+                distance: distToEndM,
+                color: Colors.green,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade700, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Rapprochez-vous à moins de ${seuilProximite.round()}m d\'une des extrémités pour continuer.',
+                        style: TextStyle(
+                          color: Colors.orange.shade800,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Compris'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // 6. Déterminer de quel côté l'utilisateur est le plus proche
+    final bool procheDuDebut = distToStartM <= distToEndM;
+    final double distProche = procheDuDebut ? distToStartM : distToEndM;
+    final String coteProche = procheDuDebut ? 'départ' : 'arrivée';
+    final String sideKey = procheDuDebut ? 'start' : 'end';
+
+    // 7. Dialog d'avertissement (même dialog pour les deux côtés)
+    if (!mounted) return;
+    final bool? confirmer = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Row(
+          children: [
+            Icon(Icons.add_road, color: const Color(0xFF1976D2), size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('Continuer la piste', style: const TextStyle(fontSize: 17)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Vous êtes à ${distProche.round()}m du point de $coteProche de la piste $codePiste.',
+              style: const TextStyle(fontWeight: FontWeight.w600, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Attention',
+                          style: TextStyle(
+                            color: Colors.amber.shade900,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• Vous devez marcher dans un sens DIFFÉRENT de la piste existante.\n'
+                    '• Si vous marchez dans le même sens (duplication), la collecte sera refusée.\n'
+                    '• Les nouveaux points seront ajoutés à la piste existante.',
+                    style: TextStyle(
+                      color: Colors.amber.shade900,
+                      fontSize: 12.5,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1976D2),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Démarrer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmer != true) return;
+
+    // 8. Tout OK → lancer la collecte
+    try {
+      _continuationData = {
+        'code_piste': codePiste,
+        'from_side': sideKey,
+        'piste_start': pisteStart,
+        'piste_end': pisteEnd,
+      };
+
+      homeController.setActivePisteCode(codePiste);
+      await homeController.startLigneCollection(codePiste);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.play_arrow, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Continuation de $codePiste depuis le $coteProche'),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1976D2),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      _continuationData = null;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> finishLigneCollection() async {
+    final result = homeController.finishLigneCollection();
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Une piste doit contenir au moins 2 points."),
+        ),
+      );
+      _continuationData = null;
+      return;
+    }
+
+    final List<LatLng> newPts = List<LatLng>.from(result['points'] as List<LatLng>);
+
+    // =====================================================================
+    //  CAS 1 — CONTINUATION D'UNE PISTE EXISTANTE
+    // =====================================================================
+    if (_continuationData != null) {
+      final continuationCode = _continuationData!['code_piste'] as String;
+      final fromSide = _continuationData!['from_side'] as String;
+      final pisteStart = _continuationData!['piste_start'] as LatLng;
+      final pisteEnd = _continuationData!['piste_end'] as LatLng;
+
+      // -----------------------------------------------------------
+      //  VÉRIFICATION DE COLINÉARITÉ (anti-duplication)
+      // -----------------------------------------------------------
+      if (newPts.length >= 5) {
+        // Bearing de la NOUVELLE collecte
+        // Utiliser le 2ème point et l'avant-dernier pour éviter les imprécisions GPS aux extrémités
+        final bearingStart = newPts.length > 3 ? newPts[1] : newPts.first;
+        final bearingEnd = newPts.length > 3 ? newPts[newPts.length - 2] : newPts.last;
+        final newBearing = _calculateBearing(bearingStart, bearingEnd);
+
+        // Bearing de la PISTE EXISTANTE (toujours start → end)
+        final pisteBearing = _calculateBearing(pisteStart, pisteEnd);
+
+        // Bearing INTERDIT :
+        // Depuis END → interdit = revenir vers start = pisteBearing + 180°
+        // Depuis START → interdit = aller vers end = pisteBearing
+        double forbiddenBearing;
+        if (fromSide == 'end') {
+          forbiddenBearing = (pisteBearing + 180.0) % 360.0;
+        } else {
+          forbiddenBearing = pisteBearing;
+        }
+
+        final angleDiff = _angleDifference(newBearing, forbiddenBearing);
+
+        print('🧭 ===== VÉRIFICATION COLINÉARITÉ =====');
+        print('   Piste start: (${pisteStart.latitude.toStringAsFixed(6)}, ${pisteStart.longitude.toStringAsFixed(6)})');
+        print('   Piste end: (${pisteEnd.latitude.toStringAsFixed(6)}, ${pisteEnd.longitude.toStringAsFixed(6)})');
+        print('   New first: (${newPts.first.latitude.toStringAsFixed(6)}, ${newPts.first.longitude.toStringAsFixed(6)})');
+        print('   New last: (${newPts.last.latitude.toStringAsFixed(6)}, ${newPts.last.longitude.toStringAsFixed(6)})');
+        print('   Bearing piste (start→end): ${pisteBearing.toStringAsFixed(1)}°');
+        print('   Bearing nouveau tracé: ${newBearing.toStringAsFixed(1)}°');
+        print('   Bearing interdit: ${forbiddenBearing.toStringAsFixed(1)}°');
+        print('   Différence angulaire: ${angleDiff.toStringAsFixed(1)}°');
+        print('   Seuil: 25°');
+        print('   Résultat: ${angleDiff < 25.0 ? "❌ BLOQUÉ (duplication)" : "✅ OK (direction différente)"}');
+        print('🧭 =======================================');
+
+        // Si angle < 15° → vraiment même direction → duplication !
+        if (angleDiff < 15.0) {
+          _continuationData = null;
+
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                title: const Row(
+                  children: [
+                    Icon(Icons.block, color: Colors.red, size: 28),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Collecte refusée — Duplication',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red.shade700, size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Vous avez marché dans le même sens que la piste existante.\n\n'
+                              'Cela constitue une duplication du tracé, ce qui n\'est pas autorisé.',
+                              style: TextStyle(
+                                color: Colors.red.shade800,
+                                fontSize: 13,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Pour continuer correctement :',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• Placez-vous sur l\'extrémité de la piste\n'
+                      '• Marchez dans le sens OPPOSÉ (pour prolonger la piste)\n'
+                      '• La collecte rejetée n\'a pas été sauvegardée',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Compris'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return; // ← Ne pas sauvegarder
+        }
+      }
+
+      // -----------------------------------------------------------
+      //  FUSION DES POINTS + OUVERTURE DU FORMULAIRE
+      // -----------------------------------------------------------
+      try {
+        final storageHelper = SimpleStorageHelper();
+        final db = await storageHelper.database;
+        final loginId = await DatabaseHelper().resolveLoginId();
+
+        // Charger la piste existante
+        final rows = await db.query(
+          'pistes',
+          where: 'code_piste = ? AND login_id = ?',
+          whereArgs: [
+            continuationCode,
+            loginId
+          ],
+          limit: 1,
+        );
+
+        if (rows.isEmpty) {
+          _continuationData = null;
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Piste introuvable localement. Collecte annulée.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
+
+        final existingRow = rows.first;
+
+        // Décoder les points existants
+        final existingPointsRaw = jsonDecode(existingRow['points_json'] as String) as List;
+        final existingPts = existingPointsRaw.map((p) {
+          final lat = ((p['latitude'] ?? p['lat']) as num).toDouble();
+          final lng = ((p['longitude'] ?? p['lng']) as num).toDouble();
+          return LatLng(lat, lng);
+        }).toList();
+
+        print('🔗 Fusion piste $continuationCode:');
+        print('   Points existants: ${existingPts.length}');
+        print('   Nouveaux points: ${newPts.length}');
+        print('   Côté: $fromSide');
+
+        // Fusionner
+        List<LatLng> mergedPts;
+        if (fromSide == 'end') {
+          mergedPts = [
+            ...existingPts,
+            ...newPts
+          ];
+        } else {
+          mergedPts = [
+            ...newPts.reversed,
+            ...existingPts
+          ];
+        }
+
+        print('   Points fusionnés: ${mergedPts.length}');
+
+        // Préparer les données existantes pour pré-remplir le formulaire
+        final Map<String, dynamic> existingData = {
+          'id': existingRow['id'],
+          'code_piste': existingRow['code_piste'],
+          'commune_rurale_id': existingRow['commune_rurale_id'],
+          'commune_rurales': existingRow['commune_rurales'],
+          'user_login': existingRow['user_login'],
+          'heure_debut': existingRow['heure_debut'],
+          'heure_fin': existingRow['heure_fin'],
+          'nom_origine_piste': existingRow['nom_origine_piste'],
+          'x_origine': existingRow['x_origine'],
+          'y_origine': existingRow['y_origine'],
+          'nom_destination_piste': existingRow['nom_destination_piste'],
+          'x_destination': existingRow['x_destination'],
+          'y_destination': existingRow['y_destination'],
+          'existence_intersection': existingRow['existence_intersection'],
+          'nombre_intersections': existingRow['nombre_intersections'],
+          'intersections_json': existingRow['intersections_json'],
+          'type_occupation': existingRow['type_occupation'],
+          'debut_occupation': existingRow['debut_occupation'],
+          'fin_occupation': existingRow['fin_occupation'],
+          'largeur_emprise': existingRow['largeur_emprise'],
+          'frequence_trafic': existingRow['frequence_trafic'],
+          'type_trafic': existingRow['type_trafic'],
+          'travaux_realises': existingRow['travaux_realises'],
+          'date_travaux': existingRow['date_travaux'],
+          'entreprise': existingRow['entreprise'],
+          'plateforme': existingRow['plateforme'],
+          'relief': existingRow['relief'],
+          'vegetation': existingRow['vegetation'],
+          'debut_travaux': existingRow['debut_travaux'],
+          'fin_travaux': existingRow['fin_travaux'],
+          'financement': existingRow['financement'],
+          'projet': existingRow['projet'],
+          'niveau_service': existingRow['niveau_service'],
+          'fonctionnalite': existingRow['fonctionnalite'],
+          'interet_socio_administratif': existingRow['interet_socio_administratif'],
+          'population_desservie': existingRow['population_desservie'],
+          'potentiel_agricole': existingRow['potentiel_agricole'],
+          'cout_investissement': existingRow['cout_investissement'],
+          'protection_environnement': existingRow['protection_environnement'],
+          'note_globale': existingRow['note_globale'],
+          'created_at': existingRow['created_at'],
+          'updated_at': DateTime.now().toIso8601String(),
+        };
+
+        // Ouvrir le formulaire en mode CONTINUATION
+        final formResult = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FormulaireLignePage(
+              linePoints: mergedPts, // ← Points fusionnés
+              provisionalCode: continuationCode,
+              startTime: existingRow['created_at'] != null ? DateTime.tryParse(existingRow['created_at'].toString()) : DateTime.now(),
+              endTime: DateTime.now(),
+              agentName: widget.agentName,
+              initialData: existingData,
+              isEditingMode: true, // ← Mode modification
+              isContinuation: true, // ⭐ Mode continuation
+              continuationSide: fromSide, // ⭐ 'start' ou 'end'
+            ),
+          ),
+        );
+
+        if (formResult != null) {
+          //  NETTOYER TOUTES les sources de polylines pour éviter les doublons
+          setState(() {
+            // 1. Supprimer l'ancienne polyline de la piste
+            _finishedPistes.removeWhere((p) {
+              if (p.hitValue is PolylineTapData) {
+                final tapData = p.hitValue as PolylineTapData;
+                return tapData.data['code_piste'] == continuationCode;
+              }
+              return false;
+            });
+            // 2. Supprimer les polylines de collecte
+            homeController.collectedPolylines.clear();
+            collectedPolylines.clear();
+          });
+
+          // Le formulaire a sauvegardé via updatePiste → recharger
+          // Mettre à jour displayed_pistes
+          await db.delete(
+            'displayed_pistes',
+            where: 'code_piste = ? AND login_id = ?',
+            whereArgs: [
+              continuationCode,
+              loginId
+            ],
+          );
+          await storageHelper.saveDisplayedPiste(
+            continuationCode,
+            mergedPts,
+            Colors.brown,
+            3.0,
+          );
+
+          await _loadDisplayedPistes();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Piste $continuationCode prolongée '
+                        '(+${newPts.length} pts, total: ${mergedPts.length})',
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        print('❌ Erreur continuation piste: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+
+      // Toujours nettoyer les polylines de simulation
+      setState(() {
+        homeController.collectedPolylines.clear();
+        collectedPolylines.clear();
+      });
+      _continuationData = null;
+      return;
+    }
+
+    // =====================================================================
+    //  CAS 2 — NOUVELLE PISTE (code existant INCHANGÉ)
+    // =====================================================================
     final formResult = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (
-          _,
-        ) =>
-            FormulaireLignePage(
+        builder: (_) => FormulaireLignePage(
           linePoints: result['points'],
-          provisionalCode: result['codePiste'], // ✅ Nom correct du paramètre
+          provisionalCode: result['codePiste'],
           startTime: result['startTime'],
           endTime: result['endTime'],
           agentName: widget.agentName,
