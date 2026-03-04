@@ -426,6 +426,11 @@ class _FormulairePageState extends State<FormulaireLignePage> {
     "Semi Urbain",
     "Rural",
     "Rizipiscicole",
+    "Axe",
+    "Axe Déviation",
+    "Axe Coupure",
+    "Traversé Route",
+    "Traversé Piste",
     "Autre"
   ];
 
