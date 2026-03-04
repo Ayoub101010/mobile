@@ -2926,12 +2926,12 @@ class _HomePageState extends State<HomePage> {
         print('   Bearing nouveau tracé: ${newBearing.toStringAsFixed(1)}°');
         print('   Bearing interdit: ${forbiddenBearing.toStringAsFixed(1)}°');
         print('   Différence angulaire: ${angleDiff.toStringAsFixed(1)}°');
-        print('   Seuil: 15°');
-        print('   Résultat: ${angleDiff < 15.0 ? "❌ BLOQUÉ (duplication)" : "✅ OK (direction différente)"}');
+        print('   Seuil: 30°');
+        print('   Résultat: ${angleDiff < 30.0 ? "❌ BLOQUÉ (duplication)" : "✅ OK (direction différente)"}');
         print('🧭 =======================================');
 
-        // Si angle < 15° → vraiment même direction → duplication !
-        if (angleDiff < 15.0) {
+        // Si angle < 30° → vraiment même direction → duplication !
+        if (angleDiff < 30.0) {
           // Nettoyer les polylines de collecte
           setState(() {
             homeController.collectedPolylines.clear();
