@@ -852,36 +852,65 @@ class SyncService {
       print('⬇️ Début du téléchargement des données...');
 
       // ---------- PRÉ-COMPTAGE DES ITEMS ----------
-      final operations = [
-        ApiService.fetchPistes,
-        ApiService.fetchChausseesTest,
-        ApiService.fetchLocalites,
-        ApiService.fetchEcoles,
-        ApiService.fetchMarches,
-        ApiService.fetchServicesSantes,
-        ApiService.fetchBatimentsAdministratifs,
-        ApiService.fetchInfrastructuresHydrauliques,
-        ApiService.fetchAutresInfrastructures,
-        ApiService.fetchPonts,
-        ApiService.fetchBacs,
-        ApiService.fetchBuses,
-        ApiService.fetchDalots,
-        ApiService.fetchPassagesSubmersibles,
-        ApiService.fetchPointsCritiques,
-        ApiService.fetchPointsCoupures,
-        ApiService.fetchSiteEnquetes,
-        ApiService.fetchEnquetePolygones,
-      ];
+      // ══════════════════════════════════════════
+      // (PRÉ-COMPTAGE + CACHE en mémoire)
+      // ══════════════════════════════════════════
+      final Map<String, List<dynamic>> _cache = {};
 
-      for (var op in operations) {
+      final Map<String, Future<List<dynamic>> Function()> operations = {
+        'pistes': ApiService.fetchPistes,
+        'chaussees': ApiService.fetchChausseesTest,
+        'localites': ApiService.fetchLocalites,
+        'ecoles': ApiService.fetchEcoles,
+        'marches': ApiService.fetchMarches,
+        'services_santes': ApiService.fetchServicesSantes,
+        'batiments_administratifs': ApiService.fetchBatimentsAdministratifs,
+        'infrastructures_hydrauliques': ApiService.fetchInfrastructuresHydrauliques,
+        'autres_infrastructures': ApiService.fetchAutresInfrastructures,
+        'ponts': ApiService.fetchPonts,
+        'bacs': ApiService.fetchBacs,
+        'buses': ApiService.fetchBuses,
+        'dalots': ApiService.fetchDalots,
+        'passages_submersibles': ApiService.fetchPassagesSubmersibles,
+        'points_critiques': ApiService.fetchPointsCritiques,
+        'points_coupures': ApiService.fetchPointsCoupures,
+        'site_enquete': ApiService.fetchSiteEnquetes,
+        'enquete_polygone': ApiService.fetchEnquetePolygones,
+      };
+
+      bool connectionLost = false; // ⭐ AJOUTÉ
+
+      for (var entry in operations.entries) {
+        // Si connexion déjà perdue, skip immédiat
+        if (connectionLost) {
+          _cache[entry.key] = [];
+          result.failedCount++;
+          result.errors.add('${_getFrenchTableName(entry.key)} : connexion indisponible');
+          continue;
+        }
+
         try {
-          final data = await op();
+          if (onProgress != null) {
+            onProgress(0.0, "📥 Téléchargement des ${_getFrenchTableName(entry.key)}...", 0, 1);
+          }
+          final data = await entry.value();
+          _cache[entry.key] = data;
           totalItems += data.length;
         } catch (e) {
-          // On ne bloque pas le process, on compte juste un échec global
+          _cache[entry.key] = [];
           result.failedCount++;
-          result.errors.add('Erreur pré-comptage: $e');
-          print('⚠️ Erreur lors du pré-comptage: $e');
+          final bool isNetwork = e.toString().contains('SocketException') || e.toString().contains('Timeout') || e.toString().contains('réseau') || e.toString().contains('network');
+          if (isNetwork) {
+            connectionLost = true;
+            result.errors.add(
+              '${_getFrenchTableName(entry.key)} : connexion interrompue',
+            );
+          } else {
+            result.errors.add(
+              '${_getFrenchTableName(entry.key)} : téléchargement échoué ($e)',
+            );
+          }
+          print('⚠️ Erreur téléchargement ${entry.key}: $e');
         }
       }
 
@@ -900,7 +929,7 @@ class SyncService {
         }
 
         print('📥 Téléchargement des chaussées...');
-        final chaussees = await ApiService.fetchChausseesTest();
+        final chaussees = _cache['chaussees'] ?? [];
         print('🛣️ ${chaussees.length} chaussées à traiter');
 
         for (var chaussee in chaussees) {
@@ -936,7 +965,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des localités...", processedItems, totalItems);
         }
         print('📥 Téléchargement des localités...');
-        final localites = await ApiService.fetchLocalites();
+        final localites = _cache['localites'] ?? [];
         print('📍 ${localites.length} localités à traiter');
         for (var localite in localites) {
           try {
@@ -969,7 +998,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des écoles...", processedItems, totalItems);
         }
         print('📥 Téléchargement des écoles...');
-        final ecoles = await ApiService.fetchEcoles();
+        final ecoles = _cache['ecoles'] ?? [];
         print('🏫 ${ecoles.length} écoles à traiter');
         for (var ecole in ecoles) {
           try {
@@ -1002,7 +1031,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des marchés...", processedItems, totalItems);
         }
         print('📥 Téléchargement des marchés...');
-        final marches = await ApiService.fetchMarches();
+        final marches = _cache['marches'] ?? [];
         print('🛒 ${marches.length} marchés à traiter');
         for (var marche in marches) {
           try {
@@ -1035,7 +1064,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des services de santé...", processedItems, totalItems);
         }
         print('📥 Téléchargement des services de santé...');
-        final servicesSantes = await ApiService.fetchServicesSantes();
+        final servicesSantes = _cache['services_santes'] ?? [];
         print('🏥 ${servicesSantes.length} services de santé à traiter');
         for (var service in servicesSantes) {
           try {
@@ -1068,7 +1097,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des bâtiments administratifs...", processedItems, totalItems);
         }
         print('📥 Téléchargement des bâtiments administratifs...');
-        final batiments = await ApiService.fetchBatimentsAdministratifs();
+        final batiments = _cache['batiments_administratifs'] ?? [];
         print('🏛️ ${batiments.length} bâtiments administratifs à traiter');
         for (var batiment in batiments) {
           try {
@@ -1101,7 +1130,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des infrastructures hydrauliques...", processedItems, totalItems);
         }
         print('📥 Téléchargement des infrastructures hydrauliques...');
-        final infrastructures = await ApiService.fetchInfrastructuresHydrauliques();
+        final infrastructures = _cache['infrastructures_hydrauliques'] ?? [];
         print('💧 ${infrastructures.length} infrastructures hydrauliques à traiter');
         for (var infrastructure in infrastructures) {
           try {
@@ -1134,7 +1163,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des autres infrastructures...", processedItems, totalItems);
         }
         print('📥 Téléchargement des autres infrastructures...');
-        final autresInfrastructures = await ApiService.fetchAutresInfrastructures();
+        final autresInfrastructures = _cache['autres_infrastructures'] ?? [];
         print('🏗️ ${autresInfrastructures.length} autres infrastructures à traiter');
         for (var infrastructure in autresInfrastructures) {
           try {
@@ -1167,7 +1196,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des ponts...", processedItems, totalItems);
         }
         print('📥 Téléchargement des ponts...');
-        final ponts = await ApiService.fetchPonts();
+        final ponts = _cache['ponts'] ?? [];
         print('🌉 ${ponts.length} ponts à traiter');
         for (var pont in ponts) {
           try {
@@ -1200,7 +1229,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des bacs...", processedItems, totalItems);
         }
         print('📥 Téléchargement des bacs...');
-        final bacs = await ApiService.fetchBacs();
+        final bacs = _cache['bacs'] ?? [];
         print('⛴️ ${bacs.length} bacs à traiter');
         for (var bac in bacs) {
           try {
@@ -1233,7 +1262,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des buses...", processedItems, totalItems);
         }
         print('📥 Téléchargement des buses...');
-        final buses = await ApiService.fetchBuses();
+        final buses = _cache['buses'] ?? [];
         print('🕳️ ${buses.length} buses à traiter');
         for (var buse in buses) {
           try {
@@ -1266,7 +1295,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des dalots...", processedItems, totalItems);
         }
         print('📥 Téléchargement des dalots...');
-        final dalots = await ApiService.fetchDalots();
+        final dalots = _cache['dalots'] ?? [];
         print('🔄 ${dalots.length} dalots à traiter');
         for (var dalot in dalots) {
           try {
@@ -1299,7 +1328,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des passages submersibles...", processedItems, totalItems);
         }
         print('📥 Téléchargement des passages submersibles...');
-        final passages = await ApiService.fetchPassagesSubmersibles();
+        final passages = _cache['passages_submersibles'] ?? [];
         print('🌊 ${passages.length} passages submersibles à traiter');
         for (var passage in passages) {
           try {
@@ -1332,7 +1361,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des points critiques...", processedItems, totalItems);
         }
         print('📥 Téléchargement des points critiques...');
-        final pointsCritiques = await ApiService.fetchPointsCritiques();
+        final pointsCritiques = _cache['points_critiques'] ?? [];
         print('⚠️ ${pointsCritiques.length} points critiques à traiter');
         for (var pointCritique in pointsCritiques) {
           try {
@@ -1365,7 +1394,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des points de coupure...", processedItems, totalItems);
         }
         print('📥 Téléchargement des points de coupure...');
-        final pointsCoupures = await ApiService.fetchPointsCoupures();
+        final pointsCoupures = _cache['points_coupures'] ?? [];
         print('🔌 ${pointsCoupures.length} points de coupure à traiter');
         for (var pointCoupure in pointsCoupures) {
           try {
@@ -1397,7 +1426,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des sites d'enquête...", processedItems, totalItems);
         }
         print('📥 Téléchargement des sites d\'enquête...');
-        final sites = await ApiService.fetchSiteEnquetes();
+        final sites = _cache['site_enquete'] ?? [];
         print('📋 ${sites.length} sites d\'enquête à traiter');
         for (var site in sites) {
           try {
@@ -1435,7 +1464,7 @@ class SyncService {
         }
 
         print('📥 Téléchargement des zones de plaine...');
-        final polygones = await ApiService.fetchEnquetePolygones();
+        final polygones = _cache['enquete_polygone'] ?? [];
         print('📐 ${polygones.length} zones de plaine à traiter');
 
         for (var polygone in polygones) {
@@ -1477,7 +1506,7 @@ class SyncService {
           onProgress(processedItems / totalItems, "Téléchargement des pistes...", processedItems, totalItems);
         }
         print('📥 Téléchargement des pistes...');
-        final pistes = await ApiService.fetchPistes();
+        final pistes = _cache['pistes'] ?? [];
         print('🛤️ ${pistes.length} pistes à traiter');
         for (var piste in pistes) {
           try {
