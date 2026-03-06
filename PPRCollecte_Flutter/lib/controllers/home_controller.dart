@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:math' as Math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -13,7 +13,6 @@ import '../models/collection_models.dart';
 class HomeController extends ChangeNotifier {
   final LocationService _locationService;
   final CollectionManager _collectionManager = CollectionManager();
-//  final FormMarkerService _formMarkerService = FormMarkerService();
 
   // États exposés
   bool gpsEnabled = false;
@@ -107,8 +106,8 @@ class HomeController extends ChangeNotifier {
   }
 
   //  FIN SIMULATION
-// Ajouter cette méthode
-  // Ajouter cette méthode pour la simulation spéciale
+
+  // méthode pour la simulation spéciale ( Bacs + Passages)
   void addManualPointToSpecialCollection() {
     if (specialCollection == null || !specialCollection!.isActive) return;
 
@@ -143,7 +142,7 @@ class HomeController extends ChangeNotifier {
   void _onCollectionChanged() {
     final ligne = _collectionManager.ligneCollection;
     final chaussee = _collectionManager.chausseeCollection;
-    final special = _collectionManager.specialCollection; // ← AJOUTER
+    final special = _collectionManager.specialCollection;
 
     if (ligne != null) {
       lineActive = ligne.isActive;
@@ -157,7 +156,7 @@ class HomeController extends ChangeNotifier {
       lineTotalDistance = 0.0;
     }
 
-    // ⭐⭐ AJOUTER LA COLLECTION SPÉCIALE ⭐⭐
+    //  AJOUTER LA COLLECTION SPÉCIALE
     if (special != null) {
       // Mettre à jour les points pour le traçage
       linePoints = List<LatLng>.from(special.points);
@@ -194,37 +193,9 @@ class HomeController extends ChangeNotifier {
 
     startLocationTracking();
     updateStatus();
-    // loadFormMarkers(); // Charger les marqueurs au démarrage
   }
 
-  /// Charge les marqueurs des formulaires enregistrés
-  /*Future<void> loadFormMarkers() async {
-    try {
-      // ⭐⭐ UTILISEZ getUnsyncedMarkers() AU LIEU DE L'ANCIENNE MÉTHODE ⭐⭐
-      final markers = await _formMarkerService.getUnsyncedMarkers();
-
-      formMarkers = markers;
-      print('✅ ${markers.length} marqueurs NON synchronisés chargés');
-      notifyListeners();
-    } catch (e) {
-      print('❌ Erreur lors du chargement des marqueurs non synchronisés: $e');
-    }
-  }*/
-
-  /// Rafraîchit les marqueurs après un nouvel enregistrement
-  /*Future<void> refreshFormMarkers() async {
-    try {
-      final markers = await _formMarkerService.refreshFormMarkers();
-      formMarkers = markers;
-      notifyListeners();
-      print('🔄 Marqueurs rafraîchis: ${markers.length} formulaires');
-    } catch (e) {
-      print('❌ Erreur lors du rafraîchissement des marqueurs: $e');
-    }
-  }*/
-
 //  Une methode pour tester les  pistes dans l'emulateur à supprimer après
-  // ⭐ VERSION AVEC DIRECTION ALÉATOIRE pour tester la continuation
   void addRealisticPisteSimulation() async {
     if (!hasActiveCollection) return;
 
@@ -234,7 +205,7 @@ class HomeController extends ChangeNotifier {
     double currentLat = userPosition.latitude;
     double currentLng = userPosition.longitude;
 
-    // ⭐ DIRECTION COMPLÈTEMENT ALÉATOIRE à chaque appel
+    //  DIRECTION COMPLÈTEMENT ALÉATOIRE à chaque appel
     double angle = random.nextDouble() * 2 * pi; // 0 à 360°
     double curveIntensity = 0.03; // Léger virage
 
@@ -268,7 +239,7 @@ class HomeController extends ChangeNotifier {
       Polyline(
         points: pistePoints,
         color: const Color(0xFF1976D2),
-        strokeWidth: 3.0,
+        strokeWidth: 5.0,
       ),
     );
 
@@ -313,7 +284,7 @@ class HomeController extends ChangeNotifier {
 
   Future<void> startLigneCollection(String codePiste) async {
     try {
-      _activePisteCode = codePiste; // ⭐⭐ STOCKER LE CODE ⭐⭐
+      _activePisteCode = codePiste; //  STOCKER LE CODE
 
       _collectionManager.startLigneCollection(
         codePiste: codePiste,
@@ -389,7 +360,7 @@ class HomeController extends ChangeNotifier {
   Map<String, dynamic>? finishLigneCollection() {
     final result = _collectionManager.finishLigneCollection();
 
-    // ⭐⭐ EFFACER IMMÉDIATEMENT LE CODE PISTE ACTIF ⭐⭐
+    //  EFFACER IMMÉDIATEMENT LE CODE PISTE ACTIF
     final String? finishedCode = _activePisteCode;
     _activePisteCode = null;
     notifyListeners();
@@ -404,7 +375,7 @@ class HomeController extends ChangeNotifier {
     return {
       'points': result.points,
       'id': result.id,
-      'codePiste': result.codePiste ?? finishedCode, // ⭐⭐ GARDE LE CODE SI NULL ⭐⭐
+      'codePiste': result.codePiste ?? finishedCode, //  GARDE LE CODE SI NULL
       'totalDistance': result.totalDistance,
       'startTime': result.startTime,
       'endTime': result.endTime,

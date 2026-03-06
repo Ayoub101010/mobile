@@ -66,7 +66,6 @@ class DatabaseHelper {
         print('🆕 Création de toutes les tables pour la version $version');
         await _createAllTables(db);
         await _insertDefaultUser(db); // Ajout de l'utilisateur par défaut
-        await _logTableSchema(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         print('🔄 Migration $oldVersion → $newVersion');
@@ -77,12 +76,9 @@ class DatabaseHelper {
         if (oldVersion < 13) {
           await _createEnqueteTables(db);
         }
-        await _logTableSchema(db);
       },
       onOpen: (db) async {
         print('🔌 Base de données ouverte avec succès');
-        await _testDatabaseIntegrity(db);
-        await _logTableSchema(db);
       },
     );
   }
@@ -866,76 +862,6 @@ CREATE TABLE IF NOT EXISTS app_session (
     }
   }
 
-  Future<void> _testDatabaseIntegrity(Database db) async {
-    try {
-      // CORRECTION: On utilise la table test qui a été créée dans _createAllTables
-      await db.insert('test', {
-        'id': 1
-      });
-      final results = await db.query('test');
-      await db.delete('test', where: 'id = ?', whereArgs: [
-        1
-      ]);
-      print('✅ Accès en écriture confirmé - ${results.length} résultat(s)');
-    } catch (e) {
-      print('❌ ERREUR ÉCRITURE: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> _logTableSchema(Database db) async {
-    print('\n📊 SCHEMA COMPLET DE LA BASE DE DONNÉES:');
-    print('=' * 50);
-
-    final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';");
-
-    print('📋 Nombre de tables: ${tables.length}');
-
-    for (var t in tables) {
-      final tableName = t['name'] as String;
-      print('\n📑 Table: $tableName');
-      print('─' * 30);
-
-      final columns = await db.rawQuery('PRAGMA table_info($tableName)');
-
-      for (var col in columns) {
-        final name = col['name'] as String;
-        final type = col['type'] as String;
-        final pk = col['pk'] as int;
-        final notnull = col['notnull'] as int;
-
-        print('   ├─ $name ($type)'
-            '${pk == 1 ? ' [PRIMARY KEY]' : ''}'
-            '${notnull == 1 ? ' [NOT NULL]' : ''}');
-      }
-      // NOUVEAU: Afficher le contenu de la table (sauf pour les tables système)
-      if (tableName != 'android_metadata' && tableName != 'test') {
-        try {
-          final content = await db.query(tableName);
-          print('   └─ 📊 CONTENU (${content.length} enregistrement(s)):');
-
-          if (content.isEmpty) {
-            print('      └─ Aucune donnée');
-          } else {
-            for (var i = 0; i < content.length; i++) {
-              final row = content[i];
-              print('      ${i + 1}.');
-              row.forEach((key, value) {
-                print('         ├─ $key: $value');
-              });
-              if (i < content.length - 1) {
-                print('         │');
-              }
-            }
-          }
-        } catch (e) {
-          print('   └─ ❌ Erreur lecture contenu: $e');
-        }
-      }
-    }
-    print('=' * 50);
-  }
-
   // ============ MÉTHODES USERS (LOGIN) ============
 
   Future<String?> getAgentFullName(String email) async {
@@ -1115,7 +1041,6 @@ CREATE TABLE IF NOT EXISTS app_session (
       await db.close();
       _database = null;
 
-      // CORRECTION: Utilisation du bon chemin pour la suppression
       final dbPath = await getDatabasesPath();
       final path = join(dbPath, 'app_database.db');
 
@@ -1133,22 +1058,11 @@ CREATE TABLE IF NOT EXISTS app_session (
 
   Future<int> insertEntity(String tableName, Map<String, dynamic> data) async {
     final db = await database;
-    // CORRECTION: Utilisation du bon chemin
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'app_database.db');
     final userData = {
       ...data,
       'login_id': await resolveLoginId(),
       'commune_id': await _getCommuneId(),
     };
-    print('🗂️ Insertion dans: $path');
-    print('📋 Table: $tableName');
-    print('📍 commune_id: ${userData['commune_id']}');
-    // NOUVEAU: Afficher les champs et valeurs qui seront insérés
-    print('📝 Champs à insérer:');
-    data.forEach((key, value) {
-      print('   ├─ $key: $value (${value.runtimeType})');
-    });
 
     final id = await db.insert(tableName, userData);
     print("✅ Entité insérée dans $tableName (ID: $id)");
@@ -1157,48 +1071,15 @@ CREATE TABLE IF NOT EXISTS app_session (
 
   Future<List<Map<String, dynamic>>> getEntities(String tableName) async {
     final db = await database;
-    // CORRECTION: Utilisation du bon chemin
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'app_database.db');
-    print('🗂️ Lecture depuis: $path');
-    print('📋 Table: $tableName');
 
     final List<Map<String, dynamic>> maps = await db.query(tableName);
-    print("📊 ${maps.length} entité(s) dans $tableName:");
-    for (var entity in maps) {
-      print("   ➡️ $entity");
-    }
 
     return maps;
   }
 
   Future<int?> _getCommuneId() async {
     try {
-      /* GPS-BASED ATTRIBUTION: 
-         We now return null by default to let the backend determine the commune 
-         spatially during sync. This prevents forcing a point into the user's 
-         home commune if they are working elsewhere.
-      */
       return null;
-
-      /* OLD LOGIC (Keep commented for reference if needed)
-      // Priorité à l'API
-      if (ApiService.communeId != null) {
-        print('📍 commune_id depuis API: ${ApiService.communeId}');
-        return ApiService.communeId;
-      }
-
-      // Fallback: base locale
-      final currentUser = await getCurrentUser();
-      if (currentUser != null && currentUser['communes_rurales'] != null) {
-        final communeId = currentUser['communes_rurales'] as int;
-        print('📍 commune_id depuis base locale: $communeId');
-        return communeId;
-      }
-
-      print('⚠️ commune_id non trouvé, attribution auto par le backend lors du sync');
-      return null; 
-      */
     } catch (e) {
       print('❌ Erreur _getCommuneId: $e');
       return null;
@@ -1214,10 +1095,8 @@ CREATE TABLE IF NOT EXISTS app_session (
     }
   }
 
-// Dans database_helper.dart
   Future<void> resetAndRecreateDatabase({bool force = false}) async {
     if (!force) {
-      // Demander confirmation en production
       print('⚠️ Méthode dangereuse - utilisez avec caution');
       return;
     }
@@ -3349,22 +3228,6 @@ CREATE TABLE IF NOT EXISTS app_session (
         loginId
       ],
     );
-  }
-
-// Dans DatabaseHelper, ajoutez cette méthode
-  Future<void> debugDisplayedSpecialLines() async {
-    final db = await database;
-    final tableExists = await _tableExists(db, 'displayed_special_lines');
-    print('📊 Table displayed_special_lines existe: $tableExists');
-
-    if (tableExists) {
-      final lines = await db.query('displayed_special_lines');
-      print('📊 Nombre de lignes spéciales dans la table: ${lines.length}');
-
-      for (var line in lines) {
-        print('  - ID: ${line['id']}, Type: ${line['special_type']}, Nom: ${line['line_name']}');
-      }
-    }
   }
 
   Future<void> saveDisplayedPoint({

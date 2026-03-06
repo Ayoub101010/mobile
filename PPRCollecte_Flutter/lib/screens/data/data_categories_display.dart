@@ -219,10 +219,11 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
       print('👁️ [FOCUS-ROW] keys=${show}');
     }
 
-    // ⭐⭐ STRATÉGIE 1: Chercher d'abord les paires EXPLICITES selon la convention de votre base
+    //  STRATÉGIE 1: Chercher d'abord les paires EXPLICITES selon la convention de votre base
     // Dans votre cas, x=longitude, y=latitude
     final explicitPairs = [
       // Format: [clé_longitude, clé_latitude] - x=longitude, y=latitude
+
       [
         'x_localite',
         'y_localite'
@@ -310,6 +311,14 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
         'lng_dalot',
         'lat_dalot'
       ],
+      [
+        'x_point_co',
+        'y_point_co'
+      ],
+      [
+        'x_point_cr',
+        'y_point_cr'
+      ],
     ];
 
     for (final pair in explicitPairs) {
@@ -317,7 +326,7 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
       final lat = _toD(r[pair[1]]); // Second = latitude (y)
 
       if (lat != null && lng != null) {
-        // ⭐⭐ VALIDATION SIMPLE - pas d'inversion automatique
+        //  VALIDATION SIMPLE - pas d'inversion automatique
         if (_isLat(lat) && _isLng(lng)) {
           if (_DBG_FOCUS_POINT) {
             print('✅ [FOCUS] Paire explicite ${pair} -> lat=$lat, lon=$lng');
@@ -331,7 +340,7 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
       }
     }
 
-    // ⭐⭐ STRATÉGIE 2: GeoJSON (coordinates = [lon, lat])
+    //  STRATÉGIE 2: GeoJSON (coordinates = [lon, lat])
     for (final k in [
       'geom',
       'geometry',
@@ -359,11 +368,16 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
       } catch (_) {}
     }
 
-    // ⭐⭐ STRATÉGIE 3: Chercher latitude/longitude explicites
+    //  STRATÉGIE 3: Chercher latitude/longitude explicites
     double? foundLat, foundLng;
-
-    // Chercher latitude
+    const ignoredKeys = {
+      'intersections_json',
+      'nombre_intersections',
+      'existence_intersection'
+    };
     for (final k in r.keys) {
+      if (ignoredKeys.contains(k)) continue; //  IGNORER les clés d'intersection
+
       if (foundLat == null && (k.contains('latitude') || k == 'lat' || k.contains('_lat'))) {
         foundLat = _toD(r[k]);
       }
@@ -510,48 +524,93 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
     return null;
   }
 
+  /// Retourne le nom de la table SQLite pour la catégorie/type actuellement sélectionnés
+  String? _getCurrentTableName() {
+    if (selectedCategory == null) return null;
+    if (selectedCategory == "Pistes") return 'pistes';
+    if (selectedCategory == "Chaussées") return 'chaussees';
+    if (selectedType == null) return null;
+
+    final config = InfrastructureConfig.getEntityConfig(selectedCategory!, selectedType!);
+    return config?['tableName']?.toString();
+  }
+
   Future<void> _goToMapForItem(Map<String, dynamic> item) async {
     MapFocusTarget? target;
 
-    // 1) polyligne d'abord (ta fonction existante)
-    final poly = _extractPolyline(item);
-    if (poly != null && poly.length >= 2) {
-      final st = (item['special_type'] ?? item['type'] ?? '').toString().trim();
-      final label = st.isNotEmpty ? st : (item['code_piste'] ?? item['nom'] ?? item['name'] ?? '').toString();
+    //  Récupérer la table source (injectée par DataListView ou présente dans l'item)
+    final sourceTable = item['source_table']?.toString() ?? item['table']?.toString() ?? item['original_table']?.toString() ?? _getCurrentTableName();
 
-      target = MapFocusTarget.polyline(
-        polyline: poly,
-        label: label,
-        id: item['id']?.toString(),
-      );
-    } else {
-      // 2) point WGS84 (enregistré/sauvegardé)
+    if (_DBG_FOCUS_POINT) {
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print('👁️ [FOCUS] _goToMapForItem appelé');
+      print('   source_table = $sourceTable');
+      print('   selectedCategory = $selectedCategory');
+      print('   selectedType = $selectedType');
+      print('   item keys = ${item.keys.toList()}');
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    }
+
+    //  ÉTAPE 1 : Pour les pistes/chaussées → polyligne
+    // SEULEMENT si c'est effectivement une piste ou chaussée
+    final bool isPisteOrChaussee = (sourceTable == 'pistes' || sourceTable == 'chaussees' || selectedCategory == "Pistes" || selectedCategory == "Chaussées");
+
+    if (isPisteOrChaussee) {
+      final poly = _extractPolyline(item);
+      if (poly != null && poly.length >= 2) {
+        final st = (item['special_type'] ?? item['type'] ?? '').toString().trim();
+        final label = st.isNotEmpty ? st : (item['code_piste'] ?? item['nom'] ?? item['name'] ?? '').toString();
+
+        target = MapFocusTarget.polyline(
+          polyline: poly,
+          label: label,
+          id: item['id']?.toString(),
+        );
+      }
+    }
+
+    //  ÉTAPE 2 : Si pas de polyline (ou pas piste/chaussée) → extraire un point
+    if (target == null) {
       LatLng? pt = _extractPointWgs84(item);
 
-      // 3) fallback éventuel: recharger par id/table si fourni
+      //  ÉTAPE 3 : Fallback - recharger depuis la DB avec la bonne table
       if (pt == null) {
         final id = item['id'] ?? item['ID'] ?? item['Id'];
-        final table = item['table'] ?? item['source_table'] ?? item['original_table'];
-        if (id != null && table != null) {
-          final db = await DatabaseHelper().database;
-          final res = await db.query(table.toString(),
+        final table = sourceTable; //  Utiliser sourceTable au lieu de item['table']
+
+        if (_DBG_FOCUS_POINT) {
+          print('⚠️ [FOCUS] Point non trouvé directement, fallback DB: id=$id, table=$table');
+        }
+
+        if (id != null && table != null && table.isNotEmpty) {
+          try {
+            final db = await DatabaseHelper().database;
+            final res = await db.query(
+              table,
               where: 'id = ?',
               whereArgs: [
                 id
               ],
-              limit: 1);
-          if (res.isNotEmpty) {
-            pt = _extractPointWgs84(res.first);
+              limit: 1,
+            );
+            if (res.isNotEmpty) {
+              if (_DBG_FOCUS_POINT) {
+                print('✅ [FOCUS] Rechargé depuis $table, keys=${res.first.keys.toList()}');
+              }
+              pt = _extractPointWgs84(res.first);
+            }
+          } catch (e) {
+            if (_DBG_FOCUS_POINT) {
+              print('❌ [FOCUS] Erreur requête table=$table: $e');
+            }
           }
         }
       }
 
       if (pt != null) {
         final label = (item['nom'] ?? item['point_name'] ?? item['name'] ?? '').toString();
-        // petit log pour vérifier
         if (_DBG_FOCUS_POINT) {
-          // ignore: avoid_print
-          print('🎯 [FOCUS->MAP] lat=${pt.latitude}, lon=${pt.longitude}, id=${item['id']}');
+          print('🎯 [FOCUS->MAP] lat=${pt.latitude}, lon=${pt.longitude}, label=$label, id=${item['id']}');
         }
         target = MapFocusTarget.point(point: pt, label: label, id: item['id']?.toString());
       }
@@ -559,14 +618,20 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
 
     if (target == null) {
       if (!mounted) return;
+      if (_DBG_FOCUS_POINT) {
+        print('❌ [FOCUS] ÉCHEC TOTAL - Impossible de localiser');
+        print('   Données item:');
+        item.forEach((key, value) {
+          if (key.contains('x_') || key.contains('y_') || key.contains('lat') || key.contains('lng') || key.contains('lon') || key.contains('geom') || key.contains('point')) {
+            print('     $key: $value');
+          }
+        });
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Impossible de localiser cette donnée (pas de géométrie).")),
       );
       return;
     }
-
-    // ... ton code existant pour récupérer l'agent, pousser HomePage, etc.
-    final fullName = widget.agentName;
 
     if (!mounted) return;
     HomePage.pendingFocusTarget = target;
@@ -650,8 +715,6 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
           } else {
             filteredData = allPistes.where((p) => p['login_id'] == loginId || p['saved_by_user_id'] == loginId).toList();
           }
-
-          print('📊 Pistes ${widget.dataFilter}: ${filteredData.length}');
         } else if (selectedCategory == "Chaussées") {
           List<Map<String, dynamic>> allChaussees = await storageHelper.getAllChausseesMaps();
 
@@ -665,11 +728,9 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
           } else {
             filteredData = allChaussees.where((ch) => ch['login_id'] == loginId || ch['saved_by_user_id'] == loginId).toList();
           }
-
-          print('📊 Chaussées ${widget.dataFilter}: ${filteredData.length}');
         }
       }
-      // ✅ CAS NORMAL - POINTS (LOGIQUE EXISTANTE)
+      //  CAS NORMAL - POINTS (LOGIQUE EXISTANTE)
       else {
         final dbHelper = DatabaseHelper();
         final config = InfrastructureConfig.getEntityConfig(selectedCategory!, selectedType!);
@@ -694,7 +755,7 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
         }
       }
 
-      // ✅ METTRE À JOUR L'ÉTAT
+      //  METTRE À JOUR L'ÉTAT
       setState(() => currentData = filteredData);
     } catch (e) {
       print('❌ Erreur récupération ${selectedCategory}: $e');
@@ -707,13 +768,13 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
     try {
       // Convertir les données SQLite vers format formulaire
       final formData = {
-        'id': chaussee['id'], // ← IMPORTANT: Inclure l'ID
+        'id': chaussee['id'],
         'code_piste': chaussee['code_piste'],
         'code_gps': chaussee['code_gps'],
         'endroit': chaussee['endroit'],
         'type_chaussee': chaussee['type_chaussee'],
         'etat_piste': chaussee['etat_piste'],
-        'user_login': chaussee['user_login'], // ← Utiliser user_login
+        'user_login': chaussee['user_login'],
         'x_debut_chaussee': chaussee['x_debut_chaussee'],
         'y_debut_chaussee': chaussee['y_debut_chaussee'],
         'x_fin_chaussee': chaussee['x_fin_chaussee'],
@@ -723,7 +784,7 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
         'nombre_points': chaussee['nombre_points'],
         'created_at': chaussee['created_at'],
         'updated_at': chaussee['updated_at'],
-        'is_editing': true, // ← Flag pour mode édition
+        'is_editing': true, // mode édition
       };
 
       // Convertir les points JSON en List<LatLng>
@@ -735,7 +796,7 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
           builder: (_) => FormulaireChausseePage(
             chausseePoints: pointsList,
             provisionalId: formData['id'],
-            agentName: formData['user_login'], // ← Utiliser user_login
+            agentName: formData['user_login'],
             initialData: formData,
             isEditingMode: true,
           ),
@@ -1235,6 +1296,7 @@ class _DataCategoriesDisplayState extends State<DataCategoriesDisplay> {
             data: currentData,
             entityType: selectedType!,
             dataFilter: widget.dataFilter,
+            tableName: _getCurrentTableName(),
             onEdit: _editItem,
             onDelete: _deleteItem,
             onView: (item) => _goToMapForItem(item),

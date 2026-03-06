@@ -151,7 +151,7 @@ class _LegendWidgetState extends State<LegendWidget> {
       final isPisteColor = colorValue == Colors.brown.value || colorValue == const Color(0xFFB86E1D).value;
       // Exclure la couleur chaussée terre (Chocolate 0xFFD2691E)
       if (colorValue == const Color(0xFFD2691E).value) return false;
-      return isPisteColor && p.strokeWidth <= 3.5;
+      return isPisteColor;
     }).length;
   }
 
@@ -458,7 +458,7 @@ class _LegendWidgetState extends State<LegendWidget> {
                   child: const Text('Points', style: TextStyle(fontSize: 13)),
                 ),
               ),
-              _buildCountBadge(_totalPoints),
+              if (parentVisible) _buildCountBadge(_totalPoints),
               GestureDetector(
                 onTap: () => setState(() => _pointsExpanded = !_pointsExpanded),
                 child: Icon(
@@ -510,7 +510,7 @@ class _LegendWidgetState extends State<LegendWidget> {
                       Expanded(
                         child: Text(name, style: TextStyle(fontSize: 12, color: (parentVisible && subVisible) ? Colors.grey[700] : Colors.grey[400])),
                       ),
-                      if (count > 0) _buildCountBadge(count, small: true),
+                      if (count > 0 && parentVisible && subVisible) _buildCountBadge(count, small: true),
                     ],
                   ),
                 );
@@ -556,7 +556,7 @@ class _LegendWidgetState extends State<LegendWidget> {
                   child: const Text('Chaussées', style: TextStyle(fontSize: 13)),
                 ),
               ),
-              _buildCountBadge(_totalChaussees),
+              if (parentVisible) _buildCountBadge(_totalChaussees),
               GestureDetector(
                 onTap: () => setState(() => _chausseesExpanded = !_chausseesExpanded),
                 child: Icon(
@@ -606,7 +606,7 @@ class _LegendWidgetState extends State<LegendWidget> {
                       Expanded(
                         child: Text(name, style: TextStyle(fontSize: 12, color: (parentVisible && subVisible) ? Colors.grey[700] : Colors.grey[400])),
                       ),
-                      if (count > 0) _buildCountBadge(count, small: true),
+                      if (count > 0 && parentVisible && subVisible) _buildCountBadge(count, small: true),
                     ],
                   ),
                 );

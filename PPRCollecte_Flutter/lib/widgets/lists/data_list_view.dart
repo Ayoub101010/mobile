@@ -12,6 +12,7 @@ class DataListView extends StatefulWidget {
   final Function(Map<String, dynamic>) onEdit;
   final Function(int) onDelete;
   final void Function(Map<String, dynamic> item)? onView;
+  final String? tableName;
 
   const DataListView({
     super.key,
@@ -21,6 +22,7 @@ class DataListView extends StatefulWidget {
     required this.onEdit,
     required this.onDelete,
     this.onView,
+    this.tableName,
   });
 
   @override
@@ -103,7 +105,9 @@ class _DataListViewState extends State<DataListView> {
     return false;
   }
 
-  /// Navigue vers la carte et focus sur le point d'intersection
+  // ════════════════════════════════════════════
+// APRÈS
+// ════════════════════════════════════════════
   void _focusOnIntersectionPoint(double? x, double? y, String label) {
     if (x == null || y == null) return;
 
@@ -113,6 +117,7 @@ class _DataListViewState extends State<DataListView> {
     HomePage.pendingFocusTarget = MapFocusTarget.point(
       point: point,
       label: 'Intersection: $label',
+      pointStyle: 'intersection', // ⭐⭐⭐ AJOUTÉ : style intersection (orange)
     );
 
     // Remonter jusqu'à la HomePage (carte)
@@ -395,12 +400,18 @@ class _DataListViewState extends State<DataListView> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // APRÈS
             if (widget.onView != null)
               IconButton(
                 tooltip: 'Voir sur la carte',
-                icon: const Icon(Icons.remove_red_eye_outlined),
+                icon: Icon(Icons.remove_red_eye_outlined, color: Colors.blue.shade700), // ⭐ Couleur BLEUE pour distinguer
                 onPressed: () {
                   final itemCopy = Map<String, dynamic>.from(item);
+                  //  INJECTER le nom de table pour que _goToMapForItem sache quel type de point c'est
+                  if (widget.tableName != null && itemCopy['source_table'] == null) {
+                    itemCopy['source_table'] = widget.tableName;
+                  }
+                  print('👁️ [DataListView] onView appelé pour ${widget.entityType}, table=${widget.tableName}, id=${itemCopy['id']}');
                   widget.onView?.call(itemCopy);
                 },
               ),

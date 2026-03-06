@@ -58,10 +58,16 @@ import '../forms/special_line_form_page.dart';
 import '../forms/formulaire_ligne_page.dart';
 import '../forms/formulaire_chaussee_page.dart';
 import '../forms/polygon_form_page.dart';
-import 'package:flutter_map/flutter_map.dart' show Polygon; // si pas déjà importé
+import 'package:flutter_map/flutter_map.dart' show Polygon;
+import '../../services/special_lines_service.dart';
+import '../../services/displayed_points_service.dart';
 
+// ════════════════════════════════════════════
+// APRÈS
+// ════════════════════════════════════════════
 class MapFocusTarget {
   final String kind; // 'point' | 'polyline'
+  final String pointStyle; // ⭐ 'normal' | 'intersection'
   final LatLng? point;
   final List<LatLng>? polyline;
   final String? label;
@@ -71,6 +77,7 @@ class MapFocusTarget {
     required LatLng this.point,
     this.label,
     this.id,
+    this.pointStyle = 'normal', //  Par défaut = style normal (violet)
   })  : kind = 'point',
         polyline = null;
 
@@ -79,7 +86,8 @@ class MapFocusTarget {
     this.label,
     this.id,
   })  : kind = 'polyline',
-        point = null;
+        point = null,
+        pointStyle = 'normal';
 }
 
 class HomePage extends StatefulWidget {
@@ -1433,6 +1441,9 @@ class _HomePageState extends State<HomePage> {
     print('✅ [_loadDownloadedChaussees] done');
   }
 
+  // ════════════════════════════════════════════
+// APRÈS
+// ════════════════════════════════════════════
   Future<void> _focusOnTarget(MapFocusTarget target) async {
     _autoCenterDisabledByUser = true;
 
@@ -1450,38 +1461,68 @@ class _HomePageState extends State<HomePage> {
         ]),
       );
     } else if (target.kind == 'point' && target.point != null) {
-      focusMarker = Marker(
-        point: target.point!,
-        width: 48,
-        height: 48,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.deepOrange,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.deepOrange.withOpacity(0.5),
-                blurRadius: 12,
-                spreadRadius: 4,
-              ),
-            ],
+      // ⭐⭐⭐ DISTINCTION VISUELLE selon pointStyle ⭐⭐⭐
+      if (target.pointStyle == 'intersection') {
+        // ────────────────────────────────────────────
+        // STYLE INTERSECTION : Cercle orange + icône X
+        // ────────────────────────────────────────────
+        focusMarker = Marker(
+          point: target.point!,
+          width: 48,
+          height: 48,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.deepOrange,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.deepOrange.withOpacity(0.5),
+                  blurRadius: 12,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: const Icon(Icons.close, color: Colors.white, size: 28),
           ),
-          child: const Icon(Icons.close, color: Colors.white, size: 28),
-        ),
-      );
+        );
+      } else {
+        // ────────────────────────────────────────────
+        // STYLE NORMAL (localité, école, etc.) : Cercle violet + icône location
+        // ────────────────────────────────────────────
+        focusMarker = Marker(
+          point: target.point!,
+          width: 52,
+          height: 52,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.deepPurple,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.deepPurple.withOpacity(0.5),
+                  blurRadius: 14,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: const Icon(Icons.location_on, color: Colors.white, size: 30),
+          ),
+        );
+      }
     }
 
-    // ⭐ 1) D'abord ajouter le marqueur
+    // 1) D'abord ajouter le marqueur
     setState(() {
       if (focusPolyline != null) _focusOverlayPolylines.add(focusPolyline);
       if (focusMarker != null) _focusOverlayMarkers.add(focusMarker);
     });
 
-    // ⭐ 2) Attendre un frame pour que le marqueur soit rendu
+    // 2) Attendre un frame pour que le marqueur soit rendu
     await Future.delayed(const Duration(milliseconds: 50));
 
-    // ⭐ 3) Puis bouger la caméra
+    // 3) Puis bouger la caméra
     if (_mapController != null) {
       if (target.kind == 'point' && target.point != null) {
         _mapController!.move(target.point!, 15);
@@ -3262,41 +3303,17 @@ class _HomePageState extends State<HomePage> {
       final List<LatLng> pts = List<LatLng>.from(result['points'] as List<LatLng>);
       final distanceKm = pts.length >= 2 ? polylineDistanceKm(pts) : 0.0;
 
+      // Nettoyer les polylines de collecte
       setState(() {
-        _finishedPistes.add(
-          Polyline<PolylineTapData>(
-            points: pts,
-            color: Colors.brown,
-            strokeWidth: 3.0,
-            pattern: StrokePattern.dotted(spacingFactor: 2.0),
-            hitValue: PolylineTapData(
-              type: 'piste_local',
-              data: {
-                'code_piste': (formResult['code_piste'] ?? result['codePiste'] ?? '').toString(),
-                'nb_points': pts.length,
-                'distance_km': distanceKm,
-                'start_lat': pts.isNotEmpty ? pts.first.latitude : 0.0,
-                'start_lng': pts.isNotEmpty ? pts.first.longitude : 0.0,
-                'end_lat': pts.isNotEmpty ? pts.last.latitude : 0.0,
-                'end_lng': pts.isNotEmpty ? pts.last.longitude : 0.0,
-                'synced': '0',
-                'enqueteur': formResult['user_login'] ?? widget.agentName ?? '',
-                'plateforme': formResult['plateforme'],
-                'relief': formResult['relief'],
-                'vegetation': formResult['vegetation'],
-                'debut_travaux': formResult['debut_travaux'],
-                'fin_travaux': formResult['fin_travaux'],
-                'financement': formResult['financement'],
-                'projet': formResult['projet'],
-                'entreprise': formResult['entreprise'],
-              },
-            ),
-          ),
-        );
+        homeController.collectedPolylines.clear();
+        collectedPolylines.clear();
       });
 
       final storageHelper = SimpleStorageHelper();
-      await storageHelper.saveDisplayedPiste(result['codePiste'], pts, Colors.brown, 3.0);
+      await storageHelper.saveDisplayedPiste(result['codePiste'], pts, Colors.brown, 5.0);
+
+      // Recharger les pistes affichées depuis la base (inclura la nouvelle)
+      await _loadDisplayedPistes();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -3454,7 +3471,7 @@ class _HomePageState extends State<HomePage> {
           Polyline(
             points: pts,
             color: Color(row['color'] as int),
-            strokeWidth: (row['width'] as num).toDouble(),
+            strokeWidth: 5.0,
             pattern: StrokePattern.dotted(spacingFactor: 2.0),
             hitValue: PolylineTapData(
               type: 'piste_local',
@@ -3745,52 +3762,99 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (ctx) {
-        // On limite le nombre d'erreurs affichées
         final errorsToShow = result.errors.take(10).toList();
         final remaining = result.errors.length - errorsToShow.length;
 
+        //  Déterminer le titre et l'icône selon le résultat
+        final bool hasConnectionErrors = result.errors.any((e) => e.contains('connexion perdue') || e.contains('serveur injoignable') || e.contains('Timeout') || e.contains('réseau'));
+
+        final String title;
+        final IconData titleIcon;
+        final Color titleColor;
+
+        if (result.failedCount == 0 && result.successCount > 0) {
+          title = 'Synchronisation réussie';
+          titleIcon = Icons.check_circle;
+          titleColor = Colors.green;
+        } else if (result.successCount > 0 && result.failedCount > 0) {
+          title = 'Synchronisation partielle';
+          titleIcon = Icons.warning_amber;
+          titleColor = Colors.orange;
+        } else if (result.successCount == 0 && result.failedCount > 0) {
+          title = 'Synchronisation échouée';
+          titleIcon = Icons.error;
+          titleColor = Colors.red;
+        } else {
+          title = 'Aucune donnée à synchroniser';
+          titleIcon = Icons.info;
+          titleColor = Colors.blue;
+        }
+
         return AlertDialog(
-          title: const Text('Synchronisation terminée'),
+          title: Row(
+            children: [
+              Icon(titleIcon, color: titleColor, size: 28),
+              const SizedBox(width: 10),
+              Expanded(child: Text(title, style: TextStyle(fontSize: 18))),
+            ],
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('✅ ${result.successCount} succès'),
-                Text('❌ ${result.failedCount} échecs'),
+                //  Compteurs
+                if (result.successCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text('✅ ${result.successCount} donnée(s) synchronisée(s)', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
+                  ),
+                if (result.failedCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text('❌ ${result.failedCount} donnée(s) non synchronisée(s)', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                  ),
 
-                // 💡 Message d'astuce en cas d'échec
-                if (result.failedCount > 0) ...[
+                //  Message explicatif si connexion perdue
+                if (hasConnectionErrors && result.successCount > 0) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: const Text(
+                      '📡 La connexion a été interrompue pendant la synchronisation. '
+                      'Les données déjà envoyées ont été sauvegardées. '
+                      'Relancez la synchronisation pour envoyer le reste.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ] else if (result.failedCount > 0) ...[
                   const SizedBox(height: 8),
                   const Text(
-                    '💡 Vérifiez votre connexion internet ou réessayez plus tard.',
+                    '💡 Vérifiez votre connexion internet et réessayez.',
                   ),
                 ],
 
-                if (errorsToShow.isNotEmpty) ...[
+                //  Détails des erreurs (si pertinent)
+                if (errorsToShow.isNotEmpty && !hasConnectionErrors) ...[
                   const SizedBox(height: 10),
-                  const Text('Détails des erreurs:'),
+                  const Text('Détails des erreurs:', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 5),
-
-                  // On affiche seulement les 10 premières erreurs
                   ...errorsToShow.map(
-                    (e) => Text(
-                      '• $e',
-                      style: const TextStyle(fontSize: 12),
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text('• $e', style: const TextStyle(fontSize: 12)),
                     ),
                   ),
-
-                  // S’il reste encore des erreurs, on ajoute une ligne de résumé
-                  if (remaining > 0) ...[
-                    const SizedBox(height: 5),
+                  if (remaining > 0)
                     Text(
                       '• ... et $remaining autres erreurs.',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
                     ),
-                  ],
                 ],
               ],
             ),
@@ -3799,12 +3863,10 @@ class _HomePageState extends State<HomePage> {
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                // ⭐ Recharger les polylines locales pour refléter synced=1 + région/préfecture/commune
-                _loadDisplayedPistes();
-                _loadDisplayedChaussees();
-                _loadDisplayedPoints();
-                _loadDisplayedPolygons();
-                _loadDisplayedSpecialLines();
+                _loadDownloadedPoints();
+                _loadDownloadedPistes();
+                _loadDownloadedChaussees();
+                _loadDownloadedSpecialLines();
               },
               child: const Text('OK'),
             ),
@@ -4119,7 +4181,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Méthode AVEC Future pour la logique async
-
   Future<void> _performSync() async {
     setState(() {
       isSyncing = true;
@@ -4129,47 +4190,55 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
+      //  PLUS DE .timeout() GLOBAL
+      // Les timeouts sont gérés par item (30s par requête dans ApiService.postData)
       final result = await SyncService().syncAllDataSequential(
         onProgress: (progress, currentOperation, processed, total) {
           double safeProgress = progress.isNaN || progress.isInfinite ? 0.0 : progress.clamp(0.0, 1.0);
           int safeProcessed = processed.isNaN || processed.isInfinite ? 0 : processed;
           int safeTotal = total.isNaN || total.isInfinite ? 1 : total;
 
-          setState(() {
-            _syncProgressValue = safeProgress;
-            _currentSyncOperation = currentOperation;
-            _syncProcessedItems = safeProcessed;
-            _syncTotalItems = safeTotal;
-          });
+          if (mounted) {
+            setState(() {
+              _syncProgressValue = safeProgress;
+              _currentSyncOperation = currentOperation;
+              _syncProcessedItems = safeProcessed;
+              _syncTotalItems = safeTotal;
+            });
+          }
         },
-      )
-          // ⏰ TIMEOUT GLOBAL SUR TOUTE LA SYNCHRO
-          .timeout(const Duration(seconds: 45));
-      final now = DateTime.now();
-      await DatabaseHelper().saveLastSyncTime(now);
+      );
+
+      // Sauvegarder l'heure de synchro (même si partielle)
+      if (result.successCount > 0) {
+        final now = DateTime.now();
+        await DatabaseHelper().saveLastSyncTime(now);
+        if (mounted) {
+          setState(() {
+            _lastSyncTimeText = _formatTimeHHmm(now);
+          });
+        }
+      }
+
       if (mounted) {
         setState(() {
-          _lastSyncTimeText = _formatTimeHHmm(now); // ex: "14:32"
+          lastSyncResult = result;
+          isSyncing = false;
         });
       }
-      setState(() => lastSyncResult = result);
-      setState(() => isSyncing = false);
+
+      //  TOUJOURS afficher le rapport détaillé
       _showSyncResult(result);
-    } on TimeoutException catch (_) {
-      // 🔴 La synchro a mis trop de temps / bloqué
-      setState(() => isSyncing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '⏰ La synchronisation a pris trop de temps. Vérifiez votre connexion et réessayez.',
-          ),
-        ),
-      );
     } catch (e) {
-      setState(() => isSyncing = false);
+      //  Même en cas d'erreur inattendue, essayer de montrer un résultat
+      if (mounted) {
+        setState(() => isSyncing = false);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur: $e'),
+          content: Text('❌ Erreur de synchronisation: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
         ),
       );
     }
@@ -4957,483 +5026,6 @@ String getEntityTypeFromTable(String tableName) {
   return entityTypes[tableName] ?? tableName;
 }
 
-class DisplayedPointsService {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
-
-  Future<List<Marker>> getDisplayedPointsMarkers({
-    required void Function(Map<String, dynamic>) onTapDetails,
-  }) async {
-    try {
-      final points = await _dbHelper.loadDisplayedPoints();
-      final List<Marker> markers = [];
-      final user = await _dbHelper.getCurrentUser();
-      final regionNom = (user?['region_nom'] ?? ApiService.regionNom ?? '----').toString();
-      final prefectureNom = (user?['prefecture_nom'] ?? ApiService.prefectureNom ?? '----').toString();
-      final communeNom = (user?['commune_nom'] ?? ApiService.communeNom ?? '----').toString();
-
-      // Créer les marqueurs avec les icônes (flutter_map utilise des Widgets, pas besoin de cache)
-      for (var point in points) {
-        final pointType = point['point_type'] as String?;
-        if (pointType == "Bac" || pointType == "Passage Submersible") {
-          continue;
-        }
-
-        final table = (point['original_table'] ?? '').toString();
-        final pointName = point['point_name'] as String? ?? 'Sans nom';
-        final typeLabel = getEntityTypeFromTable(table);
-
-        final name = (point['point_name'] ?? point['nom'] ?? 'Sans nom').toString();
-        final codePiste = point['code_piste'] as String? ?? 'N/A';
-        final double lat = (point['latitude'] as num).toDouble();
-        final double lng = (point['longitude'] as num).toDouble();
-
-        markers.add(Marker(
-          point: LatLng(lat, lng),
-          width: 40,
-          height: 40,
-          child: GestureDetector(
-            onTap: () async {
-              final db = await _dbHelper.database;
-              final originalId = point['id'];
-              final originalTable = (point['original_table'] ?? '').toString();
-              String synced = '0';
-              String regionName = '';
-              String prefectureName = '';
-              String communeName = '';
-              String enqueteurFromDb = '';
-
-              if (originalTable.isNotEmpty && originalId != null) {
-                try {
-                  final rows = await db.query(
-                    originalTable,
-                    columns: [
-                      'synced',
-                      'region_name',
-                      'prefecture_name',
-                      'commune_name',
-                      'enqueteur'
-                    ],
-                    where: 'id = ?',
-                    whereArgs: [
-                      originalId
-                    ],
-                    limit: 1,
-                  );
-                  if (rows.isNotEmpty) {
-                    synced = (rows.first['synced'] ?? 0).toString();
-                    regionName = (rows.first['region_name'] ?? '').toString();
-                    prefectureName = (rows.first['prefecture_name'] ?? '').toString();
-                    communeName = (rows.first['commune_name'] ?? '').toString();
-                    enqueteurFromDb = (rows.first['enqueteur'] ?? '').toString();
-                  }
-                } catch (_) {}
-              }
-
-              onTapDetails({
-                'type': getEntityTypeFromTable(table),
-                'name': (point['point_name'] ?? point['nom'] ?? 'Sans nom').toString(),
-                'enqueteur': enqueteurFromDb.isNotEmpty ? enqueteurFromDb : (point['enqueteur'] ?? '').toString(),
-                'code_piste': (codePiste ?? '').toString(),
-                'lat': lat,
-                'lng': lng,
-                'synced': synced,
-                'region_name': regionName,
-                'prefecture_name': prefectureName,
-                'commune_name': communeName,
-              });
-            },
-            child: CustomMarkerIcons.getMarkerWidget(table),
-          ),
-        ));
-      }
-
-      print('📍 ${markers.length} points affichés chargés (cache: ${CustomMarkerIcons.getCacheSize()} icônes)');
-      return markers;
-    } catch (e) {
-      print('❌ Erreur dans getDisplayedPointsMarkers: $e');
-      return [];
-    }
-  }
-
-  Future<List<Marker>> refreshDisplayedPoints({
-    required void Function(Map<String, dynamic>) onTapDetails,
-  }) async {
-    return await getDisplayedPointsMarkers(onTapDetails: onTapDetails);
-  }
-}
-
-// Dans home_page.dart, ajoutez cette classe
-class SpecialLinesService {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
-
-  Future<List<Polyline>> getDisplayedSpecialLines({
-    required void Function(Map<String, dynamic>) onTapDetails,
-  }) async {
-    try {
-      final lines = await _dbHelper.loadDisplayedSpecialLines();
-      final List<Polyline> polylines = [];
-
-      for (var line in lines) {
-        final specialType = (line['special_type'] ?? '').toString();
-// DEBUG
-        print('🔍 Special line type from DB: "$specialType"');
-        print('🔍 toLowerCase: "${specialType.toLowerCase()}"');
-        Color lineColor;
-        StrokePattern? linePattern;
-
-        switch (specialType.toLowerCase()) {
-          case 'bac':
-            lineColor = Colors.purple;
-            linePattern = StrokePattern.dashed(segments: [
-              15,
-              5
-            ]);
-            break;
-          case 'passage submersible':
-            lineColor = Colors.cyan;
-            linePattern = StrokePattern.dashed(segments: [
-              15,
-              5
-            ]);
-            break;
-          default:
-            lineColor = Colors.blueGrey;
-            linePattern = null;
-        }
-
-        final start = LatLng(
-          (line['lat_debut'] as num).toDouble(),
-          (line['lng_debut'] as num).toDouble(),
-        );
-        final end = LatLng(
-          (line['lat_fin'] as num).toDouble(),
-          (line['lng_fin'] as num).toDouble(),
-        );
-// ⭐ Skip les lignes où début == fin (polyline invisible)
-        if (start.latitude == end.latitude && start.longitude == end.longitude) {
-          print('⚠️ Ligne spéciale ignorée (début == fin): $specialType');
-          continue;
-        }
-        // ✅ distance en km (utilise tes méthodes haversine déjà ajoutées)
-        // (tu vas la calculer côté HomePage, pas ici)
-        // Ici on renvoie juste les coords.
-        final st = specialType.toLowerCase().trim();
-        final tag = st.contains('bac')
-            ? 'bac'
-            : st.contains('passage')
-                ? 'passage_submersible'
-                : 'special';
-        final distanceKm = _haversineDistance(start, end);
-
-        // Chercher synced/region dans la vraie table (bacs ou passages_submersibles)
-        String slSynced = '0';
-        String slRegion = '';
-        String slPrefecture = '';
-        String slCommune = '';
-        String slEnqueteur = '';
-        try {
-          final originalTable = (line['original_table'] ?? '').toString();
-          if (originalTable.isNotEmpty) {
-            final slDb = await _dbHelper.database;
-            final slRows = await slDb.query(
-              originalTable,
-              columns: [
-                'synced',
-                'region_name',
-                'prefecture_name',
-                'commune_name',
-                'enqueteur'
-              ],
-              where: 'id = ?',
-              whereArgs: [
-                line['original_id']
-              ],
-              limit: 1,
-            );
-            if (slRows.isNotEmpty) {
-              slSynced = (slRows.first['synced']?.toString() == '1') ? '1' : '0';
-              slRegion = (slRows.first['region_name'] ?? '').toString();
-              slPrefecture = (slRows.first['prefecture_name'] ?? '').toString();
-              slCommune = (slRows.first['commune_name'] ?? '').toString();
-              slEnqueteur = (slRows.first['enqueteur'] ?? '').toString();
-            }
-          }
-        } catch (_) {}
-
-        polylines.add(
-          Polyline(
-            points: [
-              start,
-              end
-            ],
-            color: lineColor,
-            strokeWidth: 4.0,
-            pattern: linePattern ?? const StrokePattern.solid(),
-
-            // ✅ IMPORTANT : PolylineTapData (comme Chaussees)
-            hitValue: PolylineTapData(
-              type: 'special_local',
-              data: {
-                'special_type': specialType,
-                'start_lat': start.latitude,
-                'start_lng': start.longitude,
-                'end_lat': end.latitude,
-                'end_lng': end.longitude,
-                'distance_km': distanceKm,
-                'synced': slSynced,
-                'region_name': slRegion,
-                'prefecture_name': slPrefecture,
-                'commune_name': slCommune,
-                'enqueteur': slEnqueteur,
-              },
-            ),
-          ),
-        );
-      }
-
-      print('📍 ${polylines.length} lignes spéciales chargées');
-      return polylines;
-    } catch (e) {
-      print('❌ Erreur chargement lignes spéciales: $e');
-      return [];
-    }
-  }
-
-  double _haversineDistance(LatLng start, LatLng end) {
-    const double R = 6371; // Rayon de la Terre en km
-    final dLat = (end.latitude - start.latitude) * pi / 180;
-    final dLon = (end.longitude - start.longitude) * pi / 180;
-    final a = sin(dLat / 2) * sin(dLat / 2) + cos(start.latitude * pi / 180) * cos(end.latitude * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
-    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return R * c;
-  }
-}
-
-class DownloadedPointsService {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
-
-  Future<List<Marker>> getDownloadedPointsMarkers({
-    required void Function(Map<String, dynamic>) onTapDetails,
-    void Function(String tableName, Marker marker)? onMarkerCreated,
-  }) async {
-    try {
-      final List<String> pointTables = [
-        'localites',
-        'ecoles',
-        'marches',
-        'services_santes',
-        'batiments_administratifs',
-        'infrastructures_hydrauliques',
-        'autres_infrastructures',
-        'ponts',
-        'buses',
-        'dalots',
-        'points_critiques',
-        'points_coupures',
-        'site_enquete',
-        'enquete_polygone',
-      ];
-
-      final List<Marker> markers = [];
-      final loginId = await DatabaseHelper().resolveLoginId();
-
-      if (loginId == null) {
-        print('❌ [DL-POINTS] Impossible de déterminer login_id (viewer)');
-        return [];
-      }
-      final user = await _dbHelper.getCurrentUser();
-      final regionNom = (user?['region_nom'] ?? ApiService.regionNom ?? '----').toString();
-      final prefectureNom = (user?['prefecture_nom'] ?? ApiService.prefectureNom ?? '----').toString();
-      final communeNom = (user?['commune_nom'] ?? ApiService.communeNom ?? '----').toString();
-
-      // Pré-générer toutes les icônes nécessaires
-      /* final Map<String, Future<BitmapDescriptor>> iconFutures = {};
-      for (var tableName in pointTables) {
-        iconFutures[tableName] = CustomMarkerIcons.getIconForTable(tableName);
-      }
-
-      // Récupérer toutes les icônes en parallèle
-      final Map<String, BitmapDescriptor> icons = {};
-      await Future.wait(
-        iconFutures.entries.map((entry) async {
-          icons[entry.key] = await entry.value;
-        }),
-      );*/
-
-      // Traiter chaque table
-      for (var tableName in pointTables) {
-        try {
-          final db = await _dbHelper.database;
-          final points = await db.query(
-            tableName,
-            where: 'downloaded = ? AND saved_by_user_id = ?',
-            whereArgs: [
-              1,
-              loginId
-            ],
-          );
-
-          for (var point in points) {
-            final coordinates = _getCoordinatesFromPoint(point, tableName);
-
-            if (coordinates['lat'] != null && coordinates['lng'] != null) {
-              final double lat = (coordinates['lat'] as num).toDouble();
-              final double lng = (coordinates['lng'] as num).toDouble();
-              final typeLabel = _getEntityTypeFromTable(tableName);
-              final name = (point['nom'] ?? point['name'] ?? point['libelle'] ?? 'Sans nom').toString();
-
-              final pointName = point['nom'] ?? 'Sans nom';
-              final codePiste = point['code_piste'] ?? 'N/A';
-              final enqueteur = point['enqueteur'] ?? 'Autre utilisateur';
-
-              // Utiliser l'icône du cache
-              // final icon = icons[tableName] ?? await CustomMarkerIcons.getIconForTable(tableName);
-
-              markers.add(
-                Marker(
-                  point: LatLng(lat, lng),
-                  width: 40,
-                  height: 40,
-                  child: GestureDetector(
-                    onTap: () {
-                      onTapDetails({
-                        'type': getEntityTypeFromTable(tableName),
-                        'name': (point['nom'] ?? point['name'] ?? point['libelle'] ?? 'Sans nom').toString(),
-                        'enqueteur': (point['enqueteur'] ?? '').toString(),
-                        'code_piste': (codePiste ?? '').toString(),
-                        'lat': lat,
-                        'lng': lng,
-                        'region_name': (point['region_name'] ?? '').toString(),
-                        'prefecture_name': (point['prefecture_name'] ?? '').toString(),
-                        'commune_name': (point['commune_name'] ?? '').toString(),
-                      });
-                    },
-                    child: CustomMarkerIcons.getMarkerWidget(tableName),
-                  ),
-                ),
-              );
-              // Notifier le callback pour le filtrage par table
-              if (onMarkerCreated != null) {
-                onMarkerCreated(tableName, markers.last);
-              }
-              print('🧮 [DL-POINTS] $tableName count=${points.length} (viewerId=$loginId)');
-            }
-          }
-        } catch (e) {
-          print('❌ Erreur table $tableName: $e');
-        }
-      }
-      print('🧾 [DL-POINTS] viewerId used for filter = $loginId, apiUserId=${ApiService.userId}');
-
-      print('📍 ${markers.length} points téléchargés chargés (cache: ${CustomMarkerIcons.getCacheSize()} icônes)');
-      return markers;
-    } catch (e) {
-      print('❌ Erreur dans getDownloadedPointsMarkers: $e');
-      return [];
-    }
-  }
-
-  Map<String, dynamic> _getCoordinatesFromPoint(
-    Map<String, dynamic> point,
-    String tableName,
-  ) {
-    final coordinateMappings = {
-      'localites': {
-        'lat': 'y_localite',
-        'lng': 'x_localite',
-      },
-      'ecoles': {
-        'lat': 'y_ecole',
-        'lng': 'x_ecole',
-      },
-      'marches': {
-        'lat': 'y_marche',
-        'lng': 'x_marche',
-      },
-      'services_santes': {
-        'lat': 'y_sante',
-        'lng': 'x_sante',
-      },
-      'batiments_administratifs': {
-        'lat': 'y_batiment_administratif',
-        'lng': 'x_batiment_administratif',
-      },
-      'infrastructures_hydrauliques': {
-        'lat': 'y_infrastructure_hydraulique',
-        'lng': 'x_infrastructure_hydraulique',
-      },
-      'autres_infrastructures': {
-        'lat': 'y_autre_infrastructure',
-        'lng': 'x_autre_infrastructure',
-      },
-      'ponts': {
-        'lat': 'y_pont',
-        'lng': 'x_pont',
-      },
-      'buses': {
-        'lat': 'y_buse',
-        'lng': 'x_buse',
-      },
-      'dalots': {
-        'lat': 'y_dalot',
-        'lng': 'x_dalot',
-      },
-      'points_critiques': {
-        'lat': 'y_point_critique',
-        'lng': 'x_point_critique',
-      },
-      'points_coupures': {
-        'lat': 'y_point_coupure',
-        'lng': 'x_point_coupure',
-      },
-      'site_enquete': {
-        'lat': 'y_site',
-        'lng': 'x_site',
-      },
-      'enquete_polygone': {
-        'lat': 'y_site',
-        'lng': 'x_site'
-      }, // pas utilisé (polygone)
-    };
-
-    final mapping = coordinateMappings[tableName];
-    if (mapping != null) {
-      return {
-        'lat': point[mapping['lat']],
-        'lng': point[mapping['lng']],
-      };
-    }
-
-    return {
-      'lat': null,
-      'lng': null,
-    };
-  }
-
-  String _getEntityTypeFromTable(
-    String tableName,
-  ) {
-    const entityTypes = {
-      'localites': 'Localité',
-      'ecoles': 'École',
-      'marches': 'Marché',
-      'services_santes': 'Service de Santé',
-      'batiments_administratifs': 'Bâtiment Administratif',
-      'infrastructures_hydrauliques': 'Infrastructure Hydraulique',
-      'autres_infrastructures': 'Autre Infrastructure',
-      'ponts': 'Pont',
-      'buses': 'Buse',
-      'dalots': 'Dalot',
-      'points_critiques': 'Point Critique',
-      'points_coupures': 'Point de Coupure',
-      'site_enquete': 'Site de Plaine',
-      'enquete_polygone': 'Zone de Plaine',
-    };
-    return entityTypes[tableName] ?? tableName;
-  }
-}
-
-// Dans home_page.dart – Service d’affichage des pistes téléchargées (robuste + logs)
 class DownloadedPistesService {
   final SimpleStorageHelper _storageHelper = SimpleStorageHelper();
 
@@ -5668,7 +5260,7 @@ class DownloadedPistesService {
         final pl = Polyline(
           points: points,
           color: downloadedPisteColor,
-          strokeWidth: 3.0,
+          strokeWidth: 5.0,
           pattern: StrokePattern.dotted(spacingFactor: 2.0),
 
           // ✅ AJOUT IMPORTANT
@@ -5888,133 +5480,6 @@ class DownloadedChausseesService {
       print('❌ [DL-CHAUSSEES] Erreur chargement: $e');
     }
     return polylines.toList();
-  }
-}
-
-class DownloadedSpecialLinesService {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
-
-  Future<List<Polyline>> getDownloadedSpecialLinesPolylines({
-    required void Function(Map<String, dynamic>) onTapDetails,
-  }) async {
-    final polylines = <Polyline>{};
-
-    try {
-      final db = await _dbHelper.database;
-      final loginId = await DatabaseHelper().resolveLoginId();
-
-      if (loginId == null) {
-        print('❌ [DL-SPECIAL] Impossible de déterminer login_id (viewer)');
-        return [];
-      }
-
-      // ✅ change si ton nom de table diffère
-      const tableName = 'special_lines';
-
-      final rows = await db.query(
-        tableName,
-        where: 'downloaded = ? AND saved_by_user_id = ?',
-        whereArgs: [
-          1,
-          loginId
-        ],
-      );
-
-      int added = 0, skipped = 0;
-
-      for (final r in rows) {
-        final id = r['id'];
-
-        final specialTypeRaw = (r['special_type'] ?? r['type'] ?? '').toString();
-        final st = specialTypeRaw.toLowerCase().trim();
-
-        final latDebut = r['lat_debut'];
-        final lngDebut = r['lng_debut'];
-        final latFin = r['lat_fin'];
-        final lngFin = r['lng_fin'];
-
-        if (latDebut == null || lngDebut == null || latFin == null || lngFin == null) {
-          skipped++;
-          continue;
-        }
-
-        final start = LatLng((latDebut as num).toDouble(), (lngDebut as num).toDouble());
-        final end = LatLng((latFin as num).toDouble(), (lngFin as num).toDouble());
-
-        // ✅ tag logique pour la légende
-        final String tag = st.contains('bac') ? 'bac' : (st.contains('passage') ? 'passage_submersible' : 'special');
-
-        // ✅ style comme tes lignes locales
-        Color lineColor;
-        StrokePattern? linePattern;
-
-        if (tag == 'bac') {
-          lineColor = Colors.purple;
-          linePattern = StrokePattern.dashed(segments: [
-            15,
-            5
-          ]);
-        } else if (tag == 'passage_submersible') {
-          lineColor = Colors.cyan;
-          linePattern = StrokePattern.dashed(segments: [
-            15,
-            5
-          ]);
-        } else {
-          lineColor = Colors.blueGrey;
-          linePattern = null;
-        }
-
-        polylines.add(
-          Polyline(
-            points: [
-              start,
-              end
-            ],
-            color: lineColor,
-            strokeWidth: 4.0,
-            pattern: linePattern ?? const StrokePattern.solid(),
-
-            // ✅ AJOUT IMPORTANT
-            hitValue: PolylineTapData(
-              type: 'special_downloaded',
-              data: {
-                'special_type': specialTypeRaw, // ou specialTypeRaw / r['special_type']
-                'start_lat': start.latitude,
-                'start_lng': start.longitude,
-                'end_lat': end.latitude,
-                'end_lng': end.longitude,
-                // si tu veux aussi l’afficher :
-                'code_piste': (r['code_piste'] ?? '----').toString(),
-                // tu peux ajouter distance si tu veux:
-                'distance_km': _haversineDistance(start, end),
-                'region_name': (r['region_name'] ?? '----').toString(),
-                'prefecture_name': (r['prefecture_name'] ?? '----').toString(),
-                'commune_name': (r['commune_name'] ?? '----').toString(),
-                'enqueteur': (r['enqueteur'] ?? '').toString(),
-              },
-            ),
-          ),
-        );
-
-        added++;
-      }
-
-      print('🎯 [DL-SPECIAL] ajoutées: $added | ignorées: $skipped');
-      return polylines.toList();
-    } catch (e) {
-      print('❌ [DL-SPECIAL] Erreur chargement: $e');
-      return [];
-    }
-  }
-
-  double _haversineDistance(LatLng start, LatLng end) {
-    const double R = 6371; // Rayon de la Terre en km
-    final dLat = (end.latitude - start.latitude) * pi / 180;
-    final dLon = (end.longitude - start.longitude) * pi / 180;
-    final a = sin(dLat / 2) * sin(dLat / 2) + cos(start.latitude * pi / 180) * cos(end.latitude * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
-    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return R * c;
   }
 }
 

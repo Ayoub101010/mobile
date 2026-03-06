@@ -1,16 +1,22 @@
-# testapp
+# GeoDNGRCollecte — Application Mobile de Collecte Terrain
 
-A new Flutter project.
+Application Flutter pour la collecte géoréférencée des données de pistes rurales en Guinée.
 
-## Getting Started
+## Fonctionnalités
 
-This project is a starting point for a Flutter application.
+- Authentification en ligne / hors-ligne
+- Collecte GPS de pistes, chaussées, lignes spéciales
+- Formulaires d'infrastructures (localités, écoles, ponts, etc.)
+- Synchronisation bidirectionnelle avec l'API GeoDjango
+- Carte interactive avec flutter_map
 
-A few resources to get you started if this is your first Flutter project:
+## Prérequis
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Flutter SDK >= 3.4.1
+- Android SDK (minSdk 21)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Lancement
+
+flutter clean
+flutter pub get
+flutter run

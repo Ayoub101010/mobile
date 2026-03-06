@@ -39,7 +39,6 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      print('Réponse API brute: ${response.body}');
       final data = jsonDecode(utf8.decode(response.bodyBytes));
 
       // 1. Détecter la source des données utilisateur (objet "user" ou top-level)
@@ -131,8 +130,6 @@ class ApiService {
   static Future<dynamic> postData(String endpoint, Map<String, dynamic> data) async {
     try {
       final url = Uri.parse('$baseUrl/api/$endpoint/');
-      print('🌐 Envoi à $endpoint:');
-      print('   Données: ${jsonEncode(data)}');
 
       final response = await http
           .post(
@@ -145,11 +142,7 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 30));
 
-      print('🌐 Réponse de $endpoint: ${response.statusCode}');
-      print('🌐 Body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ Données envoyées avec succès à $endpoint');
         try {
           return jsonDecode(utf8.decode(response.bodyBytes));
         } catch (e) {
@@ -579,12 +572,12 @@ class ApiService {
         "type": "LineString",
         "coordinates": [
           [
-            localData["y_debut_traversee_bac"],
-            localData["x_debut_traversee_bac"]
+            localData["x_debut_traversee_bac"],
+            localData["y_debut_traversee_bac"]
           ],
           [
-            localData["y_fin_traversee_bac"],
-            localData["x_fin_traversee_bac"]
+            localData["x_fin_traversee_bac"],
+            localData["y_fin_traversee_bac"]
           ]
         ]
       },
@@ -704,12 +697,12 @@ class ApiService {
         'type': 'LineString',
         'coordinates': [
           [
-            localData['y_debut_passage_submersible'],
-            localData['x_debut_passage_submersible']
+            localData['x_debut_passage_submersible'],
+            localData['y_debut_passage_submersible']
           ],
           [
-            localData['y_fin_passage_submersible'],
-            localData['x_fin_passage_submersible']
+            localData['x_fin_passage_submersible'],
+            localData['y_fin_passage_submersible']
           ],
         ]
       },
@@ -924,7 +917,6 @@ class ApiService {
   /// Méthode générique pour récupérer des données
   static Future<List<dynamic>> fetchData(String endpoint) async {
     final url = Uri.parse('$baseUrl/api/$endpoint/?login_id=$userId');
-    print('🌐 Téléchargement $endpoint pour login_id: $userId (RBAC)');
 
     try {
       final response = await http.get(
@@ -933,7 +925,7 @@ class ApiService {
           'Content-Type': 'application/json',
           if (authToken != null) 'Authorization': 'Bearer $authToken',
         },
-      ).timeout(const Duration(seconds: 30)); // ⏰ timeout GET
+      ).timeout(const Duration(seconds: 30)); //  timeout GET
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
@@ -943,13 +935,10 @@ class ApiService {
         throw Exception('Erreur GET ($endpoint): ${response.statusCode}');
       }
     } on TimeoutException catch (e) {
-      print('⏰ Timeout lors du GET $endpoint: $e');
       throw Exception('Timeout GET $endpoint');
     } on SocketException catch (e) {
-      print('📡 Erreur réseau lors du GET $endpoint: $e');
       throw Exception('Erreur réseau GET $endpoint');
     } catch (e) {
-      print('❌ Exception lors de la récupération de $endpoint: $e');
       throw Exception('Erreur inconnue GET $endpoint: $e');
     }
   }
@@ -1043,7 +1032,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-        print('✅ ${data['features']?.length ?? 0} chaussées récupérées');
+
         return data['features'];
       } else {
         print('❌ Erreur GET (chaussees): ${response.statusCode} - ${response.body}');

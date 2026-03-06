@@ -669,10 +669,11 @@ class SyncService {
   }
 
 // Nouvelle méthode pour la synchronisation séquentielle
-  Future<void> _syncTableSequential(String tableName, String apiEndpoint, SyncResult result, {Function(int, int)? onProgress, Function(int)? onComplete}) async {
-    try {
-      List<Map<String, dynamic>> localData;
 
+  Future<void> _syncTableSequential(String tableName, String apiEndpoint, SyncResult result, {Function(int, int)? onProgress, Function(int)? onComplete}) async {
+    List<Map<String, dynamic>> localData;
+
+    try {
       if (tableName == 'pistes') {
         final storageHelper = SimpleStorageHelper();
         localData = await storageHelper.getUnsyncedPistes();
@@ -682,34 +683,50 @@ class SyncService {
       } else {
         localData = await dbHelper.getUnsyncedEntities(tableName);
       }
+    } catch (e) {
+      result.errors.add('$tableName: Impossible de lire les données locales ($e)');
+      result.failedCount++;
+      if (onComplete != null) onComplete(0);
+      return;
+    }
 
-      if (localData.isEmpty) {
-        if (onComplete != null) onComplete(0);
-        return;
+    if (localData.isEmpty) {
+      if (onComplete != null) onComplete(0);
+      return;
+    }
+
+    int successCount = 0;
+    bool connectionLost = false; //  Flag pour détecter la perte de connexion
+
+    for (var i = 0; i < localData.length; i++) {
+      var data = localData[i];
+
+      // Validation piste
+      if (tableName == 'pistes') {
+        final codePiste = data['code_piste']?.toString().trim() ?? '';
+        if (codePiste.isEmpty || codePiste == 'Non spécifié' || codePiste == 'Non spÃ©cifiÃ©') {
+          print('⏭️ Skipping piste ID ${data['id']} - code_piste invalide: "$codePiste"');
+          result.failedCount++;
+          result.errors.add('piste ID ${data['id']}: code_piste invalide');
+          if (onProgress != null) onProgress(i + 1, localData.length);
+          continue;
+        }
       }
 
-      int successCount = 0;
+      //  Si la connexion est déjà perdue, marquer comme échoué sans réessayer
+      if (connectionLost) {
+        result.failedCount++;
+        result.errors.add('$tableName ID ${data['id']}: connexion perdue');
+        if (onProgress != null) onProgress(i + 1, localData.length);
+        continue;
+      }
 
-      for (var i = 0; i < localData.length; i++) {
-        var data = localData[i];
-
-        //  Bloquer uniquement les pistes sans code_piste valide
-        if (tableName == 'pistes') {
-          final codePiste = data['code_piste']?.toString().trim() ?? '';
-          if (codePiste.isEmpty || codePiste == 'Non spécifié' || codePiste == 'Non spÃ©cifiÃ©') {
-            print('⏭️ Skipping piste ID ${data['id']} - code_piste invalide: "$codePiste"');
-            result.failedCount++;
-            result.errors.add('piste ID ${data['id']}: code_piste invalide');
-            if (onProgress != null) onProgress(i + 1, localData.length);
-            continue;
-          }
-        }
-
-        //  UTILISER LA MÊME MÉTHODE QUE POUR LES CHAUSSÉES
-        // Utilisation uniformisée de _sendDataToApi pour récupérer la réponse
+      //  TRY/CATCH PAR ITEM (pas global)
+      try {
         final response = await _sendDataToApi(apiEndpoint, data);
 
         if (response != null && response != false) {
+          // Marquer comme synchronisé
           if (tableName == 'pistes') {
             final storageHelper = SimpleStorageHelper();
             if (response is Map<String, dynamic>) {
@@ -735,25 +752,40 @@ class SyncService {
           result.successCount++;
           print('✅ $tableName ID ${data['id']} synchronisé');
         } else {
+          //  response == null signifie timeout ou erreur réseau dans ApiService
           result.failedCount++;
-          result.errors.add('Échec synchronisation $tableName ID ${data['id']}');
-          print('❌ Échec synchronisation $tableName ID ${data['id']}');
-        }
+          result.errors.add('$tableName ID ${data['id']}: échec envoi (serveur injoignable)');
+          print('❌ Échec $tableName ID ${data['id']} - probablement connexion perdue');
 
-        if (onProgress != null) {
-          onProgress(i + 1, localData.length);
+          //  Marquer la connexion comme perdue pour les items restants
+          connectionLost = true;
         }
+      } catch (e) {
+        result.failedCount++;
+        result.errors.add('$tableName ID ${data['id']}: $e');
+        print('❌ Exception $tableName ID ${data['id']}: $e');
 
-        await Future.delayed(Duration(milliseconds: 100));
+        //  Si c'est une erreur réseau, arrêter d'essayer
+        if (e.toString().contains('SocketException') || e.toString().contains('TimeoutException') || e.toString().contains('réseau') || e.toString().contains('network')) {
+          connectionLost = true;
+          // Marquer tous les items restants comme échoués
+          for (var j = i + 1; j < localData.length; j++) {
+            result.failedCount++;
+            result.errors.add('$tableName ID ${localData[j]['id']}: connexion perdue');
+          }
+          if (onProgress != null) onProgress(localData.length, localData.length);
+          break; // Sortir de la boucle
+        }
       }
 
-      if (onComplete != null) onComplete(successCount);
-    } catch (e) {
-      result.errors.add('$tableName: $e');
-      result.failedCount++;
-      print('❌ Erreur synchronisation $tableName: $e');
-      if (onComplete != null) onComplete(0);
+      if (onProgress != null) {
+        onProgress(i + 1, localData.length);
+      }
+
+      await Future.delayed(const Duration(milliseconds: 100));
     }
+
+    if (onComplete != null) onComplete(successCount);
   }
 
   Future<dynamic> _sendDataToApi(String endpoint, Map<String, dynamic> data) async {

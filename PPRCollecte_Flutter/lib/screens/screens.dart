@@ -1,4 +1,3 @@
-// lib/screens/screens.dart
 // Auth
 export 'auth/login_page.dart';
 
@@ -10,6 +9,7 @@ export 'forms/formulaire_ligne_page.dart';
 export 'forms/formulaire_chaussee_page.dart';
 export 'forms/point_form_screen.dart';
 export 'forms/special_line_form_page.dart';
+export 'forms/polygon_form_page.dart';
 
 // Data
 export 'data/data_subcategories_page.dart';

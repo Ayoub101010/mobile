@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screens/auth/login_page.dart';
-import 'data/local/database_helper.dart';
 
 void main() async {
-  // 1. Initialisation obligatoire pour Flutter
   WidgetsFlutterBinding.ensureInitialized();
-  //await DatabaseHelper().resetAndRecreateDatabase();
-  // 2. Initialisation de la base de données
-
-  // 3. Lancement de l'application
   runApp(const MyApp());
 }
 

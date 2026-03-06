@@ -488,7 +488,8 @@ ON displayed_pistes(login_id, code_piste);
           polylines.add(Polyline(
             points: points,
             color: Color(map['color'] as int),
-            strokeWidth: (map['width'] as int).toDouble(),
+            strokeWidth: (map['width'] as num).toDouble(),
+            pattern: StrokePattern.dotted(spacingFactor: 2.0),
           ));
         }
       }
@@ -1812,15 +1813,12 @@ ON displayed_pistes(login_id, code_piste);
     return degrees * (pi / 180);
   }
 
-  // Dans la classe SimpleStorageHelper
-  // Pour les pistes - même principe que chaussées
   Future<void> deleteDisplayedPiste(int pisteId) async {
     try {
       final db = await database;
       final dbHelper = DatabaseHelper();
       final loginId = await dbHelper.resolveLoginId();
 
-      // ⭐⭐ 1. TROUVER LA PISTE POUR AVOIR SON CODE_PISTE ⭐⭐
       final piste = await db.query('pistes',
           where: 'id = ?',
           whereArgs: [
@@ -1832,15 +1830,16 @@ ON displayed_pistes(login_id, code_piste);
         final codePiste = piste.first['code_piste'] as String?;
 
         if (codePiste != null) {
-          // ⭐⭐ 2. SUPPRIMER TOUTES LES PISTES AFFICHÉES AVEC CE CODE_PISTE ⭐⭐
+          //  supprimer UNIQUEMENT la piste avec ce code_piste
           await db.delete(
             'displayed_pistes',
-            where: 'login_id = ?', // On supprime tout pour l'utilisateur
+            where: 'code_piste = ? AND login_id = ?',
             whereArgs: [
+              codePiste,
               loginId
             ],
           );
-          print('✅ Toutes les pistes affichées supprimées pour rechargement propre');
+          print('✅ Piste affichée supprimée: $codePiste');
         }
       }
     } catch (e) {
