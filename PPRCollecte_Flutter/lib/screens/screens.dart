@@ -15,4 +15,3 @@ export 'forms/polygon_form_page.dart';
 export 'data/data_subcategories_page.dart';
 export 'data/data_categories_display.dart';
 export 'data/data_categories_page.dart';
-export 'data/verification_donnees_page.dart';
