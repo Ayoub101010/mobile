@@ -14,7 +14,7 @@ from .models import (
     ServicesSantes, AutresInfrastructures, Bacs, BatimentsAdministratifs,
     Buses, Dalots, Ecoles, InfrastructuresHydrauliques, Localites,
     Marches, PassagesSubmersibles, Ponts, CommuneRurale, Prefecture, Region, Chaussees,PointsCritiques,PointsCoupures,
-    SiteEnquete, EnquetePolygone
+    SiteEnquete, EnquetePolygone, PasswordResetRequest
 )
 from .serializers import (
     ServicesSantesSerializer, AutresInfrastructuresSerializer, BacsSerializer,
@@ -748,4 +748,63 @@ class UserManagementAPIView(APIView):
                 "message": f"Utilisateur {user_info} supprimé avec succès"
             }, status=status.HTTP_200_OK)
         except Login.DoesNotExist:
-            return Response({"error": "Utilisateur non trouvé"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Utilisateur non trouvé"}, status=status.HTTP_404_NOT_FOUND) 
+        
+
+class PasswordResetRequestAPIView(APIView):
+    """
+    POST : L'agent mobile demande un reset de mot de passe.
+    Crée une entrée dans password_reset_requests visible par le SuperAdmin web.
+    """
+
+    def post(self, request):
+        email = request.data.get('email', '').strip()
+        telephone = request.data.get('telephone', '').strip()
+
+        if not email:
+            return Response(
+                {"error": "L'adresse e-mail est requise."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not telephone:
+            return Response(
+                {"error": "Le numéro de téléphone est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier que l'email existe dans la table login
+        try:
+            user = Login.objects.get(mail=email)
+        except Login.DoesNotExist:
+            return Response(
+                {"error": "Aucun compte associé à cet e-mail."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Vérifier s'il y a déjà une demande pending pour cet utilisateur
+        existing = PasswordResetRequest.objects.filter(
+            login=user, status='pending'
+        ).first()
+
+        if existing:
+            # Mettre à jour le téléphone au cas où il a changé
+            existing.telephone = telephone
+            existing.save(update_fields=['telephone'])
+            return Response(
+                {"message": "Votre demande est déjà en cours de traitement. L'administrateur sera notifié."},
+                status=status.HTTP_200_OK,
+            )
+
+        # Créer la demande
+        PasswordResetRequest.objects.create(
+            login=user,
+            email=email,
+            telephone=telephone,
+            status='pending',
+        )
+
+        return Response(
+            {"message": "Votre demande a été envoyée. L'administrateur vous contactera sur ce numéro."},
+            status=status.HTTP_201_CREATED,
+        )

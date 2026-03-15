@@ -80,7 +80,7 @@ WSGI_APPLICATION = 'pprcollecte.wsgi.application'
 DATABASES = {
     'default': {
        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'DNGR_BDD',
+        'NAME': 'dngr',
         'USER': 'postgres',
         'PASSWORD': 'postgres123',
         'HOST': '127.0.0.1',
@@ -135,26 +135,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 import os
 
-# GDAL/GEOS Configuration — adaptable via variables d'environnement
-GDAL_LIBRARY_PATH = os.environ.get(
-    'GDAL_LIBRARY_PATH',
-    r"C:\Program Files\QGIS 3.40.0\bin\gdal309.dll"
-)
-GEOS_LIBRARY_PATH = os.environ.get(
-    'GEOS_LIBRARY_PATH',
-    r"C:\Program Files\QGIS 3.40.0\bin\geos_c.dll"
-)
-PROJ_LIB = os.environ.get(
-    'PROJ_LIB',
-    r"C:\Program Files\QGIS 3.40.0\share\proj"
-)
+GDAL_LIBRARY_PATH = r"C:\Program Files\QGIS 3.40.0\bin\gdal309.dll"
+GEOS_LIBRARY_PATH = r"C:\Program Files\QGIS 3.40.0\bin\geos_c.dll"
+PROJ_LIB = r"C:\Program Files\QGIS 3.40.0\share\proj"
 
-# Ajouter QGIS au PATH si les chemins par défaut existent
-_qgis_bin = os.environ.get('QGIS_BIN_PATH', r"C:\Program Files\QGIS 3.40.0\bin")
-if os.path.exists(_qgis_bin):
-    os.environ['PATH'] = _qgis_bin + ';' + os.environ['PATH']
+os.environ['PATH'] = r"C:\Program Files\QGIS 3.40.0\bin;" + os.environ['PATH']
+os.environ['PROJ_LIB'] = PROJ_LIB
 
-if PROJ_LIB and os.path.exists(PROJ_LIB):
-    os.environ['PROJ_LIB'] = PROJ_LIB
 
 

@@ -1045,3 +1045,30 @@ class EnquetePolygone(models.Model):
 
     def __str__(self):
         return f"Enquête Polygone {self.id}"
+
+class PasswordResetRequest(models.Model):
+    """Demandes de réinitialisation de mot de passe depuis le mobile"""
+    login = models.ForeignKey(
+        Login,
+        on_delete=models.CASCADE,
+        db_column='login_id',
+        null=True,
+        blank=True,
+    )
+    email = models.TextField()
+    telephone = models.TextField()
+    status = models.TextField(default='pending')  # pending, handled, expired
+    handled_by = models.ForeignKey(
+        Login,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='handled_by',
+        related_name='handled_resets',
+    )
+    handled_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'password_reset_requests'
+        managed = False

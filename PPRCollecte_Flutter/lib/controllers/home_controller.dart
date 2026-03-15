@@ -108,7 +108,7 @@ class HomeController extends ChangeNotifier {
   //  FIN SIMULATION
 
   // méthode pour la simulation spéciale ( Bacs + Passages)
-  /* void addManualPointToSpecialCollection() {
+  void addManualPointToSpecialCollection() {
     if (specialCollection == null || !specialCollection!.isActive) return;
 
     final random = Random();
@@ -135,7 +135,7 @@ class HomeController extends ChangeNotifier {
 
     print('✅ $numberOfPoints points réalistes simulés pour collection spéciale');
     notifyListeners();
-  } */
+  }
 
   /// Appelé lorsque les collectes changent
   // Vérifier que la collection spéciale est bien mise à jour
@@ -196,7 +196,7 @@ class HomeController extends ChangeNotifier {
   }
 
 //  Une methode pour tester les  pistes dans l'emulateur à supprimer après
-  /* void addRealisticPisteSimulation() async {
+  void addRealisticPisteSimulation() async {
     if (!hasActiveCollection) return;
 
     final random = Random();
@@ -244,7 +244,7 @@ class HomeController extends ChangeNotifier {
     );
 
     notifyListeners();
-  } */
+  }
 
   double _haversineDistance(double lat1, double lon1, double lat2, double lon2) {
     const double earthRadius = 6371000.0;

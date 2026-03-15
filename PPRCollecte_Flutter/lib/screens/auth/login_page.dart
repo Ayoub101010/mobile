@@ -228,6 +228,350 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+// ===== NOUVEAU : Dialog "Mot de passe oublié" (version active) =====
+
+  final TextEditingController _resetEmailController = TextEditingController();
+  final TextEditingController _resetPhoneController = TextEditingController();
+  bool _resetLoading = false;
+
+  void _showForgotPasswordDialog() {
+    // Pré-remplir l'email si l'agent l'a déjà saisi
+    _resetEmailController.text = emailController.text.trim();
+    _resetPhoneController.clear();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F2FE),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.lock_reset_rounded,
+                  color: Color(0xFF0284C7),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  "Mot de passe oublié ?",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Remplissez les informations ci-dessous. Votre administrateur sera notifié automatiquement et vous contactera pour vous communiquer votre mot de passe.",
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: Color(0xFF475569),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Champ Email
+                const Text(
+                  "Adresse e-mail",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _resetEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: "votre.email@exemple.com",
+                    prefixIcon: const Icon(Icons.email_rounded, size: 20),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Champ Téléphone
+                const Text(
+                  "Numéro de téléphone",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: _resetPhoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: "+224 6XX XX XX XX",
+                    prefixIcon: const Icon(Icons.phone_rounded, size: 20),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Info box
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Une notification sera envoyée automatiquement à l'administrateur. "
+                          "Il vous appellera sur ce numéro pour vous communiquer votre mot de passe.",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF1E40AF),
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            // Bouton Annuler
+            TextButton(
+              onPressed: _resetLoading ? null : () => Navigator.pop(ctx),
+              child: const Text("Annuler"),
+            ),
+            // Bouton Envoyer
+            ElevatedButton(
+              onPressed: _resetLoading
+                  ? null
+                  : () async {
+                      final email = _resetEmailController.text.trim();
+                      final phone = _resetPhoneController.text.trim();
+
+                      if (email.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Veuillez saisir votre e-mail")),
+                        );
+                        return;
+                      }
+                      if (phone.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Veuillez saisir votre numéro de téléphone")),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => _resetLoading = true);
+
+                      try {
+                        final result = await ApiService.postData(
+                          'password-reset-request',
+                          {
+                            'email': email,
+                            'telephone': phone
+                          },
+                        );
+
+                        if (!context.mounted) return;
+                        Navigator.pop(ctx);
+
+                        _showResetConfirmationDialog(phone);
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Erreur de connexion. Vérifiez votre réseau et réessayez.")),
+                        );
+                      } finally {
+                        if (context.mounted) {
+                          setDialogState(() => _resetLoading = false);
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E3A5F),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: _resetLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      "Envoyer la demande",
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Dialog de confirmation affiché après l'envoi réussi
+  void _showResetConfirmationDialog(String phone) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD1FAE5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF059669),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                "Demande envoyée !",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF059669),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Votre administrateur a été notifié automatiquement.",
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Que va-t-il se passer ?",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Color(0xFF166534),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "• L'administrateur verra votre demande\n"
+                    "• Il vous appellera au $phone\n"
+                    "• Il vous communiquera votre mot de passe",
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: Color(0xFF15803D),
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Text(
+                "Compris, j'attends l'appel",
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   InputDecoration _inputDeco({
     required String hint,
@@ -397,7 +741,7 @@ class _LoginPageState extends State<LoginPage> {
                                   const Text("Se souvenir", style: TextStyle(color: Color(0xFF334155))),
                                   const Spacer(),
                                   TextButton(
-                                    onPressed: () {}, // TODO
+                                    onPressed: () => _showForgotPasswordDialog(),
                                     child: const Text("Mot de passe oublié ?"),
                                   ),
                                 ],
