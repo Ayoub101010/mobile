@@ -649,7 +649,15 @@ class SyncService {
           });
         }
       }
-
+// === SYNC HISTORIQUE DES ACTIONS ===
+      try {
+        if (onProgress != null) {
+          onProgress(processedItems / safeTotalItems, "📋 Synchronisation de l'historique...", processedItems, safeTotalItems);
+        }
+        await _syncActionHistory();
+      } catch (e) {
+        print('⚠️ Erreur sync historique: $e');
+      }
       // POST terminé - pas de téléchargement automatique
       // Le bouton "Sauvegarder" gère le GET séparément
 
@@ -1547,5 +1555,43 @@ class SyncService {
     }
 
     return result;
+  }
+
+  /// Synchronise l'historique des actions locales vers le serveur  (en batch)
+  Future<void> _syncActionHistory() async {
+    final actions = await dbHelper.getUnsyncedActions();
+    if (actions.isEmpty) {
+      print('📋 Aucune action à synchroniser');
+      return;
+    }
+
+    print('📋 ${actions.length} actions à synchroniser');
+
+    // Envoyer en batch (toutes les actions d'un coup)
+    final batch = actions.map((a) {
+      return {
+        'login_id': a['login_id'],
+        'action_type': a['action_type'],
+        'table_name': a['table_name'],
+        'record_id': a['record_id'],
+        'record_label': a['record_label'],
+        'details': a['details'],
+        'source': 'mobile',
+        'created_at': a['created_at'],
+      };
+    }).toList();
+
+    final result = await ApiService.postData('action-history', {
+      'actions': batch
+    });
+
+    if (result != null) {
+      // Marquer comme synchronisées
+      final ids = actions.map((a) => a['id'] as int).toList();
+      await dbHelper.markActionsSynced(ids);
+      print('✅ ${actions.length} actions synchronisées');
+    } else {
+      print('❌ Échec sync historique');
+    }
   }
 }

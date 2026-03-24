@@ -8,7 +8,7 @@ from .views import (
     MarchesListCreateAPIView, PassagesSubmersiblesListCreateAPIView, PontsListCreateAPIView,
     CommunesRuralesListCreateAPIView, PrefecturesListCreateAPIView, RegionsListCreateAPIView,
     UserManagementAPIView,ChausseesListCreateAPIView,PointsCoupuresListCreateAPIView,PointsCritiquesListCreateAPIView,
-    SiteEnqueteListCreateAPIView, EnquetePolygoneListCreateAPIView, PasswordResetRequestAPIView
+    SiteEnqueteListCreateAPIView, EnquetePolygoneListCreateAPIView, PasswordResetRequestAPIView, ActionHistoryBatchAPIView
 )
 from .temporal_views import TemporalAnalysisAPIView
 from .geographic_api import GeographyHierarchyAPIView, ZoomToLocationAPIView
@@ -54,4 +54,5 @@ urlpatterns = [
     path('', include('api.spatial_urls')),
 
     path('api/password-reset-request/', PasswordResetRequestAPIView.as_view(), name='api-password-reset-request'),
+    path('api/action-history/', ActionHistoryBatchAPIView.as_view(), name='api-action-history'),
 ]

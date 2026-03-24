@@ -14,7 +14,7 @@ from .models import (
     ServicesSantes, AutresInfrastructures, Bacs, BatimentsAdministratifs,
     Buses, Dalots, Ecoles, InfrastructuresHydrauliques, Localites,
     Marches, PassagesSubmersibles, Ponts, CommuneRurale, Prefecture, Region, Chaussees,PointsCritiques,PointsCoupures,
-    SiteEnquete, EnquetePolygone, PasswordResetRequest
+    SiteEnquete, EnquetePolygone, PasswordResetRequest, ActionHistory
 )
 from .serializers import (
     ServicesSantesSerializer, AutresInfrastructuresSerializer, BacsSerializer,
@@ -806,5 +806,41 @@ class PasswordResetRequestAPIView(APIView):
 
         return Response(
             {"message": "Votre demande a été envoyée. L'administrateur vous contactera sur ce numéro."},
+            status=status.HTTP_201_CREATED,
+        )
+    
+class ActionHistoryBatchAPIView(APIView):
+    """
+    POST : Recevoir un batch d'actions depuis le mobile.
+    """
+
+    def post(self, request):
+        actions = request.data.get('actions', [])
+
+        if not actions:
+            return Response(
+                {"error": "Aucune action fournie"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        created_count = 0
+        for action in actions:
+            try:
+                ActionHistory.objects.create(
+                    login_id=action.get('login_id'),
+                    action_type=action.get('action_type', ''),
+                    table_name=action.get('table_name'),
+                    record_id=action.get('record_id'),
+                    record_label=action.get('record_label'),
+                    details=action.get('details'),
+                    source='mobile',
+                    synced_from_mobile=True,
+                )
+                created_count += 1
+            except Exception as e:
+                print(f"⚠️ Erreur log action: {e}")
+
+        return Response(
+            {"message": f"{created_count} actions enregistrées"},
             status=status.HTTP_201_CREATED,
         )

@@ -4170,6 +4170,8 @@ class _HomePageState extends State<HomePage> {
 
   // Ajoutez cette méthode pour effectuer la déconnexion
   Future<void> _performLogout() async {
+    // ===== LOG HISTORIQUE : Déconnexion =====
+    await DatabaseHelper().logAction(actionType: 'logout');
     await DatabaseHelper().clearSession();
     ApiService.userId = null;
 

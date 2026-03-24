@@ -553,6 +553,22 @@ ON points_coupures(api_id, saved_by_user_id);
 ''');
 
     await _createEnqueteTables(db);
+    // ============ TABLE ACTION_HISTORY (HISTORIQUE) ============
+    await db.execute('''
+    CREATE TABLE IF NOT EXISTS action_history(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      login_id INTEGER,
+      action_type TEXT NOT NULL,
+      table_name TEXT,
+      record_id INTEGER,
+      record_label TEXT,
+      details TEXT,
+      source TEXT DEFAULT 'mobile',
+      synced INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+    ''');
+    print('✅ Table action_history créée');
     // ============ TABLE TEST ============
     await db.execute('CREATE TABLE IF NOT EXISTS test (id INTEGER)');
     print('✅ Table test créée');
@@ -712,6 +728,63 @@ CREATE TABLE IF NOT EXISTS app_session (
     } catch (e) {
       print('⚠️ Erreur insertion utilisateur: $e');
     }
+  }
+
+// ============ HISTORIQUE DES ACTIONS ============
+
+  /// Enregistre une action dans l'historique local.
+  Future<void> logAction({
+    required String actionType,
+    String? tableName,
+    int? recordId,
+    String? recordLabel,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      final db = await database;
+      final loginId = await resolveLoginId();
+
+      await db.insert('action_history', {
+        'login_id': loginId,
+        'action_type': actionType,
+        'table_name': tableName,
+        'record_id': recordId,
+        'record_label': recordLabel,
+        'details': details != null ? jsonEncode(details) : null,
+        'source': 'mobile',
+        'synced': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      print('📋 Action loguée: $actionType / $tableName / ID:$recordId');
+    } catch (e) {
+      // Ne jamais bloquer l'opération principale si le log échoue
+      print('⚠️ Erreur log action: $e');
+    }
+  }
+
+  /// Récupère les actions non synchronisées
+  Future<List<Map<String, dynamic>>> getUnsyncedActions() async {
+    final db = await database;
+    return await db.query(
+      'action_history',
+      where: 'synced = ?',
+      whereArgs: [
+        0
+      ],
+      orderBy: 'created_at ASC',
+    );
+  }
+
+  /// Marque des actions comme synchronisées
+  Future<void> markActionsSynced(List<int> ids) async {
+    if (ids.isEmpty) return;
+    final db = await database;
+    final placeholders = ids.map((_) => '?').join(',');
+    await db.rawUpdate(
+      'UPDATE action_history SET synced = 1 WHERE id IN ($placeholders)',
+      ids,
+    );
   }
 
   Future<void> _ensureAppSessionTable() async {
@@ -1066,6 +1139,7 @@ CREATE TABLE IF NOT EXISTS app_session (
 
     final id = await db.insert(tableName, userData);
     print("✅ Entité insérée dans $tableName (ID: $id)");
+
     return id;
   }
 

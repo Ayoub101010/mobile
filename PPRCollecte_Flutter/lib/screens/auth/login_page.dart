@@ -85,6 +85,13 @@ class _LoginPageState extends State<LoginPage> {
 
       final fullName = await DatabaseHelper().getAgentFullName(email) ?? 'Utilisateur Local';
 
+// ===== LOG HISTORIQUE : Connexion offline =====
+      await DatabaseHelper().logAction(
+        actionType: 'login',
+        details: {
+          'mode': 'offline'
+        },
+      );
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -196,6 +203,14 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
 
+// ===== LOG HISTORIQUE : Connexion online =====
+      await DatabaseHelper().logAction(
+        actionType: 'login',
+        details: {
+          'mode': 'online',
+          'role': userData['role'] ?? ''
+        },
+      );
       if (!mounted) return;
       Navigator.pushReplacement(
         context,

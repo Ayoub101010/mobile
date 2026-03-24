@@ -646,6 +646,7 @@ ON displayed_pistes(login_id, code_piste);
         final id = await db.insert('chaussees', chaussee.toMap());
 
         print('✅ Chaussée "${chaussee.codePiste}" sauvegardée avec ID: $id');
+
         return id;
       }
     } catch (e) {
@@ -1716,7 +1717,6 @@ ON displayed_pistes(login_id, code_piste);
     }
   }
 
-  // Dans piste_chaussee_db_helper.dart
   Future<void> deleteChaussee(int id) async {
     final db = await database;
     await db.delete(
