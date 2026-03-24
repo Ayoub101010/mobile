@@ -529,7 +529,7 @@ class SyncService {
     }
   }
 
-  // Ajoutez cette méthode pour la synchronisation séquentielle
+  // Une méthode pour la synchronisation séquentielle
   Future<SyncResult> syncAllDataSequential({Function(double, String, int, int)? onProgress}) async {
     final result = SyncResult();
     int totalItems = 0;
@@ -570,6 +570,12 @@ class SyncService {
       totalItems += pisteCount + chausseeCount;
       safeTotalItems = totalItems > 0 ? totalItems : 1; // ← MODIFIER ICI (pas de déclaration)
 
+// ===== LOGGUER LE RÉSUMÉ AVANT DE SYNC =====
+      try {
+        await _logSyncSummary();
+      } catch (e) {
+        print('⚠️ Erreur log sync summary: $e');
+      }
       // === ÉTAPE 2: SYNCHRONISATION DES PISTES (PREMIÈRE) ===
       if (onProgress != null) {
         onProgress(0.0, "🚀 Démarrage synchronisation des PISTES...", 0, safeTotalItems);
@@ -658,6 +664,8 @@ class SyncService {
       } catch (e) {
         print('⚠️ Erreur sync historique: $e');
       }
+
+      // === SYNCHRONISATION TERMINÉE ===
       // POST terminé - pas de téléchargement automatique
       // Le bouton "Sauvegarder" gère le GET séparément
 
@@ -1557,7 +1565,7 @@ class SyncService {
     return result;
   }
 
-  /// Synchronise l'historique des actions locales vers le serveur  (en batch)
+  /// Log un résumé de synchronisation + sync vers le serveur
   Future<void> _syncActionHistory() async {
     final actions = await dbHelper.getUnsyncedActions();
     if (actions.isEmpty) {
@@ -1567,7 +1575,6 @@ class SyncService {
 
     print('📋 ${actions.length} actions à synchroniser');
 
-    // Envoyer en batch (toutes les actions d'un coup)
     final batch = actions.map((a) {
       return {
         'login_id': a['login_id'],
@@ -1586,12 +1593,66 @@ class SyncService {
     });
 
     if (result != null) {
-      // Marquer comme synchronisées
       final ids = actions.map((a) => a['id'] as int).toList();
       await dbHelper.markActionsSynced(ids);
       print('✅ ${actions.length} actions synchronisées');
     } else {
       print('❌ Échec sync historique');
+    }
+  }
+
+  /// Crée UNE action "sync_upload" avec le résumé de ce qui vient d'être sync
+  Future<void> _logSyncSummary() async {
+    try {
+      // Compter ce qui a été synchronisé dans cette session
+      final storageHelper = SimpleStorageHelper();
+      final Map<String, int> summary = {};
+
+      final pisteCount = await storageHelper.getUnsyncedPistesCount();
+      if (pisteCount > 0) summary['pistes'] = pisteCount;
+
+      final chausseeCount = await storageHelper.getUnsyncedChausseesCount();
+      if (chausseeCount > 0) summary['chaussees'] = chausseeCount;
+
+      final tables = [
+        'localites',
+        'ecoles',
+        'marches',
+        'services_santes',
+        'batiments_administratifs',
+        'infrastructures_hydrauliques',
+        'autres_infrastructures',
+        'ponts',
+        'bacs',
+        'buses',
+        'dalots',
+        'passages_submersibles',
+        'points_critiques',
+        'points_coupures',
+        'site_enquete',
+        'enquete_polygone'
+      ];
+
+      for (var table in tables) {
+        final data = await dbHelper.getUnsyncedEntities(table);
+        if (data.isNotEmpty) summary[table] = data.length;
+      }
+
+      if (summary.isEmpty) return; // Rien à sync, pas de log
+
+      final totalItems = summary.values.fold(0, (a, b) => a + b);
+
+      await dbHelper.logAction(
+        actionType: 'sync_upload',
+        details: {
+          'sync_summary': summary,
+          'total_items': totalItems,
+        },
+      );
+
+      print('📋 Résumé sync logué: $summary (total: $totalItems)');
+    } catch (e) {
+      print('⚠️ Erreur log sync summary: $e');
     }
   }
 }
