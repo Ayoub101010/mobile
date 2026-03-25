@@ -4732,7 +4732,7 @@ class _HomePageState extends State<HomePage> {
                     ),
 
                   // === AJOUTEZ ICI === //
-                  Positioned(
+                  /*Positioned(
                     bottom: 200,
                     right: 16,
                     child: Visibility(
@@ -4763,9 +4763,9 @@ class _HomePageState extends State<HomePage> {
                         heroTag: 'dev_button',
                       ),
                     ),
-                  ),
+                  ), */
                   // Ajouter dans la section des boutons de debug
-                  Positioned(
+                  /*Positioned(
                     bottom: 120,
                     right: 16,
                     child: Visibility(
@@ -4796,11 +4796,11 @@ class _HomePageState extends State<HomePage> {
                         heroTag: 'simulate_special_button',
                       ),
                     ),
-                  ),
+                  ),*/
                   //  SIMULATION POLYGONE — À SUPPRIMER APRÈS TEST
                   //  BOUTON SIMULATION ÉMULATEUR — À SUPPRIMER POUR LA PRODUCTION
                   // 🔴🔴🔴 SIMULATION POLYGONE — À SUPPRIMER APRÈS TEST 🔴🔴🔴
-                  if (_isPolygonCollection)
+                  /*if (_isPolygonCollection)
                     Positioned(
                       bottom: 120,
                       right: 16,
@@ -4837,7 +4837,7 @@ class _HomePageState extends State<HomePage> {
                         heroTag: 'simulate_polygon_button',
                         child: const Icon(Icons.pentagon, color: Colors.white),
                       ),
-                    ),
+                    ),*/
 
                   //  FIN SIMULATION
 
